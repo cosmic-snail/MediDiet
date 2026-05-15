@@ -157,6 +157,80 @@ The LLM must not:
 - Recommend food that failed safety checks.
 - Produce patient-facing output without final rule-layer safety validation.
 
+## Use Case Diagrams
+
+The diagrams below clarify which actors interact with the recommendation engine and which workflows belong to the MVP versus later extension phases.
+
+### Patient Next-Meal Recommendation
+
+```mermaid
+flowchart LR
+  patient[Patient]
+  app[Mini-program]
+  engine((Recommendation Engine))
+  photo[Food-photo Recognition]
+  menu[Menu Connector]
+  review[Dietitian Review]
+
+  patient -->|Create or confirm profile| app
+  patient -->|Upload meal photo| app
+  patient -->|Request next-meal recommendation| app
+  app -->|Profile, intake, menu context| engine
+  app -->|Image and meal time| photo
+  photo -->|Estimated intake and confidence| engine
+  menu -->|Candidate menu items and nutrition confidence| engine
+  engine -->|Recommended, downgraded, refused, or review required| app
+  engine -->|High-risk or low-confidence cases| review
+  review -->|Confirm, modify, or reject| engine
+  app -->|Recommendation and explanation| patient
+```
+
+### Dietitian Review and Rule Governance
+
+```mermaid
+flowchart LR
+  dietitian[Dietitian or clinician]
+  admin[Hospital admin]
+  review[Review Console]
+  engine((Recommendation Engine))
+  trace[Recommendation Trace]
+  rules[Versioned Rule Pack]
+  menu[Curated Menu Data]
+
+  dietitian -->|Review queue| review
+  review -->|Trace, risk, rules, scores| trace
+  review -->|Approve, modify, or reject| engine
+  dietitian -->|Correct intake or menu nutrition| menu
+  dietitian -->|Propose rule changes| rules
+  admin -->|Approve rule version and scope| rules
+  rules -->|Hard exclusions, targets, ranking features| engine
+  engine -->|Audit records| trace
+```
+
+### Future Extension Ports
+
+```mermaid
+flowchart LR
+  app[Patient Mini-program]
+  photo[Photo Recognition Provider]
+  delivery[Delivery or Canteen Platform]
+  emr[HIS or EMR Adapter]
+  llm[LLM Provider]
+  rules[Hospital Rule Provider]
+  review[Review Console]
+  audit[Audit Export]
+  engine((Recommendation Engine Core))
+
+  app -->|Recommendation API| engine
+  photo -->|Intake Estimation API| engine
+  delivery -->|Menu Provider API| engine
+  emr -->|Patient Context API| engine
+  llm -->|Explanation and normalization API| engine
+  rules -->|Rule Pack API| engine
+  review -->|Human Review API| engine
+  engine -->|Trace Export API or webhook| audit
+```
+
 ## Data Model
 
 ### PatientProfile
@@ -380,7 +454,7 @@ The engine should degrade safely:
 - If LLM output fails safety validation, regenerate or fall back to rule-only explanation.
 - If external menu APIs fail, return a structured unavailable state rather than hallucinating menu items.
 
-## API Boundary
+## API and Extensibility Boundary
 
 The recommendation engine should expose a clear API boundary so the mini-program, photo-recognition module, delivery-platform connector, and dietitian review console can evolve independently.
 
@@ -409,6 +483,69 @@ Primary response:
   "traceId": ""
 }
 ```
+
+### Extensibility Principles
+
+- Keep the recommendation engine as the stable core. Client products, recognition providers, food delivery platforms, hospital systems, LLM providers, and rule-management tools integrate through adapters.
+- Every external input must carry source, version, timestamp, and confidence or verification status. Missing provenance is treated as uncertainty, not truth.
+- All adapters are replaceable. A hospital can swap a delivery platform connector, photo-recognition model, LLM vendor, or hospital-rule provider without changing core recommendation logic.
+- External services cannot bypass safety gates. Their outputs become evidence for the core engine, not final recommendations.
+- All contracts should be versioned. Breaking changes require a new API version or compatibility adapter.
+- All patient-facing outputs should be traceable to a `RecommendationTrace`.
+
+### Extension Ports
+
+- Patient client API:
+  - Used by the future mini-program.
+  - Submits profile updates, preference updates, meal-photo intake entries, and recommendation requests.
+  - Receives recommendation outcomes, patient explanations, alternatives, and review-pending states.
+- Intake estimation API:
+  - Used by food-photo recognition or manual logging.
+  - Returns food labels, portion estimates, nutrient estimates, confidence, and uncertain fields.
+  - Supports later replacement by a better recognition model or human correction workflow.
+- Menu provider API:
+  - Used by delivery platforms, hospital canteens, or curated menu databases.
+  - Returns candidate dishes, ingredients, taste tags, nutrition labels or estimates, price, distance, availability, merchant reliability, and nutrition provenance.
+  - Normalizes platform-specific menus into the internal `MenuItem` schema.
+- Rule pack API:
+  - Used by the built-in guideline baseline and future hospital-specific rules.
+  - Provides versioned hard exclusions, soft targets, ranking features, applicability rules, evidence sources, and reviewer metadata.
+  - Supports staged rollout, rollback, and hospital-level override.
+- Human review API:
+  - Used by the dietitian review console.
+  - Exposes review queues, recommendation traces, risk reasons, editable recommendations, and final review decisions.
+  - Writes reviewer actions back to the audit trail.
+- Patient context API:
+  - Reserved for future HIS/EMR integration.
+  - Imports diagnoses, allergies, clinician-entered diet orders, lab-informed exclusions, or care-plan constraints when legally and operationally available.
+  - Must distinguish clinician-entered data from patient-entered data.
+- LLM provider API:
+  - Used for explanation generation, food-name normalization, and safe patient Q&A.
+  - Must receive structured rule hits and nutrition facts, not unrestricted authority to decide recommendations.
+  - Outputs must pass final rule-layer validation.
+- Audit export API:
+  - Used by quality-control dashboards, hospital compliance, and future research evaluation.
+  - Exports anonymized or permissioned traces, reviewer actions, model versions, rule versions, and recommendation outcomes.
+
+### Versioning and Backward Compatibility
+
+Each API request should include `schemaVersion`, `sourceSystem`, `sourceVersion`, `requestId`, and timestamp fields. The engine should accept older compatible versions through adapters and reject unsupported versions with an explicit error. Rule packs and recommendation traces must store the exact versions used for a decision.
+
+### Extension Event Stream
+
+The engine should emit domain events for future workflows:
+
+- `RecommendationRequested`.
+- `RecommendationCompleted`.
+- `HumanReviewRequired`.
+- `HumanReviewCompleted`.
+- `PatientPreferenceUpdated`.
+- `IntakeRecordCorrected`.
+- `MenuNutritionAnnotated`.
+- `RulePackPublished`.
+- `RulePackRolledBack`.
+
+These events allow later systems to add notifications, analytics, preference learning, quality-control dashboards, and clinical review workflows without coupling those systems to the core recommendation transaction.
 
 ## Testing Strategy
 
