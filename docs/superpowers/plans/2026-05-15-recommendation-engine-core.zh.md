@@ -119,13 +119,18 @@ git commit -m "feat: scaffold recommendation engine package"
 - 创建：`src/medidiet/domain.py`
 - 修改：`tests/test_domain.py`
 
-- [ ] **Step 1：扩展领域模型测试**
+- [ ] **Step 1：用表驱动概念注册表扩展领域模型测试**
 
 动作：替换 `tests/test_domain.py`，覆盖：
 
-- 患者画像需要关键风险字段确认状态。
-- `Nutrients` 可以累加。
-- `MenuItem` 食材/过敏匹配大小写不敏感。
+- `ConceptRegistry` 能返回已注册的医学概念 code。
+- `ConceptRegistry` 拒绝未知、空值、带空格或大小写不规范的 code。
+- `PatientProfile` 使用 `ConceptCode` 表达疾病、过敏、禁忌和口味偏好。
+- `PatientProfile` 拒绝错误 kind 的 code，例如把 `allergen:peanut` 放进 `conditions`。
+- `PatientProfile` 校验年龄、身高、体重的非法值和边界值。
+- `Nutrients` 支持浮点值和累加。
+- `Nutrients` 拒绝负数、非有限值和明显荒谬的大值。
+- `MenuItem` 使用 code 集合做过敏判断，不依赖字符串大小写匹配。
 - `Outcome.RECOMMENDED.value == "recommended"`。
 
 代码：使用英文执行版 Task 2 Step 1 中的完整代码块。
@@ -144,17 +149,25 @@ PYTHONPATH=src python -m unittest tests.test_domain -v
 
 动作：创建 `src/medidiet/domain.py`，定义：
 
-- `Condition`
+- `CodeKind`
+- `ConceptCode`
+- `ConceptDefinition`
+- `ConceptRegistry`
 - `DataSource`
 - `RiskLevel`
 - `Outcome`
-- `Allergy`
 - `Confidence`
 - `Nutrients`
 - `Preference`
 - `PatientProfile`
 - `IntakeRecord`
 - `MenuItem`
+
+设计约束：
+
+- 医学概念、过敏原、禁忌、营养标签、口味标签和食材标签都使用表驱动 `ConceptCode`。
+- `Outcome`、`RiskLevel`、`DataSource` 这类系统状态仍使用 enum。
+- 外部字符串只能在边界输入和注册表定义中出现，进入领域模型后必须变成已校验 code。
 
 代码：使用英文执行版 Task 2 Step 3 中的完整代码块。
 
@@ -166,7 +179,7 @@ PYTHONPATH=src python -m unittest tests.test_domain -v
 PYTHONPATH=src python -m unittest tests.test_domain -v
 ```
 
-预期：4 个测试通过。
+预期：8 个测试通过。
 
 - [ ] **Step 5：提交**
 

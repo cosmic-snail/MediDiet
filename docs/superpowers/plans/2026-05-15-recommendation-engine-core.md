@@ -134,7 +134,7 @@ git commit -m "feat: scaffold recommendation engine package"
 - Create: `src/medidiet/domain.py`
 - Modify: `tests/test_domain.py`
 
-- [ ] **Step 1: Extend domain tests**
+- [ ] **Step 1: Extend domain tests with a table-driven concept registry**
 
 Replace `tests/test_domain.py` with:
 
@@ -142,9 +142,11 @@ Replace `tests/test_domain.py` with:
 import unittest
 
 from medidiet.domain import (
-    Allergy,
+    CodeKind,
+    ConceptCode,
+    ConceptDefinition,
+    ConceptRegistry,
     Confidence,
-    Condition,
     DataSource,
     MenuItem,
     Nutrients,
@@ -162,39 +164,142 @@ class DomainSmokeTest(unittest.TestCase):
 
 
 class DomainModelTest(unittest.TestCase):
-    def test_patient_profile_requires_confirmed_key_risk_fields(self):
+    def setUp(self):
+        self.registry = ConceptRegistry(
+            [
+                ConceptDefinition(ConceptCode(CodeKind.CONDITION, "hypertension"), "高血压", aliases=("高血压", "hypertension")),
+                ConceptDefinition(ConceptCode(CodeKind.ALLERGEN, "peanut"), "花生", aliases=("花生", "peanut")),
+                ConceptDefinition(ConceptCode(CodeKind.ALLERGEN, "shrimp"), "虾", aliases=("虾", "shrimp")),
+                ConceptDefinition(ConceptCode(CodeKind.CONTRAINDICATION, "high_sodium"), "高钠禁忌"),
+                ConceptDefinition(ConceptCode(CodeKind.TASTE_TAG, "light"), "清淡"),
+                ConceptDefinition(ConceptCode(CodeKind.INGREDIENT, "chicken"), "鸡肉"),
+            ]
+        )
+
+    def test_registry_returns_registered_concept_codes(self):
+        code = self.registry.require(CodeKind.CONDITION, "hypertension")
+
+        self.assertEqual(code.kind, CodeKind.CONDITION)
+        self.assertEqual(code.value, "hypertension")
+        self.assertEqual(self.registry.resolve_alias(CodeKind.ALLERGEN, "花生").value, "peanut")
+
+    def test_registry_rejects_unknown_or_malformed_codes(self):
+        with self.assertRaises(ValueError):
+            self.registry.require(CodeKind.CONDITION, "kidney_disease")
+        with self.assertRaises(ValueError):
+            ConceptCode(CodeKind.CONDITION, "")
+        with self.assertRaises(ValueError):
+            ConceptCode(CodeKind.CONDITION, "High Sodium")
+        with self.assertRaises(ValueError):
+            ConceptCode(CodeKind.CONDITION, " high_sodium")
+
+    def test_patient_profile_uses_concept_codes_for_medical_constraints(self):
+        hypertension = self.registry.require(CodeKind.CONDITION, "hypertension")
+        peanut = self.registry.require(CodeKind.ALLERGEN, "peanut")
+        high_sodium = self.registry.require(CodeKind.CONTRAINDICATION, "high_sodium")
+        light = self.registry.require(CodeKind.TASTE_TAG, "light")
+
         profile = PatientProfile(
             patient_id="p-1",
             age=45,
-            height_cm=170,
-            weight_kg=80,
-            conditions={Condition.HYPERTENSION},
-            allergies={Allergy("peanut")},
-            contraindications={"high_sodium"},
-            preferences=Preference(disliked_ingredients={"cilantro"}, taste_tags={"light"}),
+            height_cm=170.5,
+            weight_kg=80.2,
+            conditions={hypertension},
+            allergens={peanut},
+            contraindications={high_sodium},
+            preferences=Preference(taste_tags={light}),
             key_risk_fields_confirmed=False,
             source=DataSource.PATIENT_REPORTED,
         )
 
         self.assertFalse(profile.key_risk_fields_confirmed)
-        self.assertIn(Condition.HYPERTENSION, profile.conditions)
-        self.assertIn(Allergy("peanut"), profile.allergies)
+        self.assertIn(hypertension, profile.conditions)
+        self.assertIn(peanut, profile.allergens)
+        self.assertIn(high_sodium, profile.contraindications)
+        self.assertIn(light, profile.preferences.taste_tags)
 
-    def test_nutrients_addition(self):
-        total = Nutrients(energy_kcal=100, carbs_g=10, protein_g=5, fat_g=2, sodium_mg=300, sugar_g=1, fiber_g=2)
-        total += Nutrients(energy_kcal=50, carbs_g=5, protein_g=3, fat_g=1, sodium_mg=100, sugar_g=2, fiber_g=1)
+    def test_patient_profile_rejects_wrong_code_kinds(self):
+        peanut = self.registry.require(CodeKind.ALLERGEN, "peanut")
+        hypertension = self.registry.require(CodeKind.CONDITION, "hypertension")
 
-        self.assertEqual(total.energy_kcal, 150)
-        self.assertEqual(total.sodium_mg, 400)
+        with self.assertRaises(TypeError):
+            PatientProfile(
+                patient_id="p-1",
+                age=45,
+                height_cm=170,
+                weight_kg=80,
+                conditions={peanut},
+                allergens=set(),
+                contraindications=set(),
+                preferences=Preference(),
+                key_risk_fields_confirmed=True,
+                source=DataSource.PATIENT_REPORTED,
+            )
+        with self.assertRaises(TypeError):
+            PatientProfile(
+                patient_id="p-1",
+                age=45,
+                height_cm=170,
+                weight_kg=80,
+                conditions={hypertension},
+                allergens={hypertension},
+                contraindications=set(),
+                preferences=Preference(),
+                key_risk_fields_confirmed=True,
+                source=DataSource.PATIENT_REPORTED,
+            )
+
+    def test_patient_profile_rejects_invalid_numeric_boundaries(self):
+        hypertension = self.registry.require(CodeKind.CONDITION, "hypertension")
+
+        for field, value in [("age", -1), ("age", 200), ("height_cm", 0), ("weight_kg", -10)]:
+            payload = dict(
+                patient_id="p-1",
+                age=45,
+                height_cm=170,
+                weight_kg=80,
+                conditions={hypertension},
+                allergens=set(),
+                contraindications=set(),
+                preferences=Preference(),
+                key_risk_fields_confirmed=True,
+                source=DataSource.PATIENT_REPORTED,
+            )
+            payload[field] = value
+            with self.assertRaises(ValueError):
+                PatientProfile(**payload)
+
+    def test_nutrients_accept_float_values_and_add(self):
+        total = Nutrients(energy_kcal=100.5, carbs_g=10.25, protein_g=5.5, fat_g=2, sodium_mg=300.5, sugar_g=1, fiber_g=2)
+        total += Nutrients(energy_kcal=50.25, carbs_g=5.25, protein_g=3, fat_g=1, sodium_mg=100.25, sugar_g=2, fiber_g=1)
+
+        self.assertAlmostEqual(total.energy_kcal, 150.75)
+        self.assertAlmostEqual(total.carbs_g, 15.5)
+        self.assertAlmostEqual(total.sodium_mg, 400.75)
         self.assertEqual(total.sugar_g, 3)
 
-    def test_menu_item_ingredient_and_allergen_matching_is_case_insensitive(self):
+    def test_nutrients_reject_negative_non_finite_and_absurd_values(self):
+        for kwargs in [
+            {"sodium_mg": -1},
+            {"energy_kcal": float("inf")},
+            {"sodium_mg": 1_000_001},
+        ]:
+            with self.assertRaises(ValueError):
+                Nutrients(**kwargs)
+
+    def test_menu_item_allergen_matching_uses_code_sets(self):
+        peanut = self.registry.require(CodeKind.ALLERGEN, "peanut")
+        shrimp = self.registry.require(CodeKind.ALLERGEN, "shrimp")
+        light = self.registry.require(CodeKind.TASTE_TAG, "light")
+        chicken = self.registry.require(CodeKind.INGREDIENT, "chicken")
+
         item = MenuItem(
             item_id="m-1",
             merchant_id="shop-1",
             name="Peanut Chicken Bowl",
-            ingredients={"Chicken", "Peanut"},
-            taste_tags={"savory"},
+            ingredients={chicken},
+            allergens={peanut},
+            taste_tags={light},
             nutrients=Nutrients(energy_kcal=560, carbs_g=55, protein_g=32, fat_g=22, sodium_mg=900, sugar_g=8, fiber_g=4),
             nutrition_confidence=Confidence(0.9),
             source=DataSource.MERCHANT_LABEL,
@@ -203,8 +308,8 @@ class DomainModelTest(unittest.TestCase):
             merchant_reliability=0.8,
         )
 
-        self.assertTrue(item.contains_ingredient("peanut"))
-        self.assertTrue(item.contains_ingredient("PEANUT"))
+        self.assertTrue(item.contains_allergen(peanut))
+        self.assertFalse(item.contains_allergen(shrimp))
         self.assertEqual(Outcome.RECOMMENDED.value, "recommended")
 
 
@@ -231,14 +336,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from math import isfinite
+import re
 
 
-class Condition(str, Enum):
-    HYPERTENSION = "hypertension"
-    DIABETES = "diabetes"
-    HYPERLIPIDEMIA = "hyperlipidemia"
-    WEIGHT_CONTROL = "weight_control"
-    COMPLEX_CLINICAL = "complex_clinical"
+class CodeKind(str, Enum):
+    CONDITION = "condition"
+    ALLERGEN = "allergen"
+    CONTRAINDICATION = "contraindication"
+    NUTRITION_TAG = "nutrition_tag"
+    TASTE_TAG = "taste_tag"
+    INGREDIENT = "ingredient"
 
 
 class DataSource(str, Enum):
@@ -264,19 +372,44 @@ class Outcome(str, Enum):
 
 
 @dataclass(frozen=True)
-class Allergy:
-    name: str
+class ConceptCode:
+    kind: CodeKind
+    value: str
 
-    def normalized(self) -> str:
-        return self.name.strip().lower()
+    def __post_init__(self) -> None:
+        if not isinstance(self.kind, CodeKind):
+            raise TypeError("kind must be a CodeKind")
+        if not isinstance(self.value, str) or not re.fullmatch(r"[a-z][a-z0-9_]*(?::[a-z][a-z0-9_]*)?", self.value):
+            raise ValueError("concept code value must be normalized snake_case")
 
-    def __hash__(self) -> int:
-        return hash(self.normalized())
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Allergy):
-            return False
-        return self.normalized() == other.normalized()
+@dataclass(frozen=True)
+class ConceptDefinition:
+    code: ConceptCode
+    display_name: str
+    aliases: tuple[str, ...] = ()
+    source: str = "baseline"
+
+
+class ConceptRegistry:
+    def __init__(self, definitions: list[ConceptDefinition]):
+        self._definitions = {(definition.code.kind, definition.code.value): definition for definition in definitions}
+        self._aliases: dict[tuple[CodeKind, str], ConceptCode] = {}
+        for definition in definitions:
+            for alias in definition.aliases:
+                self._aliases[(definition.code.kind, alias.strip().lower())] = definition.code
+
+    def require(self, kind: CodeKind, value: str) -> ConceptCode:
+        code = ConceptCode(kind, value)
+        if (code.kind, code.value) not in self._definitions:
+            raise ValueError(f"unknown concept code: {kind.value}:{value}")
+        return code
+
+    def resolve_alias(self, kind: CodeKind, alias: str) -> ConceptCode:
+        normalized = alias.strip().lower()
+        if (kind, normalized) not in self._aliases:
+            raise ValueError(f"unknown alias for {kind.value}: {alias}")
+        return self._aliases[(kind, normalized)]
 
 
 @dataclass(frozen=True)
@@ -284,7 +417,7 @@ class Confidence:
     value: float
 
     def __post_init__(self) -> None:
-        if self.value < 0 or self.value > 1:
+        if not isinstance(self.value, int | float) or not isfinite(self.value) or self.value < 0 or self.value > 1:
             raise ValueError("confidence must be between 0 and 1")
 
     def is_low(self, threshold: float = 0.7) -> bool:
@@ -301,6 +434,10 @@ class Nutrients:
     sugar_g: float = 0
     fiber_g: float = 0
 
+    def __post_init__(self) -> None:
+        for field_name, value in self.__dict__.items():
+            _validate_non_negative_number(field_name, value, maximum=1_000_000)
+
     def __iadd__(self, other: "Nutrients") -> "Nutrients":
         self.energy_kcal += other.energy_kcal
         self.carbs_g += other.carbs_g
@@ -314,13 +451,18 @@ class Nutrients:
 
 @dataclass(frozen=True)
 class Preference:
-    disliked_ingredients: set[str] = field(default_factory=set)
-    taste_tags: set[str] = field(default_factory=set)
+    disliked_ingredients: set[ConceptCode] = field(default_factory=set)
+    taste_tags: set[ConceptCode] = field(default_factory=set)
     max_price_cents: int | None = None
     max_distance_meters: int | None = None
 
-    def dislikes(self, ingredient: str) -> bool:
-        return ingredient.strip().lower() in {item.lower() for item in self.disliked_ingredients}
+    def __post_init__(self) -> None:
+        _validate_code_set("disliked_ingredients", self.disliked_ingredients, CodeKind.INGREDIENT)
+        _validate_code_set("taste_tags", self.taste_tags, CodeKind.TASTE_TAG)
+        if self.max_price_cents is not None:
+            _validate_non_negative_int("max_price_cents", self.max_price_cents)
+        if self.max_distance_meters is not None:
+            _validate_non_negative_int("max_distance_meters", self.max_distance_meters)
 
 
 @dataclass(frozen=True)
@@ -329,12 +471,23 @@ class PatientProfile:
     age: int
     height_cm: float
     weight_kg: float
-    conditions: set[Condition]
-    allergies: set[Allergy]
-    contraindications: set[str]
+    conditions: set[ConceptCode]
+    allergens: set[ConceptCode]
+    contraindications: set[ConceptCode]
     preferences: Preference
     key_risk_fields_confirmed: bool
     source: DataSource
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.age, int) or self.age < 0 or self.age > 130:
+            raise ValueError("age must be an integer between 0 and 130")
+        _validate_non_negative_number("height_cm", self.height_cm, minimum_exclusive=True, maximum=260)
+        _validate_non_negative_number("weight_kg", self.weight_kg, minimum_exclusive=True, maximum=600)
+        _validate_code_set("conditions", self.conditions, CodeKind.CONDITION)
+        _validate_code_set("allergens", self.allergens, CodeKind.ALLERGEN)
+        _validate_code_set("contraindications", self.contraindications, CodeKind.CONTRAINDICATION)
+        if not isinstance(self.source, DataSource):
+            raise TypeError("source must be a DataSource")
 
     @property
     def bmi(self) -> float:
@@ -361,8 +514,9 @@ class MenuItem:
     item_id: str
     merchant_id: str
     name: str
-    ingredients: set[str]
-    taste_tags: set[str]
+    ingredients: set[ConceptCode]
+    allergens: set[ConceptCode]
+    taste_tags: set[ConceptCode]
     nutrients: Nutrients
     nutrition_confidence: Confidence
     source: DataSource
@@ -371,9 +525,43 @@ class MenuItem:
     merchant_reliability: float
     available: bool = True
 
-    def contains_ingredient(self, ingredient: str) -> bool:
-        needle = ingredient.strip().lower()
-        return needle in {item.strip().lower() for item in self.ingredients}
+    def __post_init__(self) -> None:
+        _validate_code_set("ingredients", self.ingredients, CodeKind.INGREDIENT)
+        _validate_code_set("allergens", self.allergens, CodeKind.ALLERGEN)
+        _validate_code_set("taste_tags", self.taste_tags, CodeKind.TASTE_TAG)
+        _validate_non_negative_int("price_cents", self.price_cents)
+        _validate_non_negative_int("distance_meters", self.distance_meters)
+        if not isinstance(self.merchant_reliability, int | float) or not isfinite(self.merchant_reliability) or not 0 <= self.merchant_reliability <= 1:
+            raise ValueError("merchant_reliability must be between 0 and 1")
+
+    def contains_allergen(self, allergen: ConceptCode) -> bool:
+        if allergen.kind != CodeKind.ALLERGEN:
+            raise TypeError("allergen must have kind ALLERGEN")
+        return allergen in self.allergens
+
+
+def _validate_code_set(field_name: str, values: set[ConceptCode], expected_kind: CodeKind) -> None:
+    for value in values:
+        if not isinstance(value, ConceptCode):
+            raise TypeError(f"{field_name} must contain ConceptCode values")
+        if value.kind != expected_kind:
+            raise TypeError(f"{field_name} must contain {expected_kind.value} codes")
+
+
+def _validate_non_negative_number(field_name: str, value: float, minimum_exclusive: bool = False, maximum: float | None = None) -> None:
+    if not isinstance(value, int | float) or not isfinite(value):
+        raise ValueError(f"{field_name} must be a finite number")
+    if minimum_exclusive and value <= 0:
+        raise ValueError(f"{field_name} must be greater than 0")
+    if not minimum_exclusive and value < 0:
+        raise ValueError(f"{field_name} must be non-negative")
+    if maximum is not None and value > maximum:
+        raise ValueError(f"{field_name} is unrealistically large")
+
+
+def _validate_non_negative_int(field_name: str, value: int) -> None:
+    if not isinstance(value, int) or value < 0:
+        raise ValueError(f"{field_name} must be a non-negative integer")
 ```
 
 - [ ] **Step 4: Run the domain tests and verify they pass**
@@ -384,7 +572,7 @@ Run:
 PYTHONPATH=src python -m unittest tests.test_domain -v
 ```
 
-Expected: PASS with four tests.
+Expected: PASS with eight tests.
 
 - [ ] **Step 5: Commit**
 
