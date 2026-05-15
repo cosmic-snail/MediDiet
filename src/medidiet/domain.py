@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import Enum, IntEnum
 from math import isfinite
 
 
@@ -36,6 +36,13 @@ class Outcome(str, Enum):
     DOWNGRADED = "downgraded"
     REFUSED = "refused"
     HUMAN_REVIEW_REQUIRED = "human_review_required"
+
+
+class MealLabel(IntEnum):
+    BREAKFAST = 1
+    LUNCH = 2
+    DINNER = 3
+    SNACK = 4
 
 
 @dataclass(frozen=True)
@@ -169,7 +176,7 @@ class PatientProfile:
 class IntakeRecord:
     food_label: str
     occurred_at: datetime
-    meal_label: str
+    meal_label: MealLabel
     portion: str
     nutrients: Nutrients
     confidence: Confidence
@@ -181,6 +188,8 @@ class IntakeRecord:
             raise TypeError("occurred_at must be a datetime")
         if self.occurred_at.tzinfo is None:
             raise ValueError("occurred_at must be timezone-aware")
+        if not isinstance(self.meal_label, MealLabel):
+            raise TypeError("meal_label must be a MealLabel")
 
 
 @dataclass(frozen=True)

@@ -9,6 +9,7 @@ from medidiet.domain import (
     Confidence,
     DataSource,
     IntakeRecord,
+    MealLabel,
     MenuItem,
     Nutrients,
     PatientProfile,
@@ -101,7 +102,7 @@ class SafetyGateTest(unittest.TestCase):
         intake = IntakeRecord(
             food_label="unknown bowl",
             occurred_at=NOW,
-            meal_label="lunch",
+            meal_label=MealLabel.LUNCH,
             portion="one bowl",
             nutrients=Nutrients(sodium_mg=600),
             confidence=Confidence(0.4),

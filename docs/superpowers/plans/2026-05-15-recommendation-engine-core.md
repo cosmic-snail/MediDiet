@@ -863,36 +863,21 @@ git commit -m "feat: calculate daily nutrition targets"
 ### Task 6: Meal Plan Generator
 
 **Files:**
+- Update: `src/medidiet/domain.py`
 - Create: `src/medidiet/planner.py`
 - Create: `tests/test_planner.py`
 
 - [ ] **Step 1: Write failing planner tests**
 
-Create `tests/test_planner.py`:
+Create `tests/test_planner.py`, using the current file as source of truth. Cover:
 
-```python
-import unittest
-
-from medidiet.nutrition import NextMealTarget
-from medidiet.planner import MealPlanGenerator
-
-
-class MealPlanGeneratorTest(unittest.TestCase):
-    def test_generates_plan_from_target_tags(self):
-        target = NextMealTarget(max_sodium_mg=500, preferred_tags={"low_sodium", "controlled_carbs", "vegetable_rich"}, reasons=["today_sodium_high"])
-
-        plan = MealPlanGenerator().generate(target, meal_time="dinner")
-
-        self.assertEqual(plan.meal_time, "dinner")
-        self.assertIn("low_sodium", plan.required_tags)
-        self.assertIn("controlled_carbs", plan.required_tags)
-        self.assertIn("avoid_extra_sauce", plan.instructions)
-        self.assertIn("today_sodium_high", plan.reasons)
-
-
-if __name__ == "__main__":
-    unittest.main()
-```
+- `MealPlanGenerator` consumes structured `NextMealTarget`.
+- `MealPlan.meal_label` uses `MealLabel(IntEnum)`, not free-text strings.
+- `required_tags` and `avoid_tags` are `ConceptCode` sets, not strings.
+- Per-meal sodium limits add `low_sodium`, avoid `high_sodium`, and add `MealInstruction.AVOID_EXTRA_SAUCE`.
+- Daily or rolling sugar limits add `controlled_carbs`, avoid `sugary_drink`, and add `MealInstruction.CONTROL_ADDED_SUGAR`.
+- `MealInstruction` uses integer enum values.
+- `MealPlan` preserves structured nutrient limits for downstream menu matching.
 
 - [ ] **Step 2: Run tests and verify they fail**
 
@@ -906,55 +891,15 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'medidiet.planner'`.
 
 - [ ] **Step 3: Implement planner**
 
-Create `src/medidiet/planner.py`:
+Update `src/medidiet/domain.py` with `MealLabel(IntEnum)` and require it in `IntakeRecord`.
 
-```python
-from __future__ import annotations
+Create `src/medidiet/planner.py`, using the current file as source of truth. Implement:
 
-from dataclasses import dataclass, field
+- `MealInstruction(IntEnum)`.
+- `MealPlan`.
+- `MealPlanGenerator.generate(...)`.
 
-from medidiet.nutrition import NextMealTarget
-
-
-@dataclass(frozen=True)
-class MealPlan:
-    meal_time: str
-    required_tags: set[str]
-    avoid_tags: set[str]
-    instructions: list[str]
-    reasons: list[str] = field(default_factory=list)
-
-
-class MealPlanGenerator:
-    def generate(self, target: NextMealTarget, meal_time: str) -> MealPlan:
-        required_tags = set(target.preferred_tags)
-        avoid_tags: set[str] = set()
-        instructions: list[str] = []
-
-        if target.max_sodium_mg is not None:
-            required_tags.add("low_sodium")
-            avoid_tags.add("high_sodium")
-            instructions.append("avoid_extra_sauce")
-        if target.max_sugar_g is not None:
-            required_tags.add("controlled_carbs")
-            avoid_tags.add("sugary_drink")
-        if target.max_fat_g is not None:
-            avoid_tags.add("deep_fried")
-        if target.max_energy_kcal is not None:
-            required_tags.add("balanced")
-            avoid_tags.add("oversized_portion")
-
-        required_tags.add("lean_protein")
-        required_tags.add("vegetable_rich")
-
-        return MealPlan(
-            meal_time=meal_time,
-            required_tags=required_tags,
-            avoid_tags=avoid_tags,
-            instructions=instructions,
-            reasons=list(target.reasons),
-        )
-```
+The generator should derive plan tags and instructions from structured `RemainingNutrientLimit` values and use `RulePack.concepts` for all tags.
 
 - [ ] **Step 4: Run planner and full tests**
 

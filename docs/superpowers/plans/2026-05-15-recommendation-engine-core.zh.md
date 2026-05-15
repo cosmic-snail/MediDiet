@@ -417,6 +417,7 @@ git commit -m "feat: calculate daily nutrition targets"
 ## Task 6：餐食方案生成器
 
 **文件：**
+- 更新：`src/medidiet/domain.py`
 - 创建：`src/medidiet/planner.py`
 - 创建：`tests/test_planner.py`
 
@@ -424,12 +425,15 @@ git commit -m "feat: calculate daily nutrition targets"
 
 动作：创建 `tests/test_planner.py`，验证：
 
-- 根据下一餐目标生成 `MealPlan`。
-- 保留用餐时段。
-- 加入低钠、控碳水、蔬菜丰富等 required tags。
-- 当天钠高时加入 `avoid_extra_sauce` 提醒。
+- 根据结构化 `NextMealTarget` 生成 `MealPlan`。
+- `MealPlan.meal_label` 使用 `MealLabel(IntEnum)`，不使用 `"dinner"` 这类自由文本。
+- `required_tags` 和 `avoid_tags` 使用 `ConceptCode` 集合，不使用字符串集合。
+- 单餐钠上限加入 `low_sodium`、避开 `high_sodium`，并加入 `MealInstruction.AVOID_EXTRA_SAUCE`。
+- 每日或滚动窗口糖上限加入 `controlled_carbs`、避开 `sugary_drink`，并加入 `MealInstruction.CONTROL_ADDED_SUGAR`。
+- `MealInstruction` 使用整数枚举。
+- `MealPlan` 保留结构化营养上限，供后续菜单匹配器使用。
 
-代码：使用英文执行版 Task 6 Step 1 中的完整代码块。
+代码：以当前 `tests/test_planner.py` 为准。
 
 - [ ] **Step 2：运行测试，确认失败**
 
@@ -445,10 +449,15 @@ PYTHONPATH=src python -m unittest tests.test_planner -v
 
 动作：创建 `src/medidiet/planner.py`，实现：
 
+- `MealInstruction(IntEnum)`
 - `MealPlan`
 - `MealPlanGenerator.generate(...)`
 
-代码：使用英文执行版 Task 6 Step 3 中的完整代码块。
+同时更新 `src/medidiet/domain.py`，新增 `MealLabel(IntEnum)`，并要求 `IntakeRecord.meal_label` 使用该枚举。
+
+方案生成器根据 `RemainingNutrientLimit` 推导标签和指令，并通过 `RulePack.concepts` 获取全部 `ConceptCode`。
+
+代码：以当前 `src/medidiet/planner.py` 为准。
 
 - [ ] **Step 4：运行方案生成测试和全量测试**
 

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import unittest
 
-from medidiet.domain import CodeKind, Confidence, DataSource, IntakeRecord, Nutrients
+from medidiet.domain import CodeKind, Confidence, DataSource, IntakeRecord, MealLabel, Nutrients
 from medidiet.nutrition import DailyNutritionCalculator, NutritionReason
 from medidiet.rules import LimitScope, NutrientMetric, load_baseline_rule_pack
 
@@ -13,7 +13,7 @@ def intake(food_label, hours_ago, nutrients, confidence=0.9):
     return IntakeRecord(
         food_label=food_label,
         occurred_at=NOW - timedelta(hours=hours_ago),
-        meal_label="snack",
+        meal_label=MealLabel.SNACK,
         portion="one serving",
         nutrients=nutrients,
         confidence=Confidence(confidence),
