@@ -347,6 +347,7 @@ git commit -m "feat: add recommendation safety gate"
 ## Task 5：营养状态和下一餐目标
 
 **文件：**
+- 更新：`src/medidiet/domain.py`
 - 创建：`src/medidiet/nutrition.py`
 - 创建：`tests/test_nutrition.py`
 
@@ -354,10 +355,15 @@ git commit -m "feat: add recommendation safety gate"
 
 动作：创建 `tests/test_nutrition.py`，覆盖：
 
-- 汇总当天摄入的能量、钠等营养数据。
-- 当天钠摄入偏高时，高血压患者下一餐钠目标更严格。
+- 按浮点数汇总当天摄入的能量、钠、糖、碳水等营养数据。
+- 低置信度摄入记录进入 `low_confidence_labels`，但仍计入总量。
+- 下一餐偏好标签使用 `ConceptCode(NUTRITION_TAG, ...)`，不使用字符串集合。
+- `DAILY` 糖上限根据当天已摄入量计算剩余额度。
+- `ROLLING_WINDOW` 糖上限只统计窗口内摄入。
+- `PER_MEAL` 上限直接进入下一餐目标，不扣减当天摄入。
+- `IntakeRecord` 使用 timezone-aware `occurred_at` 和 `meal_label`，不再用自由文本 `meal_time`。
 
-代码：使用英文执行版 Task 5 Step 1 中的完整代码块。
+代码：以当前 `tests/test_nutrition.py` 为准。
 
 - [ ] **Step 2：运行营养测试，确认失败**
 
@@ -373,12 +379,18 @@ PYTHONPATH=src python -m unittest tests.test_nutrition -v
 
 动作：创建 `src/medidiet/nutrition.py`，实现：
 
+- `NutritionReason(IntEnum)`
 - `DailyNutritionState`
+- `RemainingNutrientLimit`
 - `NextMealTarget`
 - `DailyNutritionCalculator.aggregate(...)`
 - `DailyNutritionCalculator.next_meal_target(...)`
 
-代码：使用英文执行版 Task 5 Step 3 中的完整代码块。
+同时更新 `src/medidiet/domain.py` 中的 `IntakeRecord`，将 `meal_time` 升级为 `occurred_at` + `meal_label`，支持每日和滚动窗口计算。
+
+营养计算器消费 `RulePack` 中表驱动的 `NutrientLimit`，返回结构化 `RemainingNutrientLimit`，不再返回分散的 `max_*` 字段。
+
+代码：以当前 `src/medidiet/nutrition.py` 为准。
 
 - [ ] **Step 4：运行营养测试和全量测试**
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from math import isfinite
 
@@ -167,12 +168,19 @@ class PatientProfile:
 @dataclass(frozen=True)
 class IntakeRecord:
     food_label: str
-    meal_time: str
+    occurred_at: datetime
+    meal_label: str
     portion: str
     nutrients: Nutrients
     confidence: Confidence
     source: DataSource
     manually_corrected: bool = False
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.occurred_at, datetime):
+            raise TypeError("occurred_at must be a datetime")
+        if self.occurred_at.tzinfo is None:
+            raise ValueError("occurred_at must be timezone-aware")
 
 
 @dataclass(frozen=True)

@@ -797,48 +797,21 @@ git commit -m "feat: add recommendation safety gate"
 ### Task 5: Nutrition State and Next-Meal Target
 
 **Files:**
+- Update: `src/medidiet/domain.py`
 - Create: `src/medidiet/nutrition.py`
 - Create: `tests/test_nutrition.py`
 
 - [ ] **Step 1: Write failing nutrition tests**
 
-Create `tests/test_nutrition.py`:
+Create `tests/test_nutrition.py`, using the current file as source of truth. Cover:
 
-```python
-import unittest
-
-from medidiet.domain import Condition, Confidence, DataSource, IntakeRecord, Nutrients
-from medidiet.nutrition import DailyNutritionCalculator
-from medidiet.rules import load_baseline_rule_pack
-
-
-class DailyNutritionCalculatorTest(unittest.TestCase):
-    def test_aggregates_today_intake(self):
-        records = [
-            IntakeRecord("rice", "breakfast", "half bowl", Nutrients(energy_kcal=180, carbs_g=40, sodium_mg=20), Confidence(0.9), DataSource.SYSTEM_ESTIMATED),
-            IntakeRecord("braised pork", "lunch", "small plate", Nutrients(energy_kcal=450, fat_g=30, sodium_mg=900), Confidence(0.8), DataSource.SYSTEM_ESTIMATED),
-        ]
-
-        state = DailyNutritionCalculator(load_baseline_rule_pack()).aggregate(records)
-
-        self.assertEqual(state.total.energy_kcal, 630)
-        self.assertEqual(state.total.sodium_mg, 920)
-        self.assertEqual(state.low_confidence_labels, [])
-
-    def test_high_sodium_today_tightens_next_meal_target_for_hypertension(self):
-        records = [
-            IntakeRecord("salty noodles", "lunch", "one bowl", Nutrients(energy_kcal=600, sodium_mg=1600), Confidence(0.85), DataSource.SYSTEM_ESTIMATED),
-        ]
-
-        target = DailyNutritionCalculator(load_baseline_rule_pack()).next_meal_target({Condition.HYPERTENSION}, records)
-
-        self.assertEqual(target.max_sodium_mg, 500)
-        self.assertIn("today_sodium_high", target.reasons)
-
-
-if __name__ == "__main__":
-    unittest.main()
-```
+- Daily intake totals aggregate float nutrient values.
+- Low-confidence records are reported but still counted in totals.
+- Next-meal preferred tags are `ConceptCode(NUTRITION_TAG, ...)`, not strings.
+- `DAILY` sugar limits calculate remaining allowance from same-day intake.
+- `ROLLING_WINDOW` sugar limits count only records inside the configured window.
+- `PER_MEAL` limits carry forward without subtracting daily intake.
+- `IntakeRecord` uses timezone-aware `occurred_at` plus `meal_label` rather than a free-text meal time.
 
 - [ ] **Step 2: Run tests and verify they fail**
 
@@ -852,88 +825,18 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'medidiet.nutrition'`.
 
 - [ ] **Step 3: Implement nutrition calculation**
 
-Create `src/medidiet/nutrition.py`:
+Update `IntakeRecord` in `src/medidiet/domain.py` to store `occurred_at: datetime` and `meal_label: str`, requiring a timezone-aware timestamp.
 
-```python
-from __future__ import annotations
+Create `src/medidiet/nutrition.py`, using the current file as source of truth. Implement:
 
-from dataclasses import dataclass, field
+- `NutritionReason(IntEnum)`.
+- `DailyNutritionState`.
+- `RemainingNutrientLimit`.
+- `NextMealTarget`.
+- `DailyNutritionCalculator.aggregate(...)`.
+- `DailyNutritionCalculator.next_meal_target(...)`.
 
-from medidiet.domain import Condition, IntakeRecord, Nutrients
-from medidiet.rules import RulePack
-
-
-@dataclass(frozen=True)
-class DailyNutritionState:
-    total: Nutrients
-    low_confidence_labels: list[str]
-
-
-@dataclass(frozen=True)
-class NextMealTarget:
-    max_sodium_mg: float | None = None
-    max_sugar_g: float | None = None
-    max_fat_g: float | None = None
-    max_energy_kcal: float | None = None
-    preferred_tags: set[str] = field(default_factory=set)
-    reasons: list[str] = field(default_factory=list)
-
-
-class DailyNutritionCalculator:
-    def __init__(self, rule_pack: RulePack, confidence_threshold: float = 0.7):
-        self.rule_pack = rule_pack
-        self.confidence_threshold = confidence_threshold
-
-    def aggregate(self, records: list[IntakeRecord]) -> DailyNutritionState:
-        total = Nutrients()
-        low_confidence_labels: list[str] = []
-        for record in records:
-            total += record.nutrients
-            if record.confidence.is_low(self.confidence_threshold) and not record.manually_corrected:
-                low_confidence_labels.append(record.food_label)
-        return DailyNutritionState(total=total, low_confidence_labels=low_confidence_labels)
-
-    def next_meal_target(self, conditions: set[Condition], records: list[IntakeRecord]) -> NextMealTarget:
-        state = self.aggregate(records)
-        preferred_tags: set[str] = set()
-        reasons: list[str] = []
-        max_sodium = None
-        max_sugar = None
-        max_fat = None
-        max_energy = None
-
-        for condition in conditions:
-            rule = self.rule_pack.rules_by_condition.get(condition)
-            if not rule:
-                continue
-            preferred_tags.update(rule.preferred_tags)
-            max_sodium = _min_optional(max_sodium, rule.max_sodium_mg_per_meal)
-            max_sugar = _min_optional(max_sugar, rule.max_sugar_g_per_meal)
-            max_fat = _min_optional(max_fat, rule.max_fat_g_per_meal)
-            max_energy = _min_optional(max_energy, rule.max_energy_kcal_per_meal)
-
-        if Condition.HYPERTENSION in conditions and state.total.sodium_mg >= 1500:
-            max_sodium = 500
-            preferred_tags.add("low_sodium")
-            reasons.append("today_sodium_high")
-
-        return NextMealTarget(
-            max_sodium_mg=max_sodium,
-            max_sugar_g=max_sugar,
-            max_fat_g=max_fat,
-            max_energy_kcal=max_energy,
-            preferred_tags=preferred_tags,
-            reasons=reasons,
-        )
-
-
-def _min_optional(current: float | None, candidate: float | None) -> float | None:
-    if candidate is None:
-        return current
-    if current is None:
-        return candidate
-    return min(current, candidate)
-```
+The calculator should consume `RulePack` table-driven `NutrientLimit` entries and return structured remaining limits rather than scattered `max_*` fields.
 
 - [ ] **Step 4: Run nutrition and full tests**
 

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,6 +16,9 @@ from medidiet.domain import (
 )
 from medidiet.rules import LimitScope, NutrientMetric, load_baseline_rule_pack
 from medidiet.safety import SafetyCode, SafetyGate, SafetySeverity
+
+
+NOW = datetime(2026, 5, 15, 12, 0, tzinfo=timezone.utc)
 
 
 def patient(pack, **overrides):
@@ -96,7 +100,8 @@ class SafetyGateTest(unittest.TestCase):
     def test_low_confidence_intake_requires_review_and_warning_log(self):
         intake = IntakeRecord(
             food_label="unknown bowl",
-            meal_time="lunch",
+            occurred_at=NOW,
+            meal_label="lunch",
             portion="one bowl",
             nutrients=Nutrients(sodium_mg=600),
             confidence=Confidence(0.4),
