@@ -739,92 +739,15 @@ git commit -m "feat: add versioned baseline rule pack"
 
 - [ ] **Step 1: Write failing safety tests**
 
-Create `tests/test_safety.py`:
+Create `tests/test_safety.py`, using the current file as source of truth. Cover:
 
-```python
-import unittest
-
-from medidiet.domain import Allergy, Confidence, Condition, DataSource, IntakeRecord, MenuItem, Nutrients, PatientProfile, Preference
-from medidiet.rules import load_baseline_rule_pack
-from medidiet.safety import SafetyGate
-
-
-def patient(**overrides):
-    data = dict(
-        patient_id="p-1",
-        age=55,
-        height_cm=170,
-        weight_kg=82,
-        conditions={Condition.HYPERTENSION},
-        allergies={Allergy("peanut")},
-        contraindications=set(),
-        preferences=Preference(),
-        key_risk_fields_confirmed=True,
-        source=DataSource.PATIENT_REPORTED,
-    )
-    data.update(overrides)
-    return PatientProfile(**data)
-
-
-def menu_item(**overrides):
-    data = dict(
-        item_id="m-1",
-        merchant_id="shop-1",
-        name="Peanut chicken",
-        ingredients={"peanut", "chicken"},
-        taste_tags={"balanced"},
-        nutrients=Nutrients(energy_kcal=500, carbs_g=45, protein_g=30, fat_g=18, sodium_mg=500, sugar_g=5, fiber_g=4),
-        nutrition_confidence=Confidence(0.9),
-        source=DataSource.MERCHANT_LABEL,
-        price_cents=3000,
-        distance_meters=800,
-        merchant_reliability=0.9,
-    )
-    data.update(overrides)
-    return MenuItem(**data)
-
-
-class SafetyGateTest(unittest.TestCase):
-    def setUp(self):
-        self.gate = SafetyGate(load_baseline_rule_pack())
-
-    def test_allergy_match_is_hard_block(self):
-        result = self.gate.evaluate(patient(), [menu_item()])
-
-        self.assertTrue(result.requires_human_review)
-        self.assertIn("allergy:peanut", result.hard_blocks)
-
-    def test_unconfirmed_profile_requires_review(self):
-        result = self.gate.evaluate(patient(key_risk_fields_confirmed=False), [])
-
-        self.assertTrue(result.requires_human_review)
-        self.assertIn("patient_profile_unconfirmed", result.uncertainties)
-
-    def test_low_confidence_intake_requires_review(self):
-        intake = IntakeRecord(
-            food_label="unknown bowl",
-            meal_time="lunch",
-            portion="one bowl",
-            nutrients=Nutrients(sodium_mg=600),
-            confidence=Confidence(0.4),
-            source=DataSource.SYSTEM_ESTIMATED,
-        )
-
-        result = self.gate.evaluate(patient(), [], [intake])
-
-        self.assertTrue(result.requires_human_review)
-        self.assertIn("low_confidence_intake:unknown bowl", result.uncertainties)
-
-    def test_child_patient_is_out_of_scope(self):
-        result = self.gate.evaluate(patient(age=12), [])
-
-        self.assertTrue(result.requires_human_review)
-        self.assertIn("out_of_scope_non_adult", result.hard_blocks)
-
-
-if __name__ == "__main__":
-    unittest.main()
-```
+- Returned safety events use `SafetyCode(IntEnum)` integer codes, not strings or floats.
+- Allergy matches create hard-block events and warning logs.
+- Unconfirmed patient risk fields create uncertainty events and warning logs.
+- Low-confidence intake records create uncertainty events and warning logs.
+- Per-meal nutrient limits create hard-block events and warning logs.
+- Safe candidate loops emit no below-warning logs.
+- Safety logs include timestamp, process id, thread id, integer code, code name, event severity, and rule-pack version.
 
 - [ ] **Step 2: Run tests and verify they fail**
 
@@ -838,70 +761,16 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'medidiet.safety'`.
 
 - [ ] **Step 3: Implement safety gate**
 
-Create `src/medidiet/safety.py`:
+Create `src/medidiet/safety.py`, using the current file as source of truth. Implement:
 
-```python
-from __future__ import annotations
+- `SafetyCode(IntEnum)`.
+- `SafetySeverity(IntEnum)`.
+- `SafetyEvent`.
+- `SafetyResult`.
+- `SafetyGate.evaluate(...)`.
+- Warning-level file logging for each hard block or uncertainty.
 
-from dataclasses import dataclass, field
-
-from medidiet.domain import Condition, IntakeRecord, MenuItem, PatientProfile
-from medidiet.rules import RulePack
-
-
-@dataclass(frozen=True)
-class SafetyResult:
-    hard_blocks: list[str] = field(default_factory=list)
-    uncertainties: list[str] = field(default_factory=list)
-
-    @property
-    def requires_human_review(self) -> bool:
-        return bool(self.hard_blocks or self.uncertainties)
-
-
-class SafetyGate:
-    def __init__(self, rule_pack: RulePack, confidence_threshold: float = 0.7):
-        self.rule_pack = rule_pack
-        self.confidence_threshold = confidence_threshold
-
-    def evaluate(
-        self,
-        patient: PatientProfile,
-        menu_items: list[MenuItem],
-        intake_records: list[IntakeRecord] | None = None,
-    ) -> SafetyResult:
-        hard_blocks: list[str] = []
-        uncertainties: list[str] = []
-        intake_records = intake_records or []
-
-        if not patient.is_adult():
-            hard_blocks.append("out_of_scope_non_adult")
-        if Condition.COMPLEX_CLINICAL in patient.conditions:
-            hard_blocks.append("out_of_scope_complex_clinical")
-        if not patient.key_risk_fields_confirmed:
-            uncertainties.append("patient_profile_unconfirmed")
-
-        for record in intake_records:
-            if record.confidence.is_low(self.confidence_threshold) and not record.manually_corrected:
-                uncertainties.append(f"low_confidence_intake:{record.food_label}")
-
-        for item in menu_items:
-            if item.nutrition_confidence.is_low(self.confidence_threshold):
-                uncertainties.append(f"low_confidence_menu:{item.item_id}")
-            for allergy in patient.allergies:
-                if item.contains_ingredient(allergy.normalized()):
-                    hard_blocks.append(f"allergy:{allergy.normalized()}")
-
-        for condition in patient.conditions:
-            rule = self.rule_pack.rules_by_condition.get(condition)
-            if not rule:
-                continue
-            for contraindication in patient.contraindications:
-                if contraindication in rule.hard_exclusions:
-                    hard_blocks.append(f"contraindication:{condition.value}:{contraindication}")
-
-        return SafetyResult(hard_blocks=hard_blocks, uncertainties=uncertainties)
-```
+Logging must follow `docs/superpowers/specs/2026-05-15-safety-logging-principles.md`.
 
 - [ ] **Step 4: Run safety and full tests**
 

@@ -277,12 +277,15 @@ git commit -m "feat: add versioned baseline rule pack"
 
 动作：创建 `tests/test_safety.py`，覆盖：
 
-- 过敏命中是硬拦截。
-- 患者关键资料未确认时需要人工审核。
-- 低置信度摄入记录需要人工审核。
-- 未成年人超出第一版适用范围。
+- 返回安全事件使用 `SafetyCode(IntEnum)` 整数枚举，不返回裸字符串或浮点 code。
+- 过敏命中是硬拦截，并写入 `WARNING` 日志。
+- 患者关键资料未确认时需要人工审核，并写入 `WARNING` 日志。
+- 低置信度摄入记录需要人工审核，并写入 `WARNING` 日志。
+- 单餐营养上限超限是硬拦截，并写入 `WARNING` 日志。
+- 安全候选循环不输出 `DEBUG` / `INFO` 等低等级逐条日志，避免海量日志。
+- 安全日志包含时间戳、进程号、线程号、整数 code、code name、事件严重性和规则包版本。
 
-代码：使用英文执行版 Task 4 Step 1 中的完整代码块。
+代码：以当前 `tests/test_safety.py` 为准。
 
 - [ ] **Step 2：运行安全测试，确认失败**
 
@@ -298,20 +301,26 @@ PYTHONPATH=src python -m unittest tests.test_safety -v
 
 动作：创建 `src/medidiet/safety.py`，实现：
 
+- `SafetyCode(IntEnum)`
+- `SafetySeverity(IntEnum)`
+- `SafetyEvent`
 - `SafetyResult`
 - `SafetyGate.evaluate(...)`
+- 每个 hard block / uncertainty 的 `WARNING` 文件日志
 
 检查内容：
 
 - 成人范围。
-- 复杂临床场景。
 - 关键风险字段确认状态。
 - 摄入置信度。
 - 菜单营养置信度。
 - 过敏硬拦截。
 - 慢病禁忌冲突。
+- 单餐营养上限。
 
-代码：使用英文执行版 Task 4 Step 3 中的完整代码块。
+日志原则遵循 `docs/superpowers/specs/2026-05-15-safety-logging-principles.md`。
+
+代码：以当前 `src/medidiet/safety.py` 为准。
 
 - [ ] **Step 4：运行安全测试和全量测试**
 
