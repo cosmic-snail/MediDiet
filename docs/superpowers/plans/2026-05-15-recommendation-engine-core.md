@@ -598,34 +598,28 @@ Create `tests/test_rules.py`:
 ```python
 import unittest
 
-from medidiet.domain import Condition
-from medidiet.rules import load_baseline_rule_pack
+from medidiet.domain import CodeKind, ConceptCode
+from medidiet.rules import (
+    ConditionRule,
+    LimitScope,
+    NutrientLimit,
+    NutrientMetric,
+    load_baseline_rule_pack,
+)
 
 
 class RulePackTest(unittest.TestCase):
-    def test_rule_pack_has_version_and_sources(self):
+    def test_rule_pack_has_version_sources_and_registry(self):
         pack = load_baseline_rule_pack()
 
         self.assertEqual(pack.version, "baseline-2026-05-15")
         self.assertGreaterEqual(len(pack.sources), 4)
-        self.assertIn(Condition.HYPERTENSION, pack.rules_by_condition)
+        self.assertEqual(pack.concepts.require(CodeKind.CONDITION, "hypertension").value, "hypertension")
+        self.assertEqual(pack.concepts.require(CodeKind.CONDITION, "diabetes").value, "diabetes")
 
-    def test_hypertension_rule_has_sodium_hard_limit(self):
-        pack = load_baseline_rule_pack()
-        rule = pack.for_condition(Condition.HYPERTENSION)
-
-        self.assertEqual(rule.condition, Condition.HYPERTENSION)
-        self.assertEqual(rule.hard_exclusions, {"high_sodium"})
-        self.assertEqual(rule.max_sodium_mg_per_meal, 700)
-        self.assertIn("low_sodium", rule.preferred_tags)
-
-    def test_diabetes_rule_prefers_controlled_carbs_and_no_sugary_drink(self):
-        pack = load_baseline_rule_pack()
-        rule = pack.for_condition(Condition.DIABETES)
-
-        self.assertEqual(rule.max_sugar_g_per_meal, 12)
-        self.assertIn("controlled_carbs", rule.preferred_tags)
-        self.assertIn("sugary_drink", rule.hard_exclusions)
+    # Full Task 3 tests cover ConceptCode-backed rule lookup, hypertension
+    # per-meal sodium limits, diabetes daily and rolling-window sugar limits,
+    # invalid nutrient limit boundaries, and wrong ConceptCode kinds.
 
 
 if __name__ == "__main__":
@@ -650,8 +644,36 @@ Create `src/medidiet/rules.py`:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
+from math import isfinite
 
-from medidiet.domain import Condition
+from medidiet.domain import CodeKind, ConceptCode, ConceptDefinition, ConceptRegistry
+
+
+class NutrientMetric(str, Enum):
+    ENERGY_KCAL = "energy_kcal"
+    CARBS_G = "carbs_g"
+    FAT_G = "fat_g"
+    SODIUM_MG = "sodium_mg"
+    SUGAR_G = "sugar_g"
+
+
+class LimitScope(str, Enum):
+    PER_MEAL = "per_meal"
+    DAILY = "daily"
+    ROLLING_WINDOW = "rolling_window"
+
+
+@dataclass(frozen=True)
+class NutrientLimit:
+    metric: NutrientMetric
+    scope: LimitScope
+    max_value: float
+    window_hours: int | None = None
+
+    def __post_init__(self) -> None:
+        # ROLLING_WINDOW requires positive window_hours; DAILY/PER_MEAL forbid it.
+        ...
 
 
 @dataclass(frozen=True)
@@ -659,84 +681,32 @@ class RuleSource:
     title: str
     url: str
     version: str
+    note: str = "baseline demo threshold; pending clinician approval"
 
 
 @dataclass(frozen=True)
 class ConditionRule:
-    condition: Condition
-    hard_exclusions: set[str]
-    preferred_tags: set[str]
-    max_sodium_mg_per_meal: float | None = None
-    max_sugar_g_per_meal: float | None = None
-    max_fat_g_per_meal: float | None = None
-    max_energy_kcal_per_meal: float | None = None
+    condition: ConceptCode
+    hard_exclusions: set[ConceptCode]
+    preferred_tags: set[ConceptCode]
+    nutrition_limits: set[NutrientLimit]
 
 
 @dataclass(frozen=True)
 class RulePack:
     version: str
     sources: tuple[RuleSource, ...]
-    rules_by_condition: dict[Condition, ConditionRule]
+    concepts: ConceptRegistry
+    rules_by_condition: dict[ConceptCode, ConditionRule]
 
-    def for_condition(self, condition: Condition) -> ConditionRule:
+    def for_condition(self, condition: ConceptCode) -> ConditionRule:
         return self.rules_by_condition[condition]
 
 
 def load_baseline_rule_pack() -> RulePack:
-    sources = (
-        RuleSource(
-            title="Chinese Dietary Guidelines 2022",
-            url="https://dg.cnsoc.org/article/04/glVJd6DRRCqm-hYzWlEVNQ.html",
-            version="2022",
-        ),
-        RuleSource(
-            title="Adult Hypertension Dietary Guidance 2023",
-            url="https://www.nhc.gov.cn/sps/c100088/202301/f01895a06c5349ef999f25da833c166d.shtml",
-            version="2023",
-        ),
-        RuleSource(
-            title="Adult Diabetes Dietary Guidance 2023",
-            url="https://www.nhc.gov.cn/sps/c100088/202301/f01895a06c5349ef999f25da833c166d.shtml",
-            version="2023",
-        ),
-        RuleSource(
-            title="Adult Hyperlipidemia Dietary Guidance 2023",
-            url="https://www.nhc.gov.cn/cms-search/downFiles/cd496bd490bc4564beeb009c1612eb11.pdf",
-            version="2023",
-        ),
-        RuleSource(
-            title="Adult Obesity Dietary Guidance 2024",
-            url="https://www.nhc.gov.cn/sps/c100088/202312/3fbdf286857a4235be5749ca7a7b2ac9/files/1732845040999_78396.pdf",
-            version="2024",
-        ),
-    )
-    rules = {
-        Condition.HYPERTENSION: ConditionRule(
-            condition=Condition.HYPERTENSION,
-            hard_exclusions={"high_sodium"},
-            preferred_tags={"low_sodium", "steamed", "boiled", "vegetable_rich"},
-            max_sodium_mg_per_meal=700,
-        ),
-        Condition.DIABETES: ConditionRule(
-            condition=Condition.DIABETES,
-            hard_exclusions={"sugary_drink", "dessert"},
-            preferred_tags={"controlled_carbs", "whole_grain", "high_fiber"},
-            max_sugar_g_per_meal=12,
-        ),
-        Condition.HYPERLIPIDEMIA: ConditionRule(
-            condition=Condition.HYPERLIPIDEMIA,
-            hard_exclusions={"deep_fried", "fatty_meat"},
-            preferred_tags={"lean_protein", "vegetable_rich"},
-            max_fat_g_per_meal=25,
-        ),
-        Condition.WEIGHT_CONTROL: ConditionRule(
-            condition=Condition.WEIGHT_CONTROL,
-            hard_exclusions={"oversized_portion"},
-            preferred_tags={"balanced", "high_fiber", "lean_protein"},
-            max_energy_kcal_per_meal=650,
-        ),
-    }
-    return RulePack(version="baseline-2026-05-15", sources=sources, rules_by_condition=rules)
+    # Build baseline ConceptRegistry and ConditionRule table.
+    # Diabetes uses both DAILY and ROLLING_WINDOW sugar limits.
+    ...
 ```
 
 - [ ] **Step 4: Run rule tests and full tests**

@@ -203,11 +203,14 @@ git commit -m "feat: add recommendation domain models"
 动作：创建 `tests/test_rules.py`，覆盖：
 
 - 规则包版本为 `baseline-2026-05-15`。
-- 规则包包含多个来源。
-- 高血压规则包含钠硬限制和 `low_sodium` 偏好标签。
-- 糖尿病规则包含控糖、控碳水和避免含糖饮料。
+- 规则包包含多个来源和内置 `ConceptRegistry`。
+- 规则查询使用 `ConceptCode`，不接收裸字符串。
+- 高血压规则包含 `high_sodium` 硬禁忌、`low_sodium` 偏好标签和单餐钠上限。
+- 糖尿病规则包含每日糖上限、滚动时间窗糖上限、`controlled_carbs` 偏好标签和 `sugary_drink` 硬禁忌。
+- `ROLLING_WINDOW` 必须有正整数 `window_hours`，`DAILY` / `PER_MEAL` 不允许带 `window_hours`。
+- 规则中的条件、禁忌、标签必须使用正确 kind 的 `ConceptCode`。
 
-代码：使用英文执行版 Task 3 Step 1 中的完整代码块。
+代码：使用英文执行版 Task 3 Step 1 中的代码块，并以当前 `tests/test_rules.py` 为准。
 
 - [ ] **Step 2：运行规则测试，确认失败**
 
@@ -224,6 +227,9 @@ PYTHONPATH=src python -m unittest tests.test_rules -v
 动作：创建 `src/medidiet/rules.py`，定义：
 
 - `RuleSource`
+- `NutrientMetric`
+- `LimitScope`
+- `NutrientLimit`
 - `ConditionRule`
 - `RulePack`
 - `load_baseline_rule_pack()`
@@ -235,7 +241,9 @@ PYTHONPATH=src python -m unittest tests.test_rules -v
 - 高血脂。
 - 控重。
 
-代码：使用英文执行版 Task 3 Step 3 中的完整代码块。
+规则包使用表驱动结构：`RulePack.concepts` 保存概念注册表，`rules_by_condition` 以 `ConceptCode(CONDITION, ...)` 为 key，`ConditionRule.nutrition_limits` 保存不同 scope 的营养上限。当前阈值为 baseline/demo thresholds，后续需要医生/营养师审核。
+
+代码：使用英文执行版 Task 3 Step 3 中的代码块，并以当前 `src/medidiet/rules.py` 为准。
 
 - [ ] **Step 4：运行规则测试和全量测试**
 
