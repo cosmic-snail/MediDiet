@@ -848,9 +848,14 @@ git commit -m "feat: add demo fixtures and CLI"
 动作：创建 `tests/test_public_api.py`，验证可以从 `medidiet` 导入：
 
 - `RecommendationEngine`
+- `RecommendationResult`
+- `RulePack`
 - `load_baseline_rule_pack`
+- `medidiet.__all__` 精确列出这四个公共名称。
+- `load_baseline_rule_pack()` 返回 `RulePack`。
+- 可以用公共 API 返回的 rule pack 构造 `RecommendationEngine`。
 
-代码：使用英文执行版 Task 12 Step 1 中的完整代码块。
+代码：以当前 `tests/test_public_api.py` 为准。
 
 - [ ] **Step 2：运行公共 API 测试，确认失败**
 
@@ -860,7 +865,7 @@ git commit -m "feat: add demo fixtures and CLI"
 PYTHONPATH=src python -m unittest tests.test_public_api -v
 ```
 
-预期：失败，出现 `RecommendationEngine` 或 `load_baseline_rule_pack` 的 `ImportError`。
+预期：失败，出现公共 API 导出缺失导致的 `ImportError`。
 
 - [ ] **Step 3：导出稳定公共 API**
 
@@ -896,7 +901,7 @@ git status --short
 运行：
 
 ```bash
-git add src/medidiet/__init__.py tests/test_public_api.py
+git add docs/superpowers/plans/2026-05-15-recommendation-engine-core.md docs/superpowers/plans/2026-05-15-recommendation-engine-core.zh.md src/medidiet/__init__.py tests/test_public_api.py
 git commit -m "feat: expose recommendation engine public API"
 ```
 

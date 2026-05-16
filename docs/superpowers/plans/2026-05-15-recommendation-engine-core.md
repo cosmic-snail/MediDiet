@@ -1256,23 +1256,14 @@ git commit -m "feat: add demo fixtures and CLI"
 
 - [ ] **Step 1: Write failing public API test**
 
-Create `tests/test_public_api.py`:
+Create `tests/test_public_api.py` verifying:
 
-```python
-import unittest
+- `RecommendationEngine`, `RecommendationResult`, `RulePack`, and `load_baseline_rule_pack` can be imported from `medidiet`.
+- `medidiet.__all__` exactly lists those four public names.
+- `load_baseline_rule_pack()` returns a `RulePack`.
+- `RecommendationEngine(rule_pack)` can be constructed from the public API.
 
-
-class PublicApiTest(unittest.TestCase):
-    def test_engine_exports_are_available(self):
-        from medidiet import RecommendationEngine, load_baseline_rule_pack
-
-        self.assertTrue(callable(load_baseline_rule_pack))
-        self.assertEqual(RecommendationEngine.__name__, "RecommendationEngine")
-
-
-if __name__ == "__main__":
-    unittest.main()
-```
+Code: use the current `tests/test_public_api.py` as source of truth.
 
 - [ ] **Step 2: Run public API test and verify it fails**
 
@@ -1282,7 +1273,7 @@ Run:
 PYTHONPATH=src python -m unittest tests.test_public_api -v
 ```
 
-Expected: FAIL with `ImportError` for `RecommendationEngine` or `load_baseline_rule_pack`.
+Expected: FAIL with `ImportError` for the missing public API exports.
 
 - [ ] **Step 3: Export stable public API**
 
@@ -1326,7 +1317,7 @@ Expected:
 Run:
 
 ```bash
-git add src/medidiet/__init__.py tests/test_public_api.py
+git add docs/superpowers/plans/2026-05-15-recommendation-engine-core.md docs/superpowers/plans/2026-05-15-recommendation-engine-core.zh.md src/medidiet/__init__.py tests/test_public_api.py
 git commit -m "feat: expose recommendation engine public API"
 ```
 
