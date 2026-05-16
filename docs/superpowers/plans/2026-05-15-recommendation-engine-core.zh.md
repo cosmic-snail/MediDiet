@@ -564,11 +564,15 @@ git commit -m "feat: match and rank safe menu items"
 
 动作：创建 `tests/test_explainer_trace.py`，覆盖：
 
-- 患者解释包含低钠、控主食等友好说明。
-- 患者解释不包含药物调整建议。
-- `RecommendationTrace.to_json()` 可序列化，并包含 `traceId`、`outcome`、`ruleVersion`。
+- 患者解释由 `ConceptCode` 标签和 `MealInstruction` 确定性生成中文说明。
+- 患者解释不包含药物调整、诊断结论或治疗建议。
+- 医生/营养师解释返回结构化 dict，包含整数安全事件 code、排除 code、规则版本、评分和命中标签。
+- 医生/营养师解释包含 `llmBoundary`，明确解释只能基于规则命中、营养事实和候选评分。
+- `RecommendationTrace.to_json()` 可序列化稳定 camelCase 字段：`traceId`、`patientId`、`ruleVersion`、`outcome`、`riskLevel`、`createdAt`、`safetyEvents`、`exclusions`。
+- trace 中安全事件和排除原因保存整数 code，不保存字符串原因。
+- trace 不接受患者姓名、手机号、照片 URI 等敏感字段。
 
-代码：使用英文执行版 Task 8 Step 1 中的完整代码块。
+代码：以当前 `tests/test_explainer_trace.py` 为准。
 
 - [ ] **Step 2：运行测试，确认失败**
 
@@ -591,10 +595,13 @@ PYTHONPATH=src python -m unittest tests.test_explainer_trace -v
 
 - `ExplanationBuilder.patient_explanation(...)`
 - `ExplanationBuilder.clinician_explanation(...)`
+- `SafetyEvent`、`MatchRejection`、`ConceptCode` 的结构化转换 helper。
 - `RecommendationTrace.to_dict()`
 - `RecommendationTrace.to_json()`
 
-代码：使用英文执行版 Task 8 Step 3 中的完整代码块。
+患者侧解释保持确定性模板，不依赖 LLM；trace 序列化不包含敏感患者身份字段。
+
+代码：以当前 `src/medidiet/explainer.py` 和 `src/medidiet/trace.py` 为准。
 
 - [ ] **Step 4：运行解释/trace 测试和全量测试**
 

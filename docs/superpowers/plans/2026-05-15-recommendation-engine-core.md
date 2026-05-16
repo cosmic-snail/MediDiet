@@ -1000,52 +1000,15 @@ git commit -m "feat: match and rank safe menu items"
 
 - [ ] **Step 1: Write failing explanation and trace tests**
 
-Create `tests/test_explainer_trace.py`:
+Create `tests/test_explainer_trace.py`, using the current file as source of truth. Cover:
 
-```python
-import json
-import unittest
-
-from medidiet.domain import Outcome, RiskLevel
-from medidiet.explainer import ExplanationBuilder
-from medidiet.trace import RecommendationTrace
-
-
-class ExplanationTraceTest(unittest.TestCase):
-    def test_patient_explanation_is_plain_and_safe(self):
-        explanation = ExplanationBuilder().patient_explanation(
-            outcome=Outcome.RECOMMENDED,
-            reasons=["low_sodium", "controlled_carbs"],
-            cautions=["avoid_extra_sauce"],
-        )
-
-        self.assertIn("钠", explanation)
-        self.assertIn("主食", explanation)
-        self.assertNotIn("调整药物", explanation)
-
-    def test_trace_serializes_decision_context(self):
-        trace = RecommendationTrace(
-            trace_id="trace-1",
-            rule_version="baseline-2026-05-15",
-            outcome=Outcome.HUMAN_REVIEW_REQUIRED,
-            risk_level=RiskLevel.HIGH,
-            rule_hits=["allergy:peanut"],
-            exclusions={"m-1": "allergy:peanut"},
-            scores={"m-2": 88.0},
-            patient_explanation="需要营养师确认。",
-            clinician_explanation={"reason": "allergy"},
-        )
-
-        payload = json.loads(trace.to_json())
-
-        self.assertEqual(payload["traceId"], "trace-1")
-        self.assertEqual(payload["outcome"], "human_review_required")
-        self.assertEqual(payload["ruleVersion"], "baseline-2026-05-15")
-
-
-if __name__ == "__main__":
-    unittest.main()
-```
+- Patient explanations are deterministic Chinese text generated from `ConceptCode` tags and `MealInstruction` values.
+- Patient explanations do not include medication adjustment, diagnosis, or treatment advice.
+- Clinician explanations are structured dictionaries with integer safety and rejection codes.
+- Clinician explanations include rule version, safety events, exclusions, scores, matched tags, and an `llmBoundary`.
+- `RecommendationTrace.to_json()` serializes stable camelCase fields, including `traceId`, `patientId`, `ruleVersion`, `outcome`, `riskLevel`, `createdAt`, `safetyEvents`, and `exclusions`.
+- Trace safety events and exclusions store integer codes, not string reasons.
+- Trace does not accept sensitive fields such as patient name, phone number, or photo URI.
 
 - [ ] **Step 2: Run tests and verify they fail**
 
@@ -1059,80 +1022,15 @@ Expected: FAIL with `ModuleNotFoundError` for `medidiet.explainer` or `medidiet.
 
 - [ ] **Step 3: Implement explanation builder and trace**
 
-Create `src/medidiet/explainer.py`:
+Create `src/medidiet/explainer.py` and `src/medidiet/trace.py`, using the current files as source of truth. Implement:
 
-```python
-from __future__ import annotations
+- `ExplanationBuilder.patient_explanation(...)`.
+- `ExplanationBuilder.clinician_explanation(...)`.
+- Structured conversion helpers for `SafetyEvent`, `MatchRejection`, and `ConceptCode`.
+- `RecommendationTrace.to_dict()`.
+- `RecommendationTrace.to_json()`.
 
-from medidiet.domain import Outcome
-
-
-class ExplanationBuilder:
-    def patient_explanation(self, outcome: Outcome, reasons: list[str], cautions: list[str]) -> str:
-        if outcome == Outcome.HUMAN_REVIEW_REQUIRED:
-            return "这次推荐需要营养师确认，因为资料或菜品信息存在不确定性。"
-        if outcome == Outcome.REFUSED:
-            return "当前候选餐食不满足安全要求，暂不建议自动推荐。"
-
-        parts: list[str] = []
-        if "low_sodium" in reasons:
-            parts.append("这份餐钠含量更适合今天的目标")
-        if "controlled_carbs" in reasons:
-            parts.append("主食和糖分更容易控制")
-        if "vegetable_rich" in reasons:
-            parts.append("蔬菜搭配更充分")
-        if not parts:
-            parts.append("这份餐通过了当前安全和营养规则")
-        if "avoid_extra_sauce" in cautions:
-            parts.append("建议不要额外加酱料或汤汁")
-        return "，".join(parts) + "。"
-
-    def clinician_explanation(self, rule_hits: list[str], uncertainty: list[str], scores: dict[str, float]) -> dict[str, object]:
-        return {
-            "ruleHits": rule_hits,
-            "uncertainty": uncertainty,
-            "scores": scores,
-            "llmBoundary": "Explanation is generated only from rule hits, nutrition facts, and scored candidates.",
-        }
-```
-
-Create `src/medidiet/trace.py`:
-
-```python
-from __future__ import annotations
-
-import json
-from dataclasses import asdict, dataclass
-
-from medidiet.domain import Outcome, RiskLevel
-
-
-@dataclass(frozen=True)
-class RecommendationTrace:
-    trace_id: str
-    rule_version: str
-    outcome: Outcome
-    risk_level: RiskLevel
-    rule_hits: list[str]
-    exclusions: dict[str, str]
-    scores: dict[str, float]
-    patient_explanation: str
-    clinician_explanation: dict[str, object]
-
-    def to_dict(self) -> dict[str, object]:
-        payload = asdict(self)
-        payload["traceId"] = payload.pop("trace_id")
-        payload["ruleVersion"] = payload.pop("rule_version")
-        payload["riskLevel"] = self.risk_level.value
-        payload["outcome"] = self.outcome.value
-        payload["ruleHits"] = payload.pop("rule_hits")
-        payload["patientExplanation"] = payload.pop("patient_explanation")
-        payload["clinicianExplanation"] = payload.pop("clinician_explanation")
-        return payload
-
-    def to_json(self) -> str:
-        return json.dumps(self.to_dict(), ensure_ascii=False, sort_keys=True)
-```
+The implementation must keep patient-facing language deterministic and must serialize trace context without sensitive patient identity fields.
 
 - [ ] **Step 4: Run explanation/trace and full tests**
 
