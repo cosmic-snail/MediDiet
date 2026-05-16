@@ -1182,22 +1182,18 @@ git commit -m "feat: add extension ports and events"
 **Files:**
 - Create: `src/medidiet/fixtures.py`
 - Create: `src/medidiet/cli.py`
-- Create: `tests/test_engine.py` update
+- Modify: `tests/test_engine.py`
 
 - [ ] **Step 1: Add a failing fixture-driven engine test**
 
-Append this test to `tests/test_engine.py` inside `RecommendationEngineTest`:
+Append a test to `tests/test_engine.py` inside `RecommendationEngineTest` that verifies:
 
-```python
-    def test_fixture_demo_returns_trace_json(self):
-        from medidiet.fixtures import demo_request
+- `demo_request()` returns `PatientProfile`, `list[IntakeRecord]`, `list[MenuItem]`, and `MealLabel`.
+- The engine accepts the returned `MealLabel` directly, not a free-text string.
+- The trace JSON starts with `{` and contains `"traceId"`, `"outcome"`, and the returned outcome value.
+- The fixture test imports `medidiet.fixtures`, so it fails before the fixture module exists.
 
-        patient, intake, menu_items = demo_request()
-        result = RecommendationEngine(load_baseline_rule_pack()).recommend(patient, intake, menu_items, "dinner")
-
-        self.assertTrue(result.trace.to_json().startswith("{"))
-        self.assertIn(result.outcome.value, result.trace.to_json())
-```
+Code: use the current `tests/test_engine.py` as source of truth.
 
 - [ ] **Step 2: Run the updated engine test and verify it fails**
 
@@ -1211,87 +1207,20 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'medidiet.fixtures'`.
 
 - [ ] **Step 3: Implement deterministic fixtures and CLI**
 
-Create `src/medidiet/fixtures.py`:
+Create `src/medidiet/fixtures.py` with:
 
-```python
-from __future__ import annotations
+- A deterministic `DEMO_NOW` timezone-aware timestamp.
+- `demo_request() -> tuple[PatientProfile, list[IntakeRecord], list[MenuItem], MealLabel]`.
+- Patient conditions, allergens, taste preferences, ingredients, nutrition tags, and contraindication tags represented as `ConceptCode`.
+- `IntakeRecord.occurred_at` and `IntakeRecord.meal_label`, with no string `meal_time`.
+- One safe, recommendable menu item and one filtered menu item marked `available=False`.
 
-from medidiet.domain import Allergy, Confidence, Condition, DataSource, IntakeRecord, MenuItem, Nutrients, PatientProfile, Preference
+Create `src/medidiet/cli.py` with:
 
+- A `main()` function that loads the baseline rule pack, calls `demo_request()`, runs `RecommendationEngine(..., now=DEMO_NOW)`, and prints only `result.trace.to_json()`.
+- No free-text meal label input; it uses the fixture's returned `MealLabel`.
 
-def demo_request() -> tuple[PatientProfile, list[IntakeRecord], list[MenuItem]]:
-    patient = PatientProfile(
-        patient_id="demo-patient",
-        age=52,
-        height_cm=170,
-        weight_kg=80,
-        conditions={Condition.HYPERTENSION, Condition.DIABETES},
-        allergies={Allergy("shrimp")},
-        contraindications=set(),
-        preferences=Preference(taste_tags={"light"}, max_price_cents=4000, max_distance_meters=2000),
-        key_risk_fields_confirmed=True,
-        source=DataSource.PATIENT_REPORTED,
-    )
-    intake = [
-        IntakeRecord(
-            food_label="salty noodles",
-            meal_time="lunch",
-            portion="one bowl",
-            nutrients=Nutrients(energy_kcal=620, carbs_g=80, protein_g=20, fat_g=18, sodium_mg=1600, sugar_g=6, fiber_g=4),
-            confidence=Confidence(0.86),
-            source=DataSource.SYSTEM_ESTIMATED,
-        )
-    ]
-    menu_items = [
-        MenuItem(
-            item_id="steamed-fish-set",
-            merchant_id="canteen-1",
-            name="Steamed fish set",
-            ingredients={"fish", "brown rice", "greens"},
-            taste_tags={"low_sodium", "controlled_carbs", "vegetable_rich", "lean_protein", "light"},
-            nutrients=Nutrients(energy_kcal=560, carbs_g=55, protein_g=35, fat_g=16, sodium_mg=430, sugar_g=5, fiber_g=7),
-            nutrition_confidence=Confidence(0.92),
-            source=DataSource.HUMAN_CURATED,
-            price_cents=3600,
-            distance_meters=500,
-            merchant_reliability=0.95,
-        ),
-        MenuItem(
-            item_id="fried-pork-rice",
-            merchant_id="delivery-1",
-            name="Fried pork rice",
-            ingredients={"pork", "white rice"},
-            taste_tags={"deep_fried", "high_sodium"},
-            nutrients=Nutrients(energy_kcal=820, carbs_g=90, protein_g=28, fat_g=38, sodium_mg=1200, sugar_g=10, fiber_g=2),
-            nutrition_confidence=Confidence(0.8),
-            source=DataSource.SYSTEM_ESTIMATED,
-            price_cents=3200,
-            distance_meters=900,
-            merchant_reliability=0.7,
-        ),
-    ]
-    return patient, intake, menu_items
-```
-
-Create `src/medidiet/cli.py`:
-
-```python
-from __future__ import annotations
-
-from medidiet.engine import RecommendationEngine
-from medidiet.fixtures import demo_request
-from medidiet.rules import load_baseline_rule_pack
-
-
-def main() -> None:
-    patient, intake, menu = demo_request()
-    result = RecommendationEngine(load_baseline_rule_pack()).recommend(patient, intake, menu, "dinner")
-    print(result.trace.to_json())
-
-
-if __name__ == "__main__":
-    main()
-```
+Code: use the current `src/medidiet/fixtures.py` and `src/medidiet/cli.py` as source of truth.
 
 - [ ] **Step 4: Run fixture test, full tests, and CLI**
 
@@ -1312,7 +1241,7 @@ Expected:
 Run:
 
 ```bash
-git add src/medidiet/fixtures.py src/medidiet/cli.py tests/test_engine.py
+git add docs/superpowers/plans/2026-05-15-recommendation-engine-core.md docs/superpowers/plans/2026-05-15-recommendation-engine-core.zh.md src/medidiet/fixtures.py src/medidiet/cli.py tests/test_engine.py
 git commit -m "feat: add demo fixtures and CLI"
 ```
 

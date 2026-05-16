@@ -140,6 +140,23 @@ class RecommendationEngineTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.engine.recommend(profile(self.pack), [], [], "dinner")
 
+    def test_fixture_demo_returns_trace_json(self):
+        from medidiet.fixtures import demo_request
+
+        patient, intake_records, menu_items, meal_label = demo_request()
+        result = RecommendationEngine(load_baseline_rule_pack(), now=NOW).recommend(
+            patient,
+            intake_records,
+            menu_items,
+            meal_label,
+        )
+
+        trace_json = result.trace.to_json()
+        self.assertTrue(trace_json.startswith("{"))
+        self.assertIn('"traceId"', trace_json)
+        self.assertIn('"outcome"', trace_json)
+        self.assertIn(result.outcome.value, trace_json)
+
 
 if __name__ == "__main__":
     unittest.main()

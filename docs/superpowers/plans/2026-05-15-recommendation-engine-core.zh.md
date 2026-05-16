@@ -778,9 +778,14 @@ git commit -m "feat: add extension ports and events"
 
 - [ ] **Step 1：添加失败的 fixture 驱动测试**
 
-动作：在 `tests/test_engine.py` 的 `RecommendationEngineTest` 中追加测试，验证 demo request 能返回 trace JSON，并且 trace JSON 包含 outcome。
+动作：在 `tests/test_engine.py` 的 `RecommendationEngineTest` 中追加测试，验证：
 
-代码：使用英文执行版 Task 11 Step 1 中的完整代码块。
+- `demo_request()` 返回 `PatientProfile`、`list[IntakeRecord]`、`list[MenuItem]` 和 `MealLabel`。
+- 引擎直接使用返回的 `MealLabel`，不使用自由文本用餐标签。
+- trace JSON 以 `{` 开头，并包含 `"traceId"`、`"outcome"` 和实际 outcome 值。
+- 测试导入 `medidiet.fixtures`，因此在 fixture 模块创建前会失败。
+
+代码：以当前 `tests/test_engine.py` 为准。
 
 - [ ] **Step 2：运行更新后的引擎测试，确认失败**
 
@@ -796,10 +801,14 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 
 动作：
 
-- 创建 `src/medidiet/fixtures.py`，提供 `demo_request()`。
-- 创建 `src/medidiet/cli.py`，运行 demo 并打印 trace JSON。
+- 创建 `src/medidiet/fixtures.py`，提供确定性的 `DEMO_NOW` 和 `demo_request()`。
+- `demo_request() -> tuple[PatientProfile, list[IntakeRecord], list[MenuItem], MealLabel]`。
+- 患者疾病、过敏、口味偏好、菜单食材、营养标签、禁忌标签都使用 `ConceptCode`。
+- `IntakeRecord` 使用 timezone-aware `occurred_at` 和 `MealLabel`，不使用字符串 `meal_time`。
+- 样例菜单包含一个安全可推荐项，以及一个通过 `available=False` 被过滤的菜单项。
+- 创建 `src/medidiet/cli.py`，加载 baseline rule pack，使用 `DEMO_NOW` 和 fixture 返回的 `MealLabel` 运行引擎，并且只打印 trace JSON。
 
-代码：使用英文执行版 Task 11 Step 3 中的完整代码块。
+代码：以当前 `src/medidiet/fixtures.py` 和 `src/medidiet/cli.py` 为准。
 
 - [ ] **Step 4：运行 fixture 测试、全量测试和 CLI**
 
@@ -821,7 +830,7 @@ PYTHONPATH=src python -m medidiet.cli
 运行：
 
 ```bash
-git add src/medidiet/fixtures.py src/medidiet/cli.py tests/test_engine.py
+git add docs/superpowers/plans/2026-05-15-recommendation-engine-core.md docs/superpowers/plans/2026-05-15-recommendation-engine-core.zh.md src/medidiet/fixtures.py src/medidiet/cli.py tests/test_engine.py
 git commit -m "feat: add demo fixtures and CLI"
 ```
 
