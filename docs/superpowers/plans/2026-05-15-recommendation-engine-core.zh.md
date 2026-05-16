@@ -710,11 +710,15 @@ git commit -m "feat: orchestrate recommendation engine"
 
 动作：创建 `tests/test_ports.py`，覆盖：
 
-- 请求 envelope 携带 schema、来源系统、来源版本、请求 ID 和时间戳。
-- 摄入估算请求携带图片 URI 和用餐时段。
-- 领域事件名稳定，例如 `HumanReviewRequired`。
+- 请求 envelope 携带 schema、来源系统、来源版本、请求 ID 和 timezone-aware `created_at`。
+- envelope 序列化输出稳定 camelCase，包括 `createdAt`。
+- envelope 拒绝字符串时间戳和 naive datetime。
+- 摄入估算请求携带图片 URI 和 `MealLabel`，不携带模型原始输出，也不使用自由文本用餐标签。
+- 领域事件名保持稳定字符串枚举，例如 `HumanReviewRequired`。
+- 领域事件 payload 可以携带整数安全/业务 code。
+- 领域事件拒绝裸字符串 name 和 naive datetime。
 
-代码：使用英文执行版 Task 10 Step 1 中的完整代码块。
+代码：以当前 `tests/test_ports.py` 为准。
 
 - [ ] **Step 2：运行测试，确认失败**
 
@@ -739,7 +743,9 @@ PYTHONPATH=src python -m unittest tests.test_ports -v
 - `PatientContextPort`
 - `EventPublisherPort`
 
-代码：使用英文执行版 Task 10 Step 3 中的完整代码块。
+其中 `RecommendationRequestEnvelope` 和 `DomainEvent` 使用 timezone-aware `created_at` 并提供 `to_dict()`；`IntakeEstimationRequest` 使用 `MealLabel` 并提供 `to_dict()`。
+
+代码：以当前 `src/medidiet/ports.py` 为准。
 
 - [ ] **Step 4：运行接口测试和全量测试**
 

@@ -1122,52 +1122,15 @@ git commit -m "feat: orchestrate recommendation engine"
 
 - [ ] **Step 1: Write failing port tests**
 
-Create `tests/test_ports.py`:
+Create `tests/test_ports.py`, using the current file as source of truth. Cover:
 
-```python
-import unittest
-
-from medidiet.ports import (
-    DomainEvent,
-    EventName,
-    IntakeEstimationRequest,
-    RecommendationRequestEnvelope,
-)
-
-
-class PortsTest(unittest.TestCase):
-    def test_request_envelope_carries_version_and_source(self):
-        envelope = RecommendationRequestEnvelope(
-            schema_version="v1",
-            source_system="mini-program",
-            source_version="0.1.0",
-            request_id="req-1",
-            timestamp="2026-05-15T12:00:00+08:00",
-        )
-
-        self.assertEqual(envelope.schema_version, "v1")
-        self.assertEqual(envelope.source_system, "mini-program")
-
-    def test_intake_request_carries_image_reference_not_raw_model_output(self):
-        request = IntakeEstimationRequest(
-            envelope=RecommendationRequestEnvelope("v1", "mini-program", "0.1.0", "req-2", "2026-05-15T12:00:00+08:00"),
-            image_uri="oss://bucket/meal.jpg",
-            meal_time="lunch",
-        )
-
-        self.assertEqual(request.image_uri, "oss://bucket/meal.jpg")
-        self.assertEqual(request.meal_time, "lunch")
-
-    def test_domain_event_names_are_stable(self):
-        event = DomainEvent(name=EventName.HUMAN_REVIEW_REQUIRED, trace_id="trace-1", payload={"reason": "low_confidence"})
-
-        self.assertEqual(event.name.value, "HumanReviewRequired")
-        self.assertEqual(event.payload["reason"], "low_confidence")
-
-
-if __name__ == "__main__":
-    unittest.main()
-```
+- `RecommendationRequestEnvelope` carries schema version, source system, source version, request id, and timezone-aware `created_at`.
+- Envelope serialization emits stable camelCase including `createdAt`.
+- Envelope rejects string timestamps and naive datetimes.
+- `IntakeEstimationRequest` carries image URI and `MealLabel`, not raw model output or a free-text meal label.
+- Domain event names remain stable string enum values such as `HumanReviewRequired`.
+- Domain event payload can carry integer safety or business codes.
+- Domain events reject bare string names and naive datetimes.
 
 - [ ] **Step 2: Run tests and verify they fail**
 
@@ -1181,72 +1144,16 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'medidiet.ports'`.
 
 - [ ] **Step 3: Implement extension ports and events**
 
-Create `src/medidiet/ports.py`:
+Create `src/medidiet/ports.py`, using the current file as source of truth. Implement:
 
-```python
-from __future__ import annotations
-
-from dataclasses import dataclass
-from enum import Enum
-from typing import Protocol
-
-from medidiet.domain import IntakeRecord, MenuItem, PatientProfile
-
-
-@dataclass(frozen=True)
-class RecommendationRequestEnvelope:
-    schema_version: str
-    source_system: str
-    source_version: str
-    request_id: str
-    timestamp: str
-
-
-@dataclass(frozen=True)
-class IntakeEstimationRequest:
-    envelope: RecommendationRequestEnvelope
-    image_uri: str
-    meal_time: str
-
-
-class EventName(str, Enum):
-    RECOMMENDATION_REQUESTED = "RecommendationRequested"
-    RECOMMENDATION_COMPLETED = "RecommendationCompleted"
-    HUMAN_REVIEW_REQUIRED = "HumanReviewRequired"
-    HUMAN_REVIEW_COMPLETED = "HumanReviewCompleted"
-    PATIENT_PREFERENCE_UPDATED = "PatientPreferenceUpdated"
-    INTAKE_RECORD_CORRECTED = "IntakeRecordCorrected"
-    MENU_NUTRITION_ANNOTATED = "MenuNutritionAnnotated"
-    RULE_PACK_PUBLISHED = "RulePackPublished"
-    RULE_PACK_ROLLED_BACK = "RulePackRolledBack"
-
-
-@dataclass(frozen=True)
-class DomainEvent:
-    name: EventName
-    trace_id: str
-    payload: dict[str, object]
-
-
-class IntakeEstimatorPort(Protocol):
-    def estimate(self, request: IntakeEstimationRequest) -> list[IntakeRecord]:
-        raise NotImplementedError
-
-
-class MenuProviderPort(Protocol):
-    def candidate_items(self, envelope: RecommendationRequestEnvelope, patient: PatientProfile) -> list[MenuItem]:
-        raise NotImplementedError
-
-
-class PatientContextPort(Protocol):
-    def load_patient(self, envelope: RecommendationRequestEnvelope, patient_id: str) -> PatientProfile:
-        raise NotImplementedError
-
-
-class EventPublisherPort(Protocol):
-    def publish(self, event: DomainEvent) -> None:
-        raise NotImplementedError
-```
+- `RecommendationRequestEnvelope` with timezone-aware `created_at` and `to_dict()`.
+- `IntakeEstimationRequest` with `MealLabel` and `to_dict()`.
+- Stable string `EventName` enum.
+- `DomainEvent` with timezone-aware `created_at` and `to_dict()`.
+- `IntakeEstimatorPort`.
+- `MenuProviderPort`.
+- `PatientContextPort`.
+- `EventPublisherPort`.
 
 - [ ] **Step 4: Run ports and full tests**
 
