@@ -206,12 +206,16 @@ class MenuItem:
     price_cents: int
     distance_meters: int
     merchant_reliability: float
+    nutrition_tags: set[ConceptCode] = field(default_factory=set)
+    contraindication_tags: set[ConceptCode] = field(default_factory=set)
     available: bool = True
 
     def __post_init__(self) -> None:
         _validate_code_set("ingredients", self.ingredients, CodeKind.INGREDIENT)
         _validate_code_set("allergens", self.allergens, CodeKind.ALLERGEN)
         _validate_code_set("taste_tags", self.taste_tags, CodeKind.TASTE_TAG)
+        _validate_code_set("nutrition_tags", self.nutrition_tags, CodeKind.NUTRITION_TAG)
+        _validate_code_set("contraindication_tags", self.contraindication_tags, CodeKind.CONTRAINDICATION)
         _validate_non_negative_int("price_cents", self.price_cents)
         _validate_non_negative_int("distance_meters", self.distance_meters)
         if not isinstance(self.merchant_reliability, int | float) or not isfinite(self.merchant_reliability) or not 0 <= self.merchant_reliability <= 1:

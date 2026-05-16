@@ -926,64 +926,21 @@ git commit -m "feat: generate nutrition meal plans"
 ### Task 7: Menu Matcher
 
 **Files:**
+- Update: `src/medidiet/domain.py`
 - Create: `src/medidiet/matcher.py`
 - Create: `tests/test_matcher.py`
 
 - [ ] **Step 1: Write failing matcher tests**
 
-Create `tests/test_matcher.py`:
+Create `tests/test_matcher.py`, using the current file as source of truth. Cover:
 
-```python
-import unittest
-
-from medidiet.domain import Confidence, DataSource, MenuItem, Nutrients, Preference
-from medidiet.matcher import MenuMatcher
-from medidiet.planner import MealPlan
-
-
-def item(item_id, tags, sodium, price=3000, distance=800, reliability=0.9):
-    return MenuItem(
-        item_id=item_id,
-        merchant_id="shop",
-        name=item_id,
-        ingredients={"fish"},
-        taste_tags=set(tags),
-        nutrients=Nutrients(energy_kcal=520, carbs_g=45, protein_g=32, fat_g=16, sodium_mg=sodium, sugar_g=5, fiber_g=5),
-        nutrition_confidence=Confidence(0.9),
-        source=DataSource.MERCHANT_LABEL,
-        price_cents=price,
-        distance_meters=distance,
-        merchant_reliability=reliability,
-    )
-
-
-class MenuMatcherTest(unittest.TestCase):
-    def test_excludes_avoid_tags_and_high_sodium(self):
-        plan = MealPlan("dinner", {"low_sodium"}, {"high_sodium"}, [], [])
-        candidates = [item("safe", {"low_sodium"}, 450), item("salty", {"high_sodium"}, 1200)]
-
-        result = MenuMatcher().match(plan, candidates, Preference())
-
-        self.assertEqual([score.item.item_id for score in result.accepted], ["safe"])
-        self.assertEqual(result.excluded["salty"], "avoid_tag:high_sodium")
-
-    def test_ranks_safe_items_by_nutrition_preference_price_distance_and_reliability(self):
-        plan = MealPlan("dinner", {"low_sodium", "vegetable_rich"}, set(), [], [])
-        candidates = [
-            item("ok", {"low_sodium"}, 500, price=4000, distance=2000, reliability=0.7),
-            item("best", {"low_sodium", "vegetable_rich", "light"}, 420, price=2800, distance=600, reliability=0.95),
-        ]
-        preference = Preference(taste_tags={"light"}, max_price_cents=3500, max_distance_meters=1000)
-
-        result = MenuMatcher().match(plan, candidates, preference)
-
-        self.assertEqual(result.accepted[0].item.item_id, "best")
-        self.assertGreater(result.accepted[0].score, result.accepted[1].score)
-
-
-if __name__ == "__main__":
-    unittest.main()
-```
+- `MenuMatcher.match(...)` returns structured accepted and excluded results.
+- Avoid-tag hits exclude candidates with `MatchRejectionCode.AVOID_TAG`.
+- Per-meal nutrient limit violations exclude candidates with `MatchRejectionCode.NUTRIENT_LIMIT_EXCEEDED`.
+- Unavailable candidates exclude with `MatchRejectionCode.UNAVAILABLE`.
+- Rejection codes use `IntEnum` integer values, not strings or floats.
+- Accepted candidates are sorted by score descending.
+- Scoring considers required nutrition tags, patient taste preferences, price, distance, and merchant reliability.
 
 - [ ] **Step 2: Run tests and verify they fail**
 
@@ -997,79 +954,20 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'medidiet.matcher'`.
 
 - [ ] **Step 3: Implement matcher**
 
-Create `src/medidiet/matcher.py`:
+Update `src/medidiet/domain.py` so `MenuItem` can carry:
 
-```python
-from __future__ import annotations
+- `nutrition_tags: set[ConceptCode]`
+- `contraindication_tags: set[ConceptCode]`
 
-from dataclasses import dataclass, field
+Create `src/medidiet/matcher.py`, using the current file as source of truth. Implement:
 
-from medidiet.domain import MenuItem, Preference
-from medidiet.planner import MealPlan
+- `MatchRejectionCode(IntEnum)`.
+- `MatchRejection`.
+- `MenuItemScore`.
+- `MatchResult`.
+- `MenuMatcher.match(...)`.
 
-
-@dataclass(frozen=True)
-class MenuItemScore:
-    item: MenuItem
-    score: float
-    reasons: list[str]
-
-
-@dataclass(frozen=True)
-class MatchResult:
-    accepted: list[MenuItemScore]
-    excluded: dict[str, str] = field(default_factory=dict)
-
-
-class MenuMatcher:
-    def match(self, plan: MealPlan, candidates: list[MenuItem], preference: Preference) -> MatchResult:
-        accepted: list[MenuItemScore] = []
-        excluded: dict[str, str] = {}
-
-        for candidate in candidates:
-            if not candidate.available:
-                excluded[candidate.item_id] = "unavailable"
-                continue
-            avoid_hit = next((tag for tag in plan.avoid_tags if tag in candidate.taste_tags), None)
-            if avoid_hit:
-                excluded[candidate.item_id] = f"avoid_tag:{avoid_hit}"
-                continue
-
-            score, reasons = self._score(candidate, plan, preference)
-            accepted.append(MenuItemScore(item=candidate, score=score, reasons=reasons))
-
-        accepted.sort(key=lambda scored: scored.score, reverse=True)
-        return MatchResult(accepted=accepted, excluded=excluded)
-
-    def _score(self, item: MenuItem, plan: MealPlan, preference: Preference) -> tuple[float, list[str]]:
-        reasons: list[str] = []
-        score = 0.0
-
-        matched_tags = plan.required_tags.intersection(item.taste_tags)
-        if plan.required_tags:
-            score += 45 * (len(matched_tags) / len(plan.required_tags))
-            if matched_tags:
-                reasons.append("nutrition_tag_match")
-
-        if item.nutrients.sodium_mg <= 500:
-            score += 20
-            reasons.append("safety_margin_sodium")
-        elif item.nutrients.sodium_mg <= 700:
-            score += 12
-
-        preferred_taste = preference.taste_tags.intersection(item.taste_tags)
-        if preferred_taste:
-            score += 15
-            reasons.append("taste_preference")
-
-        if preference.max_price_cents is None or item.price_cents <= preference.max_price_cents:
-            score += 5
-        if preference.max_distance_meters is None or item.distance_meters <= preference.max_distance_meters:
-            score += 5
-
-        score += 10 * item.merchant_reliability
-        return round(score, 2), reasons
-```
+The matcher should use `MenuItem.nutrition_tags` for required-tag scoring, `MenuItem.contraindication_tags` for avoid-tag filtering, and structured `MealPlan.limits` for per-meal nutrient filtering.
 
 - [ ] **Step 4: Run matcher and full tests**
 

@@ -484,6 +484,7 @@ git commit -m "feat: generate nutrition meal plans"
 ## Task 7：菜单匹配器
 
 **文件：**
+- 更新：`src/medidiet/domain.py`
 - 创建：`src/medidiet/matcher.py`
 - 创建：`tests/test_matcher.py`
 
@@ -491,11 +492,15 @@ git commit -m "feat: generate nutrition meal plans"
 
 动作：创建 `tests/test_matcher.py`，覆盖：
 
-- `avoid_tags` 命中的菜品被排除。
-- 高盐菜品被排除。
-- 安全候选按营养匹配、偏好、价格、距离和可靠性排序。
+- `MenuMatcher.match(...)` 返回结构化 accepted / excluded 结果。
+- `avoid_tags` 命中的菜品用 `MatchRejectionCode.AVOID_TAG` 排除。
+- 单餐营养上限超限用 `MatchRejectionCode.NUTRIENT_LIMIT_EXCEEDED` 排除。
+- 不可售菜品用 `MatchRejectionCode.UNAVAILABLE` 排除。
+- 拒绝码使用 `IntEnum` 整数值，不使用字符串或浮点数。
+- 安全候选按分数降序返回。
+- 评分考虑 required nutrition tags、患者口味偏好、价格、距离和商家可靠性。
 
-代码：使用英文执行版 Task 7 Step 1 中的完整代码块。
+代码：以当前 `tests/test_matcher.py` 为准。
 
 - [ ] **Step 2：运行测试，确认失败**
 
@@ -511,12 +516,20 @@ PYTHONPATH=src python -m unittest tests.test_matcher -v
 
 动作：创建 `src/medidiet/matcher.py`，实现：
 
+- `MatchRejectionCode(IntEnum)`
+- `MatchRejection`
 - `MenuItemScore`
 - `MatchResult`
 - `MenuMatcher.match(...)`
-- `MenuMatcher._score(...)`
 
-代码：使用英文执行版 Task 7 Step 3 中的完整代码块。
+同时更新 `src/medidiet/domain.py`，让 `MenuItem` 支持：
+
+- `nutrition_tags: set[ConceptCode]`
+- `contraindication_tags: set[ConceptCode]`
+
+菜单匹配器使用 `MenuItem.nutrition_tags` 做 required-tag 评分，用 `MenuItem.contraindication_tags` 做 avoid-tag 硬过滤，用 `MealPlan.limits` 做单餐营养数值过滤。
+
+代码：以当前 `src/medidiet/matcher.py` 为准。
 
 - [ ] **Step 4：运行菜单匹配测试和全量测试**
 
