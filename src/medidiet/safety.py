@@ -62,7 +62,7 @@ class SafetyGate:
     ):
         self.rule_pack = rule_pack
         self.confidence_threshold = confidence_threshold
-        self.logger = _build_logger(log_file_path) if log_file_path is not None else logging.getLogger("medidiet.safety")
+        self.logger = _build_file_logger(log_file_path) if log_file_path is not None else _build_default_logger()
 
     def evaluate(
         self,
@@ -185,7 +185,16 @@ class SafetyGate:
             self.logger.warning(_format_event(self.rule_pack.version, event))
 
 
-def _build_logger(log_file_path: str | Path) -> logging.Logger:
+def _build_default_logger() -> logging.Logger:
+    logger = logging.getLogger("medidiet.safety")
+    logger.setLevel(logging.WARNING)
+    logger.propagate = False
+    if not any(isinstance(handler, logging.NullHandler) for handler in logger.handlers):
+        logger.addHandler(logging.NullHandler())
+    return logger
+
+
+def _build_file_logger(log_file_path: str | Path) -> logging.Logger:
     path = Path(log_file_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     logger = logging.getLogger(f"medidiet.safety.{path}")

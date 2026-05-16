@@ -635,11 +635,14 @@ git commit -m "feat: explain and trace recommendations"
 
 动作：创建 `tests/test_engine.py`，覆盖：
 
-- 安全菜品能被推荐。
-- 无候选菜品通过硬规则时拒绝推荐。
-- 过敏命中时转人工审核。
+- 成功推荐路径：串联安全门禁、营养目标、餐食方案、菜单匹配、解释和 trace。
+- 返回 `Outcome.RECOMMENDED`，推荐排序最高的候选，并在 trace 中记录 scores。
+- 拒绝路径：所有候选被 matcher 排除时返回 `Outcome.REFUSED`，无推荐项，并在 trace 中保存 `MatchRejectionCode` 整数 code。
+- 人工审核路径：安全门禁产生事件时返回 `Outcome.HUMAN_REVIEW_REQUIRED`，无推荐项，并在 trace 中保存 `SafetyCode` 整数 code。
+- `RecommendationEngine.recommend(...)` 要求 `MealLabel`，不接受自由文本用餐标签。
+- 测试 fixture 使用 `ConceptCode` 疾病、过敏、营养标签、口味标签和结构化 `IntakeRecord.occurred_at`。
 
-代码：使用英文执行版 Task 9 Step 1 中的完整代码块。
+代码：以当前 `tests/test_engine.py` 为准。
 
 - [ ] **Step 2：运行引擎测试，确认失败**
 
@@ -663,15 +666,17 @@ PYTHONPATH=src python -m unittest tests.test_engine -v
 逻辑：
 
 - 先跑安全门禁。
-- 高风险或不确定直接转人工。
+- hard block 或 uncertainty 直接转人工。
 - 计算下一餐目标。
 - 生成餐食方案。
 - 匹配菜单。
 - 无候选时拒绝。
-- 有候选时推荐或降级。
+- 有候选时推荐排序最高项。
 - 生成解释和 trace。
 
-代码：使用英文执行版 Task 9 Step 3 中的完整代码块。
+trace 和医生解释保留整数安全事件 code / 排除 code，不使用字符串原因；默认 safety logger 不污染 stderr，只有显式配置文件路径时写入文件。
+
+代码：以当前 `src/medidiet/engine.py` 为准。
 
 - [ ] **Step 4：运行引擎测试和全量测试**
 

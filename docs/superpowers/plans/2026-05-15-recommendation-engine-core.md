@@ -1062,82 +1062,14 @@ git commit -m "feat: explain and trace recommendations"
 
 - [ ] **Step 1: Write failing engine tests**
 
-Create `tests/test_engine.py`:
+Create `tests/test_engine.py`, using the current file as source of truth. Cover:
 
-```python
-import unittest
-
-from medidiet.domain import Allergy, Confidence, Condition, DataSource, IntakeRecord, MenuItem, Nutrients, Outcome, PatientProfile, Preference
-from medidiet.engine import RecommendationEngine
-from medidiet.rules import load_baseline_rule_pack
-
-
-def profile(**overrides):
-    data = dict(
-        patient_id="p-1",
-        age=54,
-        height_cm=168,
-        weight_kg=78,
-        conditions={Condition.HYPERTENSION, Condition.DIABETES},
-        allergies=set(),
-        contraindications=set(),
-        preferences=Preference(taste_tags={"light"}, max_price_cents=3500, max_distance_meters=1500),
-        key_risk_fields_confirmed=True,
-        source=DataSource.PATIENT_REPORTED,
-    )
-    data.update(overrides)
-    return PatientProfile(**data)
-
-
-def menu(item_id, tags, sodium=450, sugar=6, ingredients=None):
-    return MenuItem(
-        item_id=item_id,
-        merchant_id="shop",
-        name=item_id,
-        ingredients=ingredients or {"fish", "vegetable"},
-        taste_tags=set(tags),
-        nutrients=Nutrients(energy_kcal=520, carbs_g=42, protein_g=30, fat_g=14, sodium_mg=sodium, sugar_g=sugar, fiber_g=5),
-        nutrition_confidence=Confidence(0.9),
-        source=DataSource.MERCHANT_LABEL,
-        price_cents=3200,
-        distance_meters=800,
-        merchant_reliability=0.9,
-    )
-
-
-class RecommendationEngineTest(unittest.TestCase):
-    def test_recommends_safe_item(self):
-        intake = [IntakeRecord("salty lunch", "lunch", "one bowl", Nutrients(sodium_mg=1600), Confidence(0.9), DataSource.SYSTEM_ESTIMATED)]
-        result = RecommendationEngine(load_baseline_rule_pack()).recommend(profile(), intake, [menu("steamed-fish", {"low_sodium", "controlled_carbs", "vegetable_rich", "light"})], "dinner")
-
-        self.assertEqual(result.outcome, Outcome.RECOMMENDED)
-        self.assertEqual(result.recommended_items[0].item_id, "steamed-fish")
-        self.assertIn("钠", result.patient_explanation)
-        self.assertEqual(result.trace.rule_version, "baseline-2026-05-15")
-
-    def test_refuses_when_no_candidate_survives_hard_rules(self):
-        result = RecommendationEngine(load_baseline_rule_pack()).recommend(profile(), [], [menu("salty", {"high_sodium"}, sodium=1200)], "dinner")
-
-        self.assertEqual(result.outcome, Outcome.REFUSED)
-        self.assertEqual(result.recommended_items, [])
-        self.assertIn("暂不建议", result.patient_explanation)
-
-    def test_routes_allergy_to_human_review(self):
-        result = RecommendationEngine(load_baseline_rule_pack()).recommend(
-            profile(allergies={Allergy("peanut")}),
-            [],
-            [menu("peanut-fish", {"low_sodium"}, ingredients={"peanut", "fish"})],
-            "dinner",
-        )
-
-        self.assertEqual(result.outcome, Outcome.HUMAN_REVIEW_REQUIRED)
-        self.assertEqual(result.recommended_items, [])
-        self.assertIn("营养师确认", result.patient_explanation)
-
-
-if __name__ == "__main__":
-    unittest.main()
-```
+- Successful recommendation orchestrates safety, nutrition, planning, matching, explanation, and trace.
+- Returned recommendation uses `Outcome.RECOMMENDED`, picks the highest-ranked accepted item, and records scores in trace.
+- Refusal path uses matcher exclusions, returns `Outcome.REFUSED`, no recommended items, and stores `MatchRejectionCode` integer codes in trace.
+- Human-review path uses safety events, returns `Outcome.HUMAN_REVIEW_REQUIRED`, no recommended items, and stores `SafetyCode` integer codes in trace.
+- `RecommendationEngine.recommend(...)` requires `MealLabel`, not a free-text meal label string.
+- Test fixtures use `ConceptCode` conditions, allergens, nutrition tags, taste tags, and structured `IntakeRecord.occurred_at`.
 
 - [ ] **Step 2: Run engine tests and verify they fail**
 
@@ -1151,125 +1083,14 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'medidiet.engine'`.
 
 - [ ] **Step 3: Implement engine orchestration**
 
-Create `src/medidiet/engine.py`:
+Create `src/medidiet/engine.py`, using the current file as source of truth. Implement:
 
-```python
-from __future__ import annotations
+- `RecommendationResult`.
+- `RecommendationEngine.__init__(...)`.
+- `RecommendationEngine.recommend(...)`.
+- `RecommendationEngine._finalize(...)`.
 
-from dataclasses import dataclass
-from uuid import uuid4
-
-from medidiet.domain import IntakeRecord, MenuItem, Outcome, PatientProfile, RiskLevel
-from medidiet.explainer import ExplanationBuilder
-from medidiet.matcher import MenuMatcher
-from medidiet.nutrition import DailyNutritionCalculator
-from medidiet.planner import MealPlanGenerator
-from medidiet.rules import RulePack
-from medidiet.safety import SafetyGate
-from medidiet.trace import RecommendationTrace
-
-
-@dataclass(frozen=True)
-class RecommendationResult:
-    outcome: Outcome
-    recommended_items: list[MenuItem]
-    patient_explanation: str
-    clinician_explanation: dict[str, object]
-    trace: RecommendationTrace
-
-
-class RecommendationEngine:
-    def __init__(self, rule_pack: RulePack):
-        self.rule_pack = rule_pack
-        self.safety_gate = SafetyGate(rule_pack)
-        self.calculator = DailyNutritionCalculator(rule_pack)
-        self.planner = MealPlanGenerator()
-        self.matcher = MenuMatcher()
-        self.explainer = ExplanationBuilder()
-
-    def recommend(
-        self,
-        patient: PatientProfile,
-        intake_records: list[IntakeRecord],
-        candidate_menu_items: list[MenuItem],
-        meal_time: str,
-    ) -> RecommendationResult:
-        safety = self.safety_gate.evaluate(patient, candidate_menu_items, intake_records)
-        if safety.requires_human_review:
-            return self._finalize(
-                outcome=Outcome.HUMAN_REVIEW_REQUIRED,
-                risk_level=RiskLevel.HIGH,
-                recommended_items=[],
-                rule_hits=safety.hard_blocks,
-                exclusions={item.item_id: "safety_review_required" for item in candidate_menu_items},
-                scores={},
-                uncertainty=safety.uncertainties,
-                patient_explanation=self.explainer.patient_explanation(Outcome.HUMAN_REVIEW_REQUIRED, [], []),
-            )
-
-        target = self.calculator.next_meal_target(patient.conditions, intake_records)
-        plan = self.planner.generate(target, meal_time)
-        match_result = self.matcher.match(plan, candidate_menu_items, patient.preferences)
-
-        if not match_result.accepted:
-            return self._finalize(
-                outcome=Outcome.REFUSED,
-                risk_level=RiskLevel.HIGH,
-                recommended_items=[],
-                rule_hits=list(plan.avoid_tags),
-                exclusions=match_result.excluded,
-                scores={},
-                uncertainty=[],
-                patient_explanation=self.explainer.patient_explanation(Outcome.REFUSED, [], []),
-            )
-
-        top_items = [match_result.accepted[0].item]
-        outcome = Outcome.RECOMMENDED if match_result.accepted[0].score >= 60 else Outcome.DOWNGRADED
-        scores = {scored.item.item_id: scored.score for scored in match_result.accepted}
-        reasons = list(plan.required_tags)
-        explanation = self.explainer.patient_explanation(outcome, reasons, plan.instructions)
-        return self._finalize(
-            outcome=outcome,
-            risk_level=RiskLevel.LOW if outcome == Outcome.RECOMMENDED else RiskLevel.MEDIUM,
-            recommended_items=top_items,
-            rule_hits=reasons,
-            exclusions=match_result.excluded,
-            scores=scores,
-            uncertainty=[],
-            patient_explanation=explanation,
-        )
-
-    def _finalize(
-        self,
-        outcome: Outcome,
-        risk_level: RiskLevel,
-        recommended_items: list[MenuItem],
-        rule_hits: list[str],
-        exclusions: dict[str, str],
-        scores: dict[str, float],
-        uncertainty: list[str],
-        patient_explanation: str,
-    ) -> RecommendationResult:
-        clinician_explanation = self.explainer.clinician_explanation(rule_hits, uncertainty, scores)
-        trace = RecommendationTrace(
-            trace_id=f"trace-{uuid4()}",
-            rule_version=self.rule_pack.version,
-            outcome=outcome,
-            risk_level=risk_level,
-            rule_hits=rule_hits,
-            exclusions=exclusions,
-            scores=scores,
-            patient_explanation=patient_explanation,
-            clinician_explanation=clinician_explanation,
-        )
-        return RecommendationResult(
-            outcome=outcome,
-            recommended_items=recommended_items,
-            patient_explanation=patient_explanation,
-            clinician_explanation=clinician_explanation,
-            trace=trace,
-        )
-```
+The engine should run safety first; route hard blocks or uncertainty to human review; otherwise calculate the next-meal target, generate a meal plan, match menu items, refuse if no candidate survives, and build deterministic explanations and trace payloads with integer codes.
 
 - [ ] **Step 4: Run engine and full tests**
 

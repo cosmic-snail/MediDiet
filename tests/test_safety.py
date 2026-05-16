@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+from contextlib import redirect_stderr
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -140,6 +142,15 @@ class SafetyGateTest(unittest.TestCase):
 
         self.assertFalse(result.requires_human_review)
         self.assertEqual(self.log_path.read_text(), "")
+
+    def test_default_logger_does_not_write_warning_to_stderr(self):
+        peanut = ConceptCode(CodeKind.ALLERGEN, "peanut")
+        stderr = io.StringIO()
+
+        with redirect_stderr(stderr):
+            SafetyGate(self.pack).evaluate(patient(self.pack), [menu_item(self.pack, allergens={peanut})])
+
+        self.assertEqual(stderr.getvalue(), "")
 
     def assert_warning_logged(self, code):
         log_text = self.log_path.read_text()
