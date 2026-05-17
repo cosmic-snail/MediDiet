@@ -119,13 +119,18 @@ git commit -m "feat: scaffold recommendation engine package"
 - 创建：`src/medidiet/domain.py`
 - 修改：`tests/test_domain.py`
 
-- [ ] **Step 1：扩展领域模型测试**
+- [ ] **Step 1：用表驱动概念注册表扩展领域模型测试**
 
 动作：替换 `tests/test_domain.py`，覆盖：
 
-- 患者画像需要关键风险字段确认状态。
-- `Nutrients` 可以累加。
-- `MenuItem` 食材/过敏匹配大小写不敏感。
+- `ConceptRegistry` 能返回已注册的医学概念 code。
+- `ConceptRegistry` 拒绝未知、空值、带空格或大小写不规范的 code。
+- `PatientProfile` 使用 `ConceptCode` 表达疾病、过敏、禁忌和口味偏好。
+- `PatientProfile` 拒绝错误 kind 的 code，例如把 `allergen:peanut` 放进 `conditions`。
+- `PatientProfile` 校验年龄、身高、体重的非法值和边界值。
+- `Nutrients` 支持浮点值和累加。
+- `Nutrients` 拒绝负数、非有限值和明显荒谬的大值。
+- `MenuItem` 使用 code 集合做过敏判断，不依赖字符串大小写匹配。
 - `Outcome.RECOMMENDED.value == "recommended"`。
 
 代码：使用英文执行版 Task 2 Step 1 中的完整代码块。
@@ -144,17 +149,25 @@ PYTHONPATH=src python -m unittest tests.test_domain -v
 
 动作：创建 `src/medidiet/domain.py`，定义：
 
-- `Condition`
+- `CodeKind`
+- `ConceptCode`
+- `ConceptDefinition`
+- `ConceptRegistry`
 - `DataSource`
 - `RiskLevel`
 - `Outcome`
-- `Allergy`
 - `Confidence`
 - `Nutrients`
 - `Preference`
 - `PatientProfile`
 - `IntakeRecord`
 - `MenuItem`
+
+设计约束：
+
+- 医学概念、过敏原、禁忌、营养标签、口味标签和食材标签都使用表驱动 `ConceptCode`。
+- `Outcome`、`RiskLevel`、`DataSource` 这类系统状态仍使用 enum。
+- 外部字符串只能在边界输入和注册表定义中出现，进入领域模型后必须变成已校验 code。
 
 代码：使用英文执行版 Task 2 Step 3 中的完整代码块。
 
@@ -166,7 +179,7 @@ PYTHONPATH=src python -m unittest tests.test_domain -v
 PYTHONPATH=src python -m unittest tests.test_domain -v
 ```
 
-预期：4 个测试通过。
+预期：8 个测试通过。
 
 - [ ] **Step 5：提交**
 
@@ -190,11 +203,14 @@ git commit -m "feat: add recommendation domain models"
 动作：创建 `tests/test_rules.py`，覆盖：
 
 - 规则包版本为 `baseline-2026-05-15`。
-- 规则包包含多个来源。
-- 高血压规则包含钠硬限制和 `low_sodium` 偏好标签。
-- 糖尿病规则包含控糖、控碳水和避免含糖饮料。
+- 规则包包含多个来源和内置 `ConceptRegistry`。
+- 规则查询使用 `ConceptCode`，不接收裸字符串。
+- 高血压规则包含 `high_sodium` 硬禁忌、`low_sodium` 偏好标签和单餐钠上限。
+- 糖尿病规则包含每日糖上限、滚动时间窗糖上限、`controlled_carbs` 偏好标签和 `sugary_drink` 硬禁忌。
+- `ROLLING_WINDOW` 必须有正整数 `window_hours`，`DAILY` / `PER_MEAL` 不允许带 `window_hours`。
+- 规则中的条件、禁忌、标签必须使用正确 kind 的 `ConceptCode`。
 
-代码：使用英文执行版 Task 3 Step 1 中的完整代码块。
+代码：使用英文执行版 Task 3 Step 1 中的代码块，并以当前 `tests/test_rules.py` 为准。
 
 - [ ] **Step 2：运行规则测试，确认失败**
 
@@ -211,6 +227,9 @@ PYTHONPATH=src python -m unittest tests.test_rules -v
 动作：创建 `src/medidiet/rules.py`，定义：
 
 - `RuleSource`
+- `NutrientMetric`
+- `LimitScope`
+- `NutrientLimit`
 - `ConditionRule`
 - `RulePack`
 - `load_baseline_rule_pack()`
@@ -222,7 +241,9 @@ PYTHONPATH=src python -m unittest tests.test_rules -v
 - 高血脂。
 - 控重。
 
-代码：使用英文执行版 Task 3 Step 3 中的完整代码块。
+规则包使用表驱动结构：`RulePack.concepts` 保存概念注册表，`rules_by_condition` 以 `ConceptCode(CONDITION, ...)` 为 key，`ConditionRule.nutrition_limits` 保存不同 scope 的营养上限。当前阈值为 baseline/demo thresholds，后续需要医生/营养师审核。
+
+代码：使用英文执行版 Task 3 Step 3 中的代码块，并以当前 `src/medidiet/rules.py` 为准。
 
 - [ ] **Step 4：运行规则测试和全量测试**
 
@@ -256,12 +277,15 @@ git commit -m "feat: add versioned baseline rule pack"
 
 动作：创建 `tests/test_safety.py`，覆盖：
 
-- 过敏命中是硬拦截。
-- 患者关键资料未确认时需要人工审核。
-- 低置信度摄入记录需要人工审核。
-- 未成年人超出第一版适用范围。
+- 返回安全事件使用 `SafetyCode(IntEnum)` 整数枚举，不返回裸字符串或浮点 code。
+- 过敏命中是硬拦截，并写入 `WARNING` 日志。
+- 患者关键资料未确认时需要人工审核，并写入 `WARNING` 日志。
+- 低置信度摄入记录需要人工审核，并写入 `WARNING` 日志。
+- 单餐营养上限超限是硬拦截，并写入 `WARNING` 日志。
+- 安全候选循环不输出 `DEBUG` / `INFO` 等低等级逐条日志，避免海量日志。
+- 安全日志包含时间戳、进程号、线程号、整数 code、code name、事件严重性和规则包版本。
 
-代码：使用英文执行版 Task 4 Step 1 中的完整代码块。
+代码：以当前 `tests/test_safety.py` 为准。
 
 - [ ] **Step 2：运行安全测试，确认失败**
 
@@ -277,20 +301,26 @@ PYTHONPATH=src python -m unittest tests.test_safety -v
 
 动作：创建 `src/medidiet/safety.py`，实现：
 
+- `SafetyCode(IntEnum)`
+- `SafetySeverity(IntEnum)`
+- `SafetyEvent`
 - `SafetyResult`
 - `SafetyGate.evaluate(...)`
+- 每个 hard block / uncertainty 的 `WARNING` 文件日志
 
 检查内容：
 
 - 成人范围。
-- 复杂临床场景。
 - 关键风险字段确认状态。
 - 摄入置信度。
 - 菜单营养置信度。
 - 过敏硬拦截。
 - 慢病禁忌冲突。
+- 单餐营养上限。
 
-代码：使用英文执行版 Task 4 Step 3 中的完整代码块。
+日志原则遵循 `docs/superpowers/specs/2026-05-15-safety-logging-principles.md`。
+
+代码：以当前 `src/medidiet/safety.py` 为准。
 
 - [ ] **Step 4：运行安全测试和全量测试**
 
@@ -317,6 +347,7 @@ git commit -m "feat: add recommendation safety gate"
 ## Task 5：营养状态和下一餐目标
 
 **文件：**
+- 更新：`src/medidiet/domain.py`
 - 创建：`src/medidiet/nutrition.py`
 - 创建：`tests/test_nutrition.py`
 
@@ -324,10 +355,15 @@ git commit -m "feat: add recommendation safety gate"
 
 动作：创建 `tests/test_nutrition.py`，覆盖：
 
-- 汇总当天摄入的能量、钠等营养数据。
-- 当天钠摄入偏高时，高血压患者下一餐钠目标更严格。
+- 按浮点数汇总当天摄入的能量、钠、糖、碳水等营养数据。
+- 低置信度摄入记录进入 `low_confidence_labels`，但仍计入总量。
+- 下一餐偏好标签使用 `ConceptCode(NUTRITION_TAG, ...)`，不使用字符串集合。
+- `DAILY` 糖上限根据当天已摄入量计算剩余额度。
+- `ROLLING_WINDOW` 糖上限只统计窗口内摄入。
+- `PER_MEAL` 上限直接进入下一餐目标，不扣减当天摄入。
+- `IntakeRecord` 使用 timezone-aware `occurred_at` 和 `meal_label`，不再用自由文本 `meal_time`。
 
-代码：使用英文执行版 Task 5 Step 1 中的完整代码块。
+代码：以当前 `tests/test_nutrition.py` 为准。
 
 - [ ] **Step 2：运行营养测试，确认失败**
 
@@ -343,12 +379,18 @@ PYTHONPATH=src python -m unittest tests.test_nutrition -v
 
 动作：创建 `src/medidiet/nutrition.py`，实现：
 
+- `NutritionReason(IntEnum)`
 - `DailyNutritionState`
+- `RemainingNutrientLimit`
 - `NextMealTarget`
 - `DailyNutritionCalculator.aggregate(...)`
 - `DailyNutritionCalculator.next_meal_target(...)`
 
-代码：使用英文执行版 Task 5 Step 3 中的完整代码块。
+同时更新 `src/medidiet/domain.py` 中的 `IntakeRecord`，将 `meal_time` 升级为 `occurred_at` + `meal_label`，支持每日和滚动窗口计算。
+
+营养计算器消费 `RulePack` 中表驱动的 `NutrientLimit`，返回结构化 `RemainingNutrientLimit`，不再返回分散的 `max_*` 字段。
+
+代码：以当前 `src/medidiet/nutrition.py` 为准。
 
 - [ ] **Step 4：运行营养测试和全量测试**
 
@@ -375,6 +417,7 @@ git commit -m "feat: calculate daily nutrition targets"
 ## Task 6：餐食方案生成器
 
 **文件：**
+- 更新：`src/medidiet/domain.py`
 - 创建：`src/medidiet/planner.py`
 - 创建：`tests/test_planner.py`
 
@@ -382,12 +425,15 @@ git commit -m "feat: calculate daily nutrition targets"
 
 动作：创建 `tests/test_planner.py`，验证：
 
-- 根据下一餐目标生成 `MealPlan`。
-- 保留用餐时段。
-- 加入低钠、控碳水、蔬菜丰富等 required tags。
-- 当天钠高时加入 `avoid_extra_sauce` 提醒。
+- 根据结构化 `NextMealTarget` 生成 `MealPlan`。
+- `MealPlan.meal_label` 使用 `MealLabel(IntEnum)`，不使用 `"dinner"` 这类自由文本。
+- `required_tags` 和 `avoid_tags` 使用 `ConceptCode` 集合，不使用字符串集合。
+- 单餐钠上限加入 `low_sodium`、避开 `high_sodium`，并加入 `MealInstruction.AVOID_EXTRA_SAUCE`。
+- 每日或滚动窗口糖上限加入 `controlled_carbs`、避开 `sugary_drink`，并加入 `MealInstruction.CONTROL_ADDED_SUGAR`。
+- `MealInstruction` 使用整数枚举。
+- `MealPlan` 保留结构化营养上限，供后续菜单匹配器使用。
 
-代码：使用英文执行版 Task 6 Step 1 中的完整代码块。
+代码：以当前 `tests/test_planner.py` 为准。
 
 - [ ] **Step 2：运行测试，确认失败**
 
@@ -403,10 +449,15 @@ PYTHONPATH=src python -m unittest tests.test_planner -v
 
 动作：创建 `src/medidiet/planner.py`，实现：
 
+- `MealInstruction(IntEnum)`
 - `MealPlan`
 - `MealPlanGenerator.generate(...)`
 
-代码：使用英文执行版 Task 6 Step 3 中的完整代码块。
+同时更新 `src/medidiet/domain.py`，新增 `MealLabel(IntEnum)`，并要求 `IntakeRecord.meal_label` 使用该枚举。
+
+方案生成器根据 `RemainingNutrientLimit` 推导标签和指令，并通过 `RulePack.concepts` 获取全部 `ConceptCode`。
+
+代码：以当前 `src/medidiet/planner.py` 为准。
 
 - [ ] **Step 4：运行方案生成测试和全量测试**
 
@@ -433,6 +484,7 @@ git commit -m "feat: generate nutrition meal plans"
 ## Task 7：菜单匹配器
 
 **文件：**
+- 更新：`src/medidiet/domain.py`
 - 创建：`src/medidiet/matcher.py`
 - 创建：`tests/test_matcher.py`
 
@@ -440,11 +492,15 @@ git commit -m "feat: generate nutrition meal plans"
 
 动作：创建 `tests/test_matcher.py`，覆盖：
 
-- `avoid_tags` 命中的菜品被排除。
-- 高盐菜品被排除。
-- 安全候选按营养匹配、偏好、价格、距离和可靠性排序。
+- `MenuMatcher.match(...)` 返回结构化 accepted / excluded 结果。
+- `avoid_tags` 命中的菜品用 `MatchRejectionCode.AVOID_TAG` 排除。
+- 单餐营养上限超限用 `MatchRejectionCode.NUTRIENT_LIMIT_EXCEEDED` 排除。
+- 不可售菜品用 `MatchRejectionCode.UNAVAILABLE` 排除。
+- 拒绝码使用 `IntEnum` 整数值，不使用字符串或浮点数。
+- 安全候选按分数降序返回。
+- 评分考虑 required nutrition tags、患者口味偏好、价格、距离和商家可靠性。
 
-代码：使用英文执行版 Task 7 Step 1 中的完整代码块。
+代码：以当前 `tests/test_matcher.py` 为准。
 
 - [ ] **Step 2：运行测试，确认失败**
 
@@ -460,12 +516,20 @@ PYTHONPATH=src python -m unittest tests.test_matcher -v
 
 动作：创建 `src/medidiet/matcher.py`，实现：
 
+- `MatchRejectionCode(IntEnum)`
+- `MatchRejection`
 - `MenuItemScore`
 - `MatchResult`
 - `MenuMatcher.match(...)`
-- `MenuMatcher._score(...)`
 
-代码：使用英文执行版 Task 7 Step 3 中的完整代码块。
+同时更新 `src/medidiet/domain.py`，让 `MenuItem` 支持：
+
+- `nutrition_tags: set[ConceptCode]`
+- `contraindication_tags: set[ConceptCode]`
+
+菜单匹配器使用 `MenuItem.nutrition_tags` 做 required-tag 评分，用 `MenuItem.contraindication_tags` 做 avoid-tag 硬过滤，用 `MealPlan.limits` 做单餐营养数值过滤。
+
+代码：以当前 `src/medidiet/matcher.py` 为准。
 
 - [ ] **Step 4：运行菜单匹配测试和全量测试**
 
@@ -500,11 +564,15 @@ git commit -m "feat: match and rank safe menu items"
 
 动作：创建 `tests/test_explainer_trace.py`，覆盖：
 
-- 患者解释包含低钠、控主食等友好说明。
-- 患者解释不包含药物调整建议。
-- `RecommendationTrace.to_json()` 可序列化，并包含 `traceId`、`outcome`、`ruleVersion`。
+- 患者解释由 `ConceptCode` 标签和 `MealInstruction` 确定性生成中文说明。
+- 患者解释不包含药物调整、诊断结论或治疗建议。
+- 医生/营养师解释返回结构化 dict，包含整数安全事件 code、排除 code、规则版本、评分和命中标签。
+- 医生/营养师解释包含 `llmBoundary`，明确解释只能基于规则命中、营养事实和候选评分。
+- `RecommendationTrace.to_json()` 可序列化稳定 camelCase 字段：`traceId`、`patientId`、`ruleVersion`、`outcome`、`riskLevel`、`createdAt`、`safetyEvents`、`exclusions`。
+- trace 中安全事件和排除原因保存整数 code，不保存字符串原因。
+- trace 不接受患者姓名、手机号、照片 URI 等敏感字段。
 
-代码：使用英文执行版 Task 8 Step 1 中的完整代码块。
+代码：以当前 `tests/test_explainer_trace.py` 为准。
 
 - [ ] **Step 2：运行测试，确认失败**
 
@@ -527,10 +595,13 @@ PYTHONPATH=src python -m unittest tests.test_explainer_trace -v
 
 - `ExplanationBuilder.patient_explanation(...)`
 - `ExplanationBuilder.clinician_explanation(...)`
+- `SafetyEvent`、`MatchRejection`、`ConceptCode` 的结构化转换 helper。
 - `RecommendationTrace.to_dict()`
 - `RecommendationTrace.to_json()`
 
-代码：使用英文执行版 Task 8 Step 3 中的完整代码块。
+患者侧解释保持确定性模板，不依赖 LLM；trace 序列化不包含敏感患者身份字段。
+
+代码：以当前 `src/medidiet/explainer.py` 和 `src/medidiet/trace.py` 为准。
 
 - [ ] **Step 4：运行解释/trace 测试和全量测试**
 
@@ -564,11 +635,14 @@ git commit -m "feat: explain and trace recommendations"
 
 动作：创建 `tests/test_engine.py`，覆盖：
 
-- 安全菜品能被推荐。
-- 无候选菜品通过硬规则时拒绝推荐。
-- 过敏命中时转人工审核。
+- 成功推荐路径：串联安全门禁、营养目标、餐食方案、菜单匹配、解释和 trace。
+- 返回 `Outcome.RECOMMENDED`，推荐排序最高的候选，并在 trace 中记录 scores。
+- 拒绝路径：所有候选被 matcher 排除时返回 `Outcome.REFUSED`，无推荐项，并在 trace 中保存 `MatchRejectionCode` 整数 code。
+- 人工审核路径：安全门禁产生事件时返回 `Outcome.HUMAN_REVIEW_REQUIRED`，无推荐项，并在 trace 中保存 `SafetyCode` 整数 code。
+- `RecommendationEngine.recommend(...)` 要求 `MealLabel`，不接受自由文本用餐标签。
+- 测试 fixture 使用 `ConceptCode` 疾病、过敏、营养标签、口味标签和结构化 `IntakeRecord.occurred_at`。
 
-代码：使用英文执行版 Task 9 Step 1 中的完整代码块。
+代码：以当前 `tests/test_engine.py` 为准。
 
 - [ ] **Step 2：运行引擎测试，确认失败**
 
@@ -592,15 +666,17 @@ PYTHONPATH=src python -m unittest tests.test_engine -v
 逻辑：
 
 - 先跑安全门禁。
-- 高风险或不确定直接转人工。
+- hard block 或 uncertainty 直接转人工。
 - 计算下一餐目标。
 - 生成餐食方案。
 - 匹配菜单。
 - 无候选时拒绝。
-- 有候选时推荐或降级。
+- 有候选时推荐排序最高项。
 - 生成解释和 trace。
 
-代码：使用英文执行版 Task 9 Step 3 中的完整代码块。
+trace 和医生解释保留整数安全事件 code / 排除 code，不使用字符串原因；默认 safety logger 不污染 stderr，只有显式配置文件路径时写入文件。
+
+代码：以当前 `src/medidiet/engine.py` 为准。
 
 - [ ] **Step 4：运行引擎测试和全量测试**
 
@@ -634,11 +710,15 @@ git commit -m "feat: orchestrate recommendation engine"
 
 动作：创建 `tests/test_ports.py`，覆盖：
 
-- 请求 envelope 携带 schema、来源系统、来源版本、请求 ID 和时间戳。
-- 摄入估算请求携带图片 URI 和用餐时段。
-- 领域事件名稳定，例如 `HumanReviewRequired`。
+- 请求 envelope 携带 schema、来源系统、来源版本、请求 ID 和 timezone-aware `created_at`。
+- envelope 序列化输出稳定 camelCase，包括 `createdAt`。
+- envelope 拒绝字符串时间戳和 naive datetime。
+- 摄入估算请求携带图片 URI 和 `MealLabel`，不携带模型原始输出，也不使用自由文本用餐标签。
+- 领域事件名保持稳定字符串枚举，例如 `HumanReviewRequired`。
+- 领域事件 payload 可以携带整数安全/业务 code。
+- 领域事件拒绝裸字符串 name 和 naive datetime。
 
-代码：使用英文执行版 Task 10 Step 1 中的完整代码块。
+代码：以当前 `tests/test_ports.py` 为准。
 
 - [ ] **Step 2：运行测试，确认失败**
 
@@ -663,7 +743,9 @@ PYTHONPATH=src python -m unittest tests.test_ports -v
 - `PatientContextPort`
 - `EventPublisherPort`
 
-代码：使用英文执行版 Task 10 Step 3 中的完整代码块。
+其中 `RecommendationRequestEnvelope` 和 `DomainEvent` 使用 timezone-aware `created_at` 并提供 `to_dict()`；`IntakeEstimationRequest` 使用 `MealLabel` 并提供 `to_dict()`。
+
+代码：以当前 `src/medidiet/ports.py` 为准。
 
 - [ ] **Step 4：运行接口测试和全量测试**
 
@@ -696,9 +778,14 @@ git commit -m "feat: add extension ports and events"
 
 - [ ] **Step 1：添加失败的 fixture 驱动测试**
 
-动作：在 `tests/test_engine.py` 的 `RecommendationEngineTest` 中追加测试，验证 demo request 能返回 trace JSON，并且 trace JSON 包含 outcome。
+动作：在 `tests/test_engine.py` 的 `RecommendationEngineTest` 中追加测试，验证：
 
-代码：使用英文执行版 Task 11 Step 1 中的完整代码块。
+- `demo_request()` 返回 `PatientProfile`、`list[IntakeRecord]`、`list[MenuItem]` 和 `MealLabel`。
+- 引擎直接使用返回的 `MealLabel`，不使用自由文本用餐标签。
+- trace JSON 以 `{` 开头，并包含 `"traceId"`、`"outcome"` 和实际 outcome 值。
+- 测试导入 `medidiet.fixtures`，因此在 fixture 模块创建前会失败。
+
+代码：以当前 `tests/test_engine.py` 为准。
 
 - [ ] **Step 2：运行更新后的引擎测试，确认失败**
 
@@ -714,10 +801,14 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 
 动作：
 
-- 创建 `src/medidiet/fixtures.py`，提供 `demo_request()`。
-- 创建 `src/medidiet/cli.py`，运行 demo 并打印 trace JSON。
+- 创建 `src/medidiet/fixtures.py`，提供确定性的 `DEMO_NOW` 和 `demo_request()`。
+- `demo_request() -> tuple[PatientProfile, list[IntakeRecord], list[MenuItem], MealLabel]`。
+- 患者疾病、过敏、口味偏好、菜单食材、营养标签、禁忌标签都使用 `ConceptCode`。
+- `IntakeRecord` 使用 timezone-aware `occurred_at` 和 `MealLabel`，不使用字符串 `meal_time`。
+- 样例菜单包含一个安全可推荐项，以及一个通过 `available=False` 被过滤的菜单项。
+- 创建 `src/medidiet/cli.py`，加载 baseline rule pack，使用 `DEMO_NOW` 和 fixture 返回的 `MealLabel` 运行引擎，并且只打印 trace JSON。
 
-代码：使用英文执行版 Task 11 Step 3 中的完整代码块。
+代码：以当前 `src/medidiet/fixtures.py` 和 `src/medidiet/cli.py` 为准。
 
 - [ ] **Step 4：运行 fixture 测试、全量测试和 CLI**
 
@@ -739,7 +830,7 @@ PYTHONPATH=src python -m medidiet.cli
 运行：
 
 ```bash
-git add src/medidiet/fixtures.py src/medidiet/cli.py tests/test_engine.py
+git add docs/superpowers/plans/2026-05-15-recommendation-engine-core.md docs/superpowers/plans/2026-05-15-recommendation-engine-core.zh.md src/medidiet/fixtures.py src/medidiet/cli.py tests/test_engine.py
 git commit -m "feat: add demo fixtures and CLI"
 ```
 
@@ -757,9 +848,14 @@ git commit -m "feat: add demo fixtures and CLI"
 动作：创建 `tests/test_public_api.py`，验证可以从 `medidiet` 导入：
 
 - `RecommendationEngine`
+- `RecommendationResult`
+- `RulePack`
 - `load_baseline_rule_pack`
+- `medidiet.__all__` 精确列出这四个公共名称。
+- `load_baseline_rule_pack()` 返回 `RulePack`。
+- 可以用公共 API 返回的 rule pack 构造 `RecommendationEngine`。
 
-代码：使用英文执行版 Task 12 Step 1 中的完整代码块。
+代码：以当前 `tests/test_public_api.py` 为准。
 
 - [ ] **Step 2：运行公共 API 测试，确认失败**
 
@@ -769,7 +865,7 @@ git commit -m "feat: add demo fixtures and CLI"
 PYTHONPATH=src python -m unittest tests.test_public_api -v
 ```
 
-预期：失败，出现 `RecommendationEngine` 或 `load_baseline_rule_pack` 的 `ImportError`。
+预期：失败，出现公共 API 导出缺失导致的 `ImportError`。
 
 - [ ] **Step 3：导出稳定公共 API**
 
@@ -805,7 +901,7 @@ git status --short
 运行：
 
 ```bash
-git add src/medidiet/__init__.py tests/test_public_api.py
+git add docs/superpowers/plans/2026-05-15-recommendation-engine-core.md docs/superpowers/plans/2026-05-15-recommendation-engine-core.zh.md src/medidiet/__init__.py tests/test_public_api.py
 git commit -m "feat: expose recommendation engine public API"
 ```
 
