@@ -185,13 +185,19 @@ export const reviewRequiredTrace: RecommendationTraceDto = {
       entityId: 'intake-lunch-001'
     }
   ],
-  patientExplanation: '当前信息需要营养师确认后再推荐餐食。'
+  exclusions: {},
+  scores: {},
+  patientExplanation: '当前信息需要营养师确认后再推荐餐食。',
+  clinicianExplanation: {
+    ...recommendedTrace.clinicianExplanation,
+    matchedTags: []
+  }
 };
 
 export const reviewCases: ReviewCaseDto[] = [
   {
     traceId: reviewRequiredTrace.traceId,
-    patientDisplayName: '李先生',
+    patientDisplayName: '王女士',
     mealLabel: 3,
     riskLevel: 'high',
     reason: '照片估算置信度低，需要确认摄入记录',

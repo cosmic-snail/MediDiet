@@ -10,6 +10,7 @@ describe('frontend recommendation contracts', () => {
 
   it('maps recommendation outcomes to stable UI states', () => {
     expect(outcomeToPatientState('recommended')).toBe('showRecommendation');
+    expect(outcomeToPatientState('downgraded')).toBe('showRecommendation');
     expect(outcomeToPatientState('refused')).toBe('showRefusal');
     expect(outcomeToPatientState('human_review_required')).toBe('showReviewWait');
   });
