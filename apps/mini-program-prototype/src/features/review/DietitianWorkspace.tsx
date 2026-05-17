@@ -9,7 +9,8 @@ interface DietitianWorkspaceProps {
 }
 
 export function DietitianWorkspace({ state, onStateChange }: DietitianWorkspaceProps) {
-  const activeCase = state.reviewCases[0];
+  const pendingCases = state.reviewCases.filter((item) => item.status === 'pending');
+  const activeCase = state.reviewCases.find((item) => item.status === 'pending');
   const safetyEvent = activeCase?.trace.safetyEvents[0];
 
   if (!activeCase) {
@@ -27,7 +28,7 @@ export function DietitianWorkspace({ state, onStateChange }: DietitianWorkspaceP
       <section className="hero-panel review-hero">
         <div>
           <p className="eyebrow">营养师审核</p>
-          <h2>{state.reviewCases.filter((item) => item.status === 'pending').length} 条待审核</h2>
+          <h2>{pendingCases.length} 条待审核</h2>
           <p>优先处理高风险、低置信度和资料未确认的推荐请求。</p>
         </div>
       </section>
