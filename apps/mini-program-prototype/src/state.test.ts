@@ -34,10 +34,38 @@ describe('prototype state machine', () => {
 
   it('writes review decisions back to queue and recommendation', () => {
     const state = createInitialPrototypeState();
-    const next = submitReviewDecision(state, 'trace-review-001', 'approve');
+    const reviewState = requestRecommendation(state, 'review');
+    const next = submitReviewDecision(reviewState, 'trace-review-001', 'approve');
 
     expect(next.reviewCases[0].status).toBe('approved');
     expect(next.recommendation?.reviewStatus).toBe('completed');
+    expect(next.recommendation?.traceId).toBe('trace-review-001');
+  });
+
+  it('leaves recommendation and review cases unchanged for unknown review trace ids', () => {
+    const state = createInitialPrototypeState();
+    const next = submitReviewDecision(state, 'trace-unknown', 'approve');
+
+    expect(next).toBe(state);
+    expect(next.recommendation).toBe(state.recommendation);
+    expect(next.reviewCases).toBe(state.reviewCases);
+  });
+
+  it('does not mutate the current recommendation when reviewing a different trace', () => {
+    const state = createInitialPrototypeState();
+    const next = submitReviewDecision(state, 'trace-review-001', 'approve');
+
+    expect(next.reviewCases[0].status).toBe('approved');
+    expect(next.recommendation).toBe(state.recommendation);
+    expect(next.recommendation?.traceId).toBe('trace-7c4e3608');
+    expect(next.recommendation?.reviewStatus).toBeNull();
+  });
+
+  it('does not throw when review mode has an empty review queue', () => {
+    const state = { ...createInitialPrototypeState(), recommendation: null, reviewCases: [] };
+
+    expect(() => requestRecommendation(state, 'review')).not.toThrow();
+    expect(requestRecommendation(state, 'review').recommendation).toBeNull();
   });
 
   it('updates menu availability and fulfillment status', () => {

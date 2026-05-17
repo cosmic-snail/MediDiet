@@ -100,6 +100,10 @@ export function addCorrectedIntake(state: PrototypeState, foodLabel: string, mea
 export function requestRecommendation(state: PrototypeState, mode: 'recommended' | 'refused' | 'review'): PrototypeState {
   if (mode === 'review') {
     const reviewCase = state.reviewCases[0];
+    if (!reviewCase) {
+      return { ...state, recommendation: null };
+    }
+
     return {
       ...state,
       recommendation: {
@@ -142,13 +146,19 @@ export function submitReviewDecision(
   traceId: string,
   decision: ReviewDecision
 ): PrototypeState {
+  if (!state.reviewCases.some((item) => item.traceId === traceId)) {
+    return state;
+  }
+
   const status: ReviewCaseDto['status'] =
     decision === 'approve' ? 'approved' : decision === 'modify' ? 'modified' : 'rejected';
+  const matchingRecommendation = state.recommendation?.traceId === traceId ? state.recommendation : null;
+
   return {
     ...state,
-    recommendation: state.recommendation
+    recommendation: matchingRecommendation
       ? {
-          ...state.recommendation,
+          ...matchingRecommendation,
           reviewStatus: 'completed',
           outcome: decision === 'reject' ? 'refused' : 'recommended'
         }
