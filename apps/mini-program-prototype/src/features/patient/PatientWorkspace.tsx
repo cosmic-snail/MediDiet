@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { AlertTriangle, Camera, CheckCircle, Clock3, PlusCircle } from 'lucide-react';
 import { formatPrice, mealLabelName, outcomeToPatientState } from '../../contracts';
 import { patientProfile } from '../../fixtures';
@@ -5,13 +6,19 @@ import { addCorrectedIntake, requestRecommendation, type PrototypeState } from '
 
 interface PatientWorkspaceProps {
   state: PrototypeState;
-  onStateChange: (state: PrototypeState) => void;
+  onStateChange: Dispatch<SetStateAction<PrototypeState>>;
 }
 
 export function PatientWorkspace({ state, onStateChange }: PatientWorkspaceProps) {
   const recommendation = state.recommendation;
   const patientState = recommendation ? outcomeToPatientState(recommendation.outcome) : null;
   const recommendedItem = recommendation?.recommendedItems[0];
+  const patientStatusLabel =
+    patientState === 'showRefusal'
+      ? '拒绝推荐'
+      : patientState === 'showReviewWait'
+        ? '等待营养师审核'
+        : '已生成推荐';
 
   return (
     <div className="workspace-stack">
@@ -24,7 +31,7 @@ export function PatientWorkspace({ state, onStateChange }: PatientWorkspaceProps
         <button
           className="primary-button"
           type="button"
-          onClick={() => onStateChange(requestRecommendation(state, 'recommended'))}
+          onClick={() => onStateChange((current) => requestRecommendation(current, 'recommended'))}
         >
           <CheckCircle size={18} aria-hidden="true" />
           获取下一餐推荐
@@ -69,7 +76,7 @@ export function PatientWorkspace({ state, onStateChange }: PatientWorkspaceProps
         <button
           className="secondary-button"
           type="button"
-          onClick={() => onStateChange(addCorrectedIntake(state, '低糖酸奶', 4))}
+          onClick={() => onStateChange((current) => addCorrectedIntake(current, '低糖酸奶', 4))}
         >
           <PlusCircle size={18} aria-hidden="true" />
           手动补录低糖酸奶
@@ -82,8 +89,11 @@ export function PatientWorkspace({ state, onStateChange }: PatientWorkspaceProps
             <div>
               <p className="eyebrow">推荐结果</p>
               <h2>{patientState === 'showRecommendation' ? recommendedItem?.name : '需要处理'}</h2>
+              <p className="eyebrow">推荐状态：{patientStatusLabel}</p>
             </div>
-            {patientState === 'showReviewWait' ? (
+            {patientState === 'showRefusal' ? (
+              <AlertTriangle size={20} aria-hidden="true" />
+            ) : patientState === 'showReviewWait' ? (
               <Clock3 size={20} aria-hidden="true" />
             ) : (
               <CheckCircle size={20} aria-hidden="true" />
@@ -122,14 +132,14 @@ export function PatientWorkspace({ state, onStateChange }: PatientWorkspaceProps
             <button
               className="secondary-button"
               type="button"
-              onClick={() => onStateChange(requestRecommendation(state, 'refused'))}
+              onClick={() => onStateChange((current) => requestRecommendation(current, 'refused'))}
             >
               模拟拒绝推荐
             </button>
             <button
               className="secondary-button"
               type="button"
-              onClick={() => onStateChange(requestRecommendation(state, 'review'))}
+              onClick={() => onStateChange((current) => requestRecommendation(current, 'review'))}
             >
               模拟等待营养师审核
             </button>
