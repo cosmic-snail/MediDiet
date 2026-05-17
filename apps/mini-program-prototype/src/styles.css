@@ -58,3 +58,86 @@ h1 {
   color: #526071;
   line-height: 1.6;
 }
+
+.top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.role-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid #d6dde8;
+  border-radius: 14px;
+  background: #eef2f7;
+  margin-bottom: 16px;
+}
+
+.role-button {
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #526071;
+  padding: 9px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.role-button[aria-pressed="true"] {
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 6px 18px rgba(24, 35, 55, 0.08);
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #dfe5ee;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric {
+  border-radius: 8px;
+  background: #f4f7fb;
+  padding: 12px;
+}
+
+.metric span {
+  display: block;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.metric p {
+  margin: 4px 0 0;
+  color: #526071;
+}
