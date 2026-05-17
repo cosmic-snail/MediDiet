@@ -3,6 +3,7 @@ import './styles.css';
 import { RoleSwitcher } from './components/RoleSwitcher';
 import { WorkbenchCard } from './components/WorkbenchCard';
 import type { Role } from './contracts';
+import { PatientWorkspace } from './features/patient/PatientWorkspace';
 import { createInitialPrototypeState, selectWorkbenchSummary, setActiveRole } from './state';
 
 export default function App() {
@@ -37,6 +38,8 @@ export default function App() {
             </div>
           </div>
         </WorkbenchCard>
+
+        {state.activeRole === 'patient' && <PatientWorkspace state={state} onStateChange={setState} />}
       </section>
     </main>
   );
