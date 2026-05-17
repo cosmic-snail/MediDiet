@@ -329,3 +329,30 @@ h1 {
   color: #172033;
   margin-top: 4px;
 }
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 0;
+  }
+
+  .phone-frame {
+    width: 100%;
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 18px;
+  }
+
+  .top-bar {
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .button-row {
+    display: grid;
+  }
+}
