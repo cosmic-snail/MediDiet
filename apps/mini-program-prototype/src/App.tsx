@@ -3,6 +3,7 @@ import './styles.css';
 import { RoleSwitcher } from './components/RoleSwitcher';
 import { WorkbenchCard } from './components/WorkbenchCard';
 import type { Role } from './contracts';
+import { CateringWorkspace } from './features/catering/CateringWorkspace';
 import { PatientWorkspace } from './features/patient/PatientWorkspace';
 import { DietitianWorkspace } from './features/review/DietitianWorkspace';
 import { createInitialPrototypeState, selectWorkbenchSummary, setActiveRole } from './state';
@@ -42,6 +43,7 @@ export default function App() {
 
         {state.activeRole === 'patient' && <PatientWorkspace state={state} onStateChange={setState} />}
         {state.activeRole === 'dietitian' && <DietitianWorkspace state={state} onStateChange={setState} />}
+        {state.activeRole === 'catering' && <CateringWorkspace state={state} onStateChange={setState} />}
       </section>
     </main>
   );

@@ -306,3 +306,26 @@ h1 {
   background: #fee2e2;
   color: #991b1b;
 }
+
+.catering-hero {
+  background: #21362d;
+}
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.nutrition-grid div {
+  border-radius: 8px;
+  background: #f4f7fb;
+  padding: 10px;
+  color: #526071;
+}
+
+.nutrition-grid strong {
+  display: block;
+  color: #172033;
+  margin-top: 4px;
+}
