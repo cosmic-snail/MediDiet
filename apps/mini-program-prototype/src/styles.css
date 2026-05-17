@@ -268,3 +268,41 @@ h1 {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
+
+.review-hero {
+  background: #263246;
+}
+
+.status.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.evidence-grid div {
+  border-radius: 8px;
+  background: #f4f7fb;
+  padding: 10px;
+}
+
+.evidence-grid span {
+  display: block;
+  color: #526071;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.evidence-grid strong {
+  word-break: break-word;
+}
+
+.danger-action {
+  background: #fee2e2;
+  color: #991b1b;
+}
