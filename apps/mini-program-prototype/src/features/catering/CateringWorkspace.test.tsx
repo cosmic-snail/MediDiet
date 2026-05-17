@@ -25,4 +25,39 @@ describe('CateringWorkspace', () => {
     expect(typeof onStateChange.mock.calls[0][0]).toBe('function');
     expect(typeof onStateChange.mock.calls[1][0]).toBe('function');
   });
+
+  it('does not offer fulfillment actions for non-pending statuses', () => {
+    const onStateChange = vi.fn();
+    const state = {
+      ...createInitialPrototypeState(),
+      fulfillments: [
+        {
+          ...createInitialPrototypeState().fulfillments[0],
+          fulfillmentId: 'delivered-order',
+          status: 'delivered' as const
+        },
+        {
+          ...createInitialPrototypeState().fulfillments[0],
+          fulfillmentId: 'prepared-order',
+          status: 'prepared' as const
+        }
+      ]
+    };
+
+    render(<CateringWorkspace state={state} onStateChange={onStateChange} />);
+
+    expect(screen.getByText('已送达')).toBeInTheDocument();
+    expect(screen.getByText('已备餐')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '标记已备餐' })).not.toBeInTheDocument();
+    expect(onStateChange).not.toHaveBeenCalled();
+  });
+
+  it('shows an empty state when there are no confirmed meals', () => {
+    render(
+      <CateringWorkspace state={{ ...createInitialPrototypeState(), fulfillments: [] }} onStateChange={vi.fn()} />
+    );
+
+    expect(screen.getByText('暂无已确认餐食')).toBeInTheDocument();
+    expect(screen.getByText('患者选择或营养师确认后会出现在这里。')).toBeInTheDocument();
+  });
 });

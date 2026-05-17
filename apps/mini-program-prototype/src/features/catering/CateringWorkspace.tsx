@@ -102,6 +102,12 @@ export function CateringWorkspace({ state, onStateChange }: CateringWorkspacePro
             <h2>已确认餐食</h2>
           </div>
         </div>
+        {state.fulfillments.length === 0 && (
+          <div>
+            <strong>暂无已确认餐食</strong>
+            <p className="muted">患者选择或营养师确认后会出现在这里。</p>
+          </div>
+        )}
         {state.fulfillments.map((fulfillment) => (
           <div className="list-row" key={fulfillment.fulfillmentId}>
             <div>
@@ -109,17 +115,25 @@ export function CateringWorkspace({ state, onStateChange }: CateringWorkspacePro
                 {fulfillment.patientDisplayName} · {fulfillment.itemName}
               </strong>
               <p>{mealLabelName(fulfillment.mealLabel)}</p>
-              <p>{fulfillmentLabels[fulfillment.status]}</p>
             </div>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() =>
-                onStateChange((current) => updateFulfillmentStatus(current, fulfillment.fulfillmentId, 'prepared'))
-              }
-            >
-              标记已备餐
-            </button>
+            {fulfillment.status === 'pending' ? (
+              <div className="button-row">
+                <span className="status good">{fulfillmentLabels[fulfillment.status]}</span>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() =>
+                    onStateChange((current) => updateFulfillmentStatus(current, fulfillment.fulfillmentId, 'prepared'))
+                  }
+                >
+                  标记已备餐
+                </button>
+              </div>
+            ) : (
+              <span className={fulfillment.status === 'cancelled' ? 'status danger' : 'status good'}>
+                {fulfillmentLabels[fulfillment.status]}
+              </span>
+            )}
           </div>
         ))}
       </section>
