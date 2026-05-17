@@ -2,6 +2,8 @@
 
 This is a mobile-first browser prototype for the MediDiet three-role WeChat mini-program design.
 
+Chinese usage guide: [README.zh.md](./README.zh.md)
+
 ## What It Demonstrates
 
 - Patient role: profile confirmation, intake records, next-meal recommendation, refused result, and human-review wait state.
