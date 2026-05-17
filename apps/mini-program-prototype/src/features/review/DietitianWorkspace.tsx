@@ -12,6 +12,9 @@ export function DietitianWorkspace({ state, onStateChange }: DietitianWorkspaceP
   const pendingCases = state.reviewCases.filter((item) => item.status === 'pending');
   const activeCase = state.reviewCases.find((item) => item.status === 'pending');
   const safetyEvent = activeCase?.trace.safetyEvents[0];
+  const exclusionEntries = activeCase ? Object.values(activeCase.trace.exclusions) : [];
+  const scoreEntries = activeCase ? Object.entries(activeCase.trace.scores) : [];
+  const matchedTags = activeCase?.trace.clinicianExplanation.matchedTags ?? [];
 
   if (!activeCase) {
     return (
@@ -71,6 +74,42 @@ export function DietitianWorkspace({ state, onStateChange }: DietitianWorkspaceP
           <div>
             <span>Rule</span>
             <strong>{activeCase.trace.ruleVersion}</strong>
+          </div>
+          <div>
+            <span>Exclusions</span>
+            <strong>{exclusionEntries.length}</strong>
+          </div>
+          <div>
+            <span>Scores</span>
+            <strong>{scoreEntries.length}</strong>
+          </div>
+        </div>
+        <div className="trace-detail-grid">
+          <div>
+            <span>排除项</span>
+            {exclusionEntries.length > 0 ? (
+              exclusionEntries.map((item) => (
+                <p key={`${item.itemId}-${item.code}`}>{`${item.itemId} · ${item.codeName}`}</p>
+              ))
+            ) : (
+              <p>暂无排除项</p>
+            )}
+          </div>
+          <div>
+            <span>评分</span>
+            {scoreEntries.length > 0 ? (
+              scoreEntries.map(([itemId, score]) => <p key={itemId}>{`${itemId} · ${score.toFixed(1)}`}</p>)
+            ) : (
+              <p>暂无评分</p>
+            )}
+          </div>
+          <div>
+            <span>命中标签</span>
+            {matchedTags.length > 0 ? (
+              matchedTags.map((item) => <p key={`${item.kind}-${item.value}`}>{`${item.kind} · ${item.value}`}</p>)
+            ) : (
+              <p>待人工判断</p>
+            )}
           </div>
         </div>
         <div className="result-panel warning-panel">

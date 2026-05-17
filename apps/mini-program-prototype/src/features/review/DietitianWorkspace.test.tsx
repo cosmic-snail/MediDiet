@@ -10,6 +10,12 @@ describe('DietitianWorkspace', () => {
     expect(screen.getByText('trace-review-001')).toBeInTheDocument();
     expect(screen.getByText('LOW_CONFIDENCE_INTAKE')).toBeInTheDocument();
     expect(screen.getAllByText('baseline-2026-05-15')).toHaveLength(2);
+    expect(screen.getByText('排除项')).toBeInTheDocument();
+    expect(screen.getByText('暂无排除项')).toBeInTheDocument();
+    expect(screen.getByText('评分')).toBeInTheDocument();
+    expect(screen.getByText('暂无评分')).toBeInTheDocument();
+    expect(screen.getByText('命中标签')).toBeInTheDocument();
+    expect(screen.getByText('待人工判断')).toBeInTheDocument();
   });
 
   it('submits approve, modify, and reject decisions with functional updates', async () => {

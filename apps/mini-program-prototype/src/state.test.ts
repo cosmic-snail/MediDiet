@@ -40,6 +40,23 @@ describe('prototype state machine', () => {
     expect(next.reviewCases[0].status).toBe('approved');
     expect(next.recommendation?.reviewStatus).toBe('completed');
     expect(next.recommendation?.traceId).toBe('trace-review-001');
+    expect(next.recommendation?.outcome).toBe('recommended');
+    expect(next.recommendation?.recommendedItems[0]?.name).toBe('清蒸鱼套餐');
+    expect(next.recommendation?.patientExplanation).toContain('营养师已确认');
+    expect(next.recommendation?.trace.scores).toHaveProperty('steamed-fish-set');
+  });
+
+  it('writes rejected review decisions as patient-facing refusal states', () => {
+    const state = createInitialPrototypeState();
+    const reviewState = requestRecommendation(state, 'review');
+    const next = submitReviewDecision(reviewState, 'trace-review-001', 'reject');
+
+    expect(next.reviewCases[0].status).toBe('rejected');
+    expect(next.recommendation?.reviewStatus).toBe('completed');
+    expect(next.recommendation?.outcome).toBe('refused');
+    expect(next.recommendation?.recommendedItems).toHaveLength(0);
+    expect(next.recommendation?.patientExplanation).toContain('营养师未通过');
+    expect(next.recommendation?.trace.patientExplanation).toContain('营养师未通过');
   });
 
   it('leaves recommendation and review cases unchanged for unknown review trace ids', () => {

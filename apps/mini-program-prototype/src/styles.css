@@ -302,6 +302,34 @@ h1 {
   word-break: break-word;
 }
 
+.trace-detail-grid {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.trace-detail-grid div {
+  border: 1px solid #edf1f6;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.trace-detail-grid span {
+  display: block;
+  color: #526071;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.trace-detail-grid p {
+  margin: 4px 0 0;
+  color: #172033;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 .danger-action {
   background: #fee2e2;
   color: #991b1b;

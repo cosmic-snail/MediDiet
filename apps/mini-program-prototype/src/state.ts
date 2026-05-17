@@ -141,18 +141,34 @@ export function requestRecommendation(state: PrototypeState, mode: 'recommended'
   return { ...state, recommendation: recommendedResponse };
 }
 
+function selectReviewedRecommendationItem(state: PrototypeState): MenuItemDto | undefined {
+  return (
+    state.menuItems.find((item) => item.available && item.nutritionConfidence >= 0.7) ??
+    state.menuItems.find((item) => item.available)
+  );
+}
+
 export function submitReviewDecision(
   state: PrototypeState,
   traceId: string,
   decision: ReviewDecision
 ): PrototypeState {
-  if (!state.reviewCases.some((item) => item.traceId === traceId)) {
+  const reviewCase = state.reviewCases.find((item) => item.traceId === traceId);
+  if (!reviewCase) {
     return state;
   }
 
   const status: ReviewCaseDto['status'] =
     decision === 'approve' ? 'approved' : decision === 'modify' ? 'modified' : 'rejected';
   const matchingRecommendation = state.recommendation?.traceId === traceId ? state.recommendation : null;
+  const reviewedItem = selectReviewedRecommendationItem(state);
+  const approvedExplanation =
+    decision === 'modify'
+      ? '营养师已调整推荐方案，可选择这份餐食，并继续少放酱汁、控制主食份量。'
+      : '营养师已确认这份餐食可以选择，请继续少放酱汁、控制主食份量。';
+  const rejectedExplanation = '营养师未通过本次自动推荐，请等待线下补充评估或重新提交摄入信息。';
+  const nextOutcome = decision === 'reject' || !reviewedItem ? 'refused' : 'recommended';
+  const nextExplanation = nextOutcome === 'recommended' ? approvedExplanation : rejectedExplanation;
 
   return {
     ...state,
@@ -160,7 +176,24 @@ export function submitReviewDecision(
       ? {
           ...matchingRecommendation,
           reviewStatus: 'completed',
-          outcome: decision === 'reject' ? 'refused' : 'recommended'
+          outcome: nextOutcome,
+          riskLevel: nextOutcome === 'recommended' ? 'medium' : 'high',
+          recommendedItems: nextOutcome === 'recommended' && reviewedItem ? [reviewedItem] : [],
+          patientExplanation: nextExplanation,
+          trace: {
+            ...reviewCase.trace,
+            outcome: nextOutcome,
+            riskLevel: nextOutcome === 'recommended' ? 'medium' : 'high',
+            scores: nextOutcome === 'recommended' && reviewedItem ? { [reviewedItem.itemId]: 38.4 } : {},
+            patientExplanation: nextExplanation,
+            clinicianExplanation: {
+              ...reviewCase.trace.clinicianExplanation,
+              matchedTags:
+                nextOutcome === 'recommended' && reviewedItem
+                  ? reviewedItem.nutritionTags.map((value) => ({ kind: 'nutrition_tag', value }))
+                  : []
+            }
+          }
         }
       : state.recommendation,
     reviewCases: state.reviewCases.map((item) => (item.traceId === traceId ? { ...item, status } : item))
