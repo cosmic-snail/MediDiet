@@ -30,4 +30,17 @@ describe('App role workbench', () => {
     expect(screen.getByText(/营养师已确认/)).toBeInTheDocument();
     expect(screen.getByText('推荐状态：已生成推荐')).toBeInTheDocument();
   });
+
+  it('returns direct queue rejections to the patient workspace', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: '营养师' }));
+    await user.click(screen.getByRole('button', { name: '驳回推荐' }));
+    await user.click(screen.getByRole('button', { name: '患者' }));
+
+    expect(screen.getByRole('heading', { name: '需要处理' })).toBeInTheDocument();
+    expect(screen.getByText(/营养师未通过/)).toBeInTheDocument();
+    expect(screen.getByText('推荐状态：拒绝推荐')).toBeInTheDocument();
+  });
 });

@@ -161,6 +161,15 @@ export function submitReviewDecision(
   const status: ReviewCaseDto['status'] =
     decision === 'approve' ? 'approved' : decision === 'modify' ? 'modified' : 'rejected';
   const matchingRecommendation = state.recommendation?.traceId === traceId ? state.recommendation : null;
+  const baseRecommendation: RecommendationResponseDto = matchingRecommendation ?? {
+    outcome: reviewCase.trace.outcome,
+    riskLevel: reviewCase.riskLevel,
+    traceId: reviewCase.traceId,
+    recommendedItems: [],
+    patientExplanation: reviewCase.trace.patientExplanation,
+    reviewStatus: 'pending',
+    trace: reviewCase.trace
+  };
   const reviewedItem = selectReviewedRecommendationItem(state);
   const approvedExplanation =
     decision === 'modify'
@@ -172,30 +181,29 @@ export function submitReviewDecision(
 
   return {
     ...state,
-    recommendation: matchingRecommendation
-      ? {
-          ...matchingRecommendation,
-          reviewStatus: 'completed',
-          outcome: nextOutcome,
-          riskLevel: nextOutcome === 'recommended' ? 'medium' : 'high',
-          recommendedItems: nextOutcome === 'recommended' && reviewedItem ? [reviewedItem] : [],
-          patientExplanation: nextExplanation,
-          trace: {
-            ...reviewCase.trace,
-            outcome: nextOutcome,
-            riskLevel: nextOutcome === 'recommended' ? 'medium' : 'high',
-            scores: nextOutcome === 'recommended' && reviewedItem ? { [reviewedItem.itemId]: 38.4 } : {},
-            patientExplanation: nextExplanation,
-            clinicianExplanation: {
-              ...reviewCase.trace.clinicianExplanation,
-              matchedTags:
-                nextOutcome === 'recommended' && reviewedItem
-                  ? reviewedItem.nutritionTags.map((value) => ({ kind: 'nutrition_tag', value }))
-                  : []
-            }
-          }
+    recommendation: {
+      ...baseRecommendation,
+      traceId: reviewCase.traceId,
+      reviewStatus: 'completed',
+      outcome: nextOutcome,
+      riskLevel: nextOutcome === 'recommended' ? 'medium' : 'high',
+      recommendedItems: nextOutcome === 'recommended' && reviewedItem ? [reviewedItem] : [],
+      patientExplanation: nextExplanation,
+      trace: {
+        ...reviewCase.trace,
+        outcome: nextOutcome,
+        riskLevel: nextOutcome === 'recommended' ? 'medium' : 'high',
+        scores: nextOutcome === 'recommended' && reviewedItem ? { [reviewedItem.itemId]: 38.4 } : {},
+        patientExplanation: nextExplanation,
+        clinicianExplanation: {
+          ...reviewCase.trace.clinicianExplanation,
+          matchedTags:
+            nextOutcome === 'recommended' && reviewedItem
+              ? reviewedItem.nutritionTags.map((value) => ({ kind: 'nutrition_tag', value }))
+              : []
         }
-      : state.recommendation,
+      }
+    },
     reviewCases: state.reviewCases.map((item) => (item.traceId === traceId ? { ...item, status } : item))
   };
 }

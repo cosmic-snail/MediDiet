@@ -68,14 +68,17 @@ describe('prototype state machine', () => {
     expect(next.reviewCases).toBe(state.reviewCases);
   });
 
-  it('does not mutate the current recommendation when reviewing a different trace', () => {
+  it('writes queued review decisions to the patient view when the current trace differs', () => {
     const state = createInitialPrototypeState();
-    const next = submitReviewDecision(state, 'trace-review-001', 'approve');
+    const next = submitReviewDecision(state, 'trace-review-001', 'reject');
 
-    expect(next.reviewCases[0].status).toBe('approved');
-    expect(next.recommendation).toBe(state.recommendation);
-    expect(next.recommendation?.traceId).toBe('trace-7c4e3608');
-    expect(next.recommendation?.reviewStatus).toBeNull();
+    expect(next.reviewCases[0].status).toBe('rejected');
+    expect(next.recommendation).not.toBe(state.recommendation);
+    expect(next.recommendation?.traceId).toBe('trace-review-001');
+    expect(next.recommendation?.reviewStatus).toBe('completed');
+    expect(next.recommendation?.outcome).toBe('refused');
+    expect(next.recommendation?.recommendedItems).toHaveLength(0);
+    expect(next.recommendation?.patientExplanation).toContain('营养师未通过');
   });
 
   it('does not throw when review mode has an empty review queue', () => {
