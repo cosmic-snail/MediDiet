@@ -1,6 +1,6 @@
 # MediDiet 使用文档
 
-版本：0.1.1
+版本：0.1.2
 目标读者：开发者、测试人员、部署负责人。
 
 ## 1. 当前交付形态
@@ -126,6 +126,14 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 ```
 
 当前测试覆盖说明见 `docs/testing.md`。
+
+### 5.1 演示脚本
+
+如果需要向产品、评审或前端同学演示完整 HTTP 推荐流程，请使用：
+
+- `docs/demo-usage.md`
+
+该文档包含患者建档、摄入记录、上传医院食谱、营养师评审意见、推荐请求、LLM 解释和异常场景的可复制命令。
 
 ## 6. 本地 demo 数据
 
