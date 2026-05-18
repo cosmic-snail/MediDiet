@@ -14,6 +14,15 @@ class PublicApiTest(unittest.TestCase):
         self.assertEqual(
             medidiet.__all__,
             [
+                "LLMAnswer",
+                "LLMConfig",
+                "LLMContextSanitizer",
+                "LLMEnhancedExplanation",
+                "LLMExplanationEnhancer",
+                "LLMFallbackReason",
+                "LLMQuestionAnswerer",
+                "MockLLMProvider",
+                "OpenAICompatibleLLMProvider",
                 "RecommendationEngine",
                 "RecommendationResult",
                 "RulePack",
@@ -25,6 +34,29 @@ class PublicApiTest(unittest.TestCase):
         rule_pack = load_baseline_rule_pack()
         self.assertIsInstance(rule_pack, RulePack)
         self.assertIsInstance(RecommendationEngine(rule_pack), RecommendationEngine)
+
+    def test_llm_exports_are_available(self):
+        from medidiet import (
+            LLMAnswer,
+            LLMConfig,
+            LLMContextSanitizer,
+            LLMEnhancedExplanation,
+            LLMExplanationEnhancer,
+            LLMFallbackReason,
+            LLMQuestionAnswerer,
+            MockLLMProvider,
+            OpenAICompatibleLLMProvider,
+        )
+
+        self.assertEqual(LLMConfig.__name__, "LLMConfig")
+        self.assertEqual(LLMFallbackReason.PROVIDER_ERROR.value, 6002)
+        self.assertEqual(MockLLMProvider.__name__, "MockLLMProvider")
+        self.assertEqual(OpenAICompatibleLLMProvider.__name__, "OpenAICompatibleLLMProvider")
+        self.assertEqual(LLMContextSanitizer.__name__, "LLMContextSanitizer")
+        self.assertEqual(LLMExplanationEnhancer.__name__, "LLMExplanationEnhancer")
+        self.assertEqual(LLMQuestionAnswerer.__name__, "LLMQuestionAnswerer")
+        self.assertEqual(LLMEnhancedExplanation.__name__, "LLMEnhancedExplanation")
+        self.assertEqual(LLMAnswer.__name__, "LLMAnswer")
 
 
 if __name__ == "__main__":

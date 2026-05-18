@@ -28,6 +28,15 @@
 
 ```python
 from medidiet import (
+    LLMAnswer,
+    LLMConfig,
+    LLMContextSanitizer,
+    LLMEnhancedExplanation,
+    LLMExplanationEnhancer,
+    LLMFallbackReason,
+    LLMQuestionAnswerer,
+    MockLLMProvider,
+    OpenAICompatibleLLMProvider,
     RecommendationEngine,
     RecommendationResult,
     RulePack,
@@ -39,6 +48,7 @@ from medidiet import (
 
 - `src/medidiet/__init__.py`
 - `src/medidiet/engine.py`
+- `src/medidiet/llm.py`
 - `src/medidiet/rules.py`
 
 ### 2.1 推荐引擎入口
@@ -529,3 +539,31 @@ gate = SafetyGate(rule_pack, log_file_path="logs/safety.log")
 - 新阻断原因应新增枚举 code，而不是用自然语言字符串表示。
 - 外部 payload 字段使用 camelCase，Python 内部 dataclass 字段使用 snake_case。
 - 涉及临床阈值的变更必须进入版本化规则包，并保留来源和审核信息。
+
+## 10. LLM 解释与问答 API
+
+LLM 是推荐后的可选增强层。它不能改变 `outcome`、推荐菜单、安全事件、排除原因或评分。
+
+公共入口：
+
+```python
+from medidiet import (
+    LLMConfig,
+    LLMContextSanitizer,
+    LLMExplanationEnhancer,
+    LLMQuestionAnswerer,
+    MockLLMProvider,
+    OpenAICompatibleLLMProvider,
+)
+```
+
+基本用法：
+
+```python
+context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+provider = OpenAICompatibleLLMProvider(LLMConfig.from_env())
+enhanced = LLMExplanationEnhancer(provider).enhance(context, result)
+answer = LLMQuestionAnswerer(provider).answer(context, result, "为什么推荐这个餐？")
+```
+
+默认脱敏策略不会发送 `patient_id`、原始图片、地址、手机号、身份证或完整病历。

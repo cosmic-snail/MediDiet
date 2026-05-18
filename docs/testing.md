@@ -44,7 +44,7 @@ PYTHONPATH=src python -m unittest tests.test_safety -v
 PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.test_routes_safety_events_to_human_review -v
 ```
 
-当前全量测试数量：52 个 `unittest` 用例。
+当前全量测试数量：70 个 `unittest` 用例，其中 1 个真实 LLM smoke test 默认跳过。
 
 ## 3. 测试文件总览
 
@@ -57,6 +57,8 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 | `tests/test_planner.py` | `planner.py` | 营养目标未转成正确标签和建议。 |
 | `tests/test_matcher.py` | `matcher.py` | 菜单排除错误、排序错误、排除 code 缺失。 |
 | `tests/test_explainer_trace.py` | `explainer.py`, `trace.py` | 解释不稳定、trace 缺字段、敏感字段泄漏。 |
+| `tests/test_llm.py` | `llm.py` | LLM 脱敏、fallback、安全输出校验、问答范围和 provider 请求错误。 |
+| `tests/test_llm_deepseek_smoke.py` | `llm.py`, DeepSeek/OpenAI-compatible API | 真实 provider 配置和返回格式，仅显式启用时运行。 |
 | `tests/test_engine.py` | `engine.py`, `fixtures.py` | 推荐主流程编排错误。 |
 | `tests/test_ports.py` | `ports.py` | 外部扩展契约不稳定、时间/枚举非法值。 |
 | `tests/test_public_api.py` | `__init__.py` | 顶层公共 API 意外破坏。 |
