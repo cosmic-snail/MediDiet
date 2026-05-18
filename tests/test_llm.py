@@ -186,6 +186,29 @@ class LLMExplanationEnhancerTest(unittest.TestCase):
         self.assertFalse(enhanced.used_fallback)
         self.assertIn("not recommended", enhanced.patient_explanation)
 
+    def test_enhancer_rejects_positive_recommendation_after_refusal(self):
+        from medidiet.llm import (
+            LLMContextSanitizer,
+            LLMExplanationEnhancer,
+            LLMFallbackReason,
+            MockLLMProvider,
+        )
+
+        patient, meal_label, result = demo_result()
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        refused_context = replace(context, outcome=Outcome.REFUSED)
+        provider = MockLLMProvider(
+            explanation_payload={
+                "patientExplanation": "This refused meal is recommended for dinner.",
+                "clinicianExplanation": "The refusal was converted into a recommendation.",
+            }
+        )
+
+        enhanced = LLMExplanationEnhancer(provider).enhance(refused_context, result)
+
+        self.assertTrue(enhanced.used_fallback)
+        self.assertEqual(enhanced.fallback_reason, LLMFallbackReason.UNSAFE_OUTPUT)
+
     def test_sensitive_llm_fields_are_omitted_from_repr(self):
         from medidiet.llm import LLMConfig, LLMRequest, LLMResponse, LLMTask, MockLLMProvider
 

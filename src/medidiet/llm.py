@@ -323,7 +323,7 @@ def _contains_unsafe_explanation(
     text = f"{patient_explanation}\n{clinician_explanation}".lower()
     if any(phrase in text for phrase in _UNSAFE_EXPLANATION_PHRASES):
         return True
-    if outcome is Outcome.REFUSED and ("推荐成功" in text or "可以放心吃" in text or "safe to eat" in text):
+    if outcome is Outcome.REFUSED and _contains_refused_outcome_override(text):
         return True
     if outcome is Outcome.HUMAN_REVIEW_REQUIRED and (
         ("无需" in text and "审核" in text)
@@ -333,3 +333,19 @@ def _contains_unsafe_explanation(
     ):
         return True
     return False
+
+
+def _contains_refused_outcome_override(text: str) -> bool:
+    if "推荐成功" in text or "可以放心吃" in text or "safe to eat" in text:
+        return True
+    return any(
+        phrase in text
+        for phrase in (
+            "is recommended",
+            "recommended for",
+            "we recommend",
+            "i recommend",
+            "recommend this",
+            "converted into a recommendation",
+        )
+    )
