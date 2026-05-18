@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum
 from typing import Protocol
@@ -36,6 +39,22 @@ class LLMConfig:
     def __post_init__(self) -> None:
         if self.timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
+
+    @classmethod
+    def from_env(cls) -> "LLMConfig":
+        timeout_raw = os.getenv("MEDIDIET_LLM_TIMEOUT_SECONDS", "10")
+        try:
+            timeout_seconds = int(timeout_raw)
+        except ValueError as exc:
+            raise ValueError("MEDIDIET_LLM_TIMEOUT_SECONDS must be an integer") from exc
+        return cls(
+            provider=os.getenv("MEDIDIET_LLM_PROVIDER", "mock"),
+            base_url=os.getenv("MEDIDIET_LLM_BASE_URL"),
+            api_key=os.getenv("MEDIDIET_LLM_API_KEY"),
+            model=os.getenv("MEDIDIET_LLM_MODEL"),
+            timeout_seconds=timeout_seconds,
+            send_patient_id=False,
+        )
 
 
 @dataclass(frozen=True)
@@ -96,6 +115,52 @@ class MockLLMProvider:
         else:
             content = json.dumps(self.qa_payload or {}, ensure_ascii=False)
         return LLMResponse(content=content, provider_name="mock", model="mock")
+
+
+class OpenAICompatibleLLMProvider:
+    def __init__(self, config: LLMConfig):
+        if config.provider != "openai_compatible":
+            raise ValueError("config.provider must be openai_compatible")
+        if not config.base_url or not config.api_key or not config.model:
+            raise ValueError("base_url, api_key, and model are required")
+        self.config = config
+
+    def complete(self, request: LLMRequest) -> LLMResponse:
+        endpoint = self.config.base_url.rstrip("/") + "/chat/completions"
+        body = {
+            "model": self.config.model,
+            "messages": [
+                {"role": "system", "content": request.system_prompt},
+                {"role": "user", "content": request.user_prompt},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        http_request = urllib.request.Request(
+            endpoint,
+            data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.config.api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(http_request, timeout=self.config.timeout_seconds) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            raise RuntimeError("LLM provider request failed") from exc
+
+        try:
+            content = payload["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise RuntimeError("LLM provider response missing message content") from exc
+        if not isinstance(content, str):
+            raise RuntimeError("LLM provider message content must be a string")
+        return LLMResponse(
+            content=content,
+            provider_name="openai_compatible",
+            model=self.config.model,
+        )
 
 
 @dataclass(frozen=True)

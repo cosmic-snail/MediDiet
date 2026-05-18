@@ -327,3 +327,93 @@ class LLMQuestionAnswererTest(unittest.TestCase):
 
         self.assertEqual(invalid.fallback_reason, LLMFallbackReason.INVALID_JSON)
         self.assertEqual(unsafe.fallback_reason, LLMFallbackReason.UNSAFE_OUTPUT)
+
+
+class OpenAICompatibleLLMProviderTest(unittest.TestCase):
+    def test_config_loads_from_environment_without_enabling_patient_id(self):
+        import os
+        from unittest.mock import patch
+
+        from medidiet.llm import LLMConfig
+
+        env = {
+            "MEDIDIET_LLM_PROVIDER": "openai_compatible",
+            "MEDIDIET_LLM_BASE_URL": "https://api.deepseek.com",
+            "MEDIDIET_LLM_API_KEY": "secret",
+            "MEDIDIET_LLM_MODEL": "deepseek-v4",
+            "MEDIDIET_LLM_TIMEOUT_SECONDS": "7",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            config = LLMConfig.from_env()
+
+        self.assertEqual(config.provider, "openai_compatible")
+        self.assertEqual(config.base_url, "https://api.deepseek.com")
+        self.assertEqual(config.api_key, "secret")
+        self.assertEqual(config.model, "deepseek-v4")
+        self.assertEqual(config.timeout_seconds, 7)
+        self.assertFalse(config.send_patient_id)
+
+    def test_openai_provider_builds_request_and_does_not_leak_api_key(self):
+        import json
+        from unittest.mock import patch
+
+        from medidiet.llm import (
+            LLMConfig,
+            LLMRequest,
+            LLMTask,
+            OpenAICompatibleLLMProvider,
+        )
+
+        captured = {}
+
+        class FakeHTTPResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {"choices": [{"message": {"content": "{\"answer\": \"ok\"}"}}]},
+                    ensure_ascii=False,
+                ).encode("utf-8")
+
+        def fake_urlopen(request, timeout):
+            captured["url"] = request.full_url
+            captured["timeout"] = timeout
+            captured["body"] = json.loads(request.data.decode("utf-8"))
+            captured["authorization"] = request.headers.get("Authorization")
+            return FakeHTTPResponse()
+
+        provider = OpenAICompatibleLLMProvider(
+            LLMConfig(
+                provider="openai_compatible",
+                base_url="https://api.deepseek.com",
+                api_key="secret-token",
+                model="deepseek-v4",
+                timeout_seconds=3,
+            )
+        )
+        with patch("urllib.request.urlopen", fake_urlopen):
+            response = provider.complete(
+                LLMRequest(
+                    task=LLMTask.QUESTION_ANSWERING,
+                    system_prompt="system",
+                    user_prompt="user",
+                )
+            )
+
+        self.assertEqual(captured["url"], "https://api.deepseek.com/chat/completions")
+        self.assertEqual(captured["timeout"], 3)
+        self.assertEqual(captured["body"]["model"], "deepseek-v4")
+        self.assertEqual(captured["body"]["response_format"], {"type": "json_object"})
+        self.assertEqual(captured["authorization"], "Bearer secret-token")
+        self.assertEqual(response.content, '{"answer": "ok"}')
+        self.assertNotIn("secret-token", repr(response))
+
+    def test_openai_provider_rejects_missing_required_config(self):
+        from medidiet.llm import LLMConfig, OpenAICompatibleLLMProvider
+
+        with self.assertRaises(ValueError):
+            OpenAICompatibleLLMProvider(LLMConfig(provider="openai_compatible", api_key="secret"))
