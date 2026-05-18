@@ -348,4 +348,11 @@ MEDIDIET_LLM_MODEL=deepseek-v4 \
 PYTHONPATH=src python -m unittest tests.test_llm_deepseek_smoke -v
 ```
 
+如果 `.env` 已配置完整 LLM 变量，也可以用同一组配置验证 HTTP 推荐链路：
+
+```bash
+set -a; source .env; set +a
+PYTHONPATH=src python -m unittest tests.test_http_llm_smoke -v
+```
+
 该测试默认跳过。启用后会访问真实模型 API，可能产生费用。测试不会发送患者真实 id、原始图片、地址或完整病历。

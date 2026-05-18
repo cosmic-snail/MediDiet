@@ -273,6 +273,8 @@ LLM 单元测试默认离线运行，使用 `MockLLMProvider` 覆盖解释增强
 
 真实 DeepSeek/OpenAI-compatible smoke test 位于 `tests/test_llm_deepseek_smoke.py`，真实 HTTP 推荐 + LLM smoke test 位于 `tests/test_http_llm_smoke.py`。两者默认跳过，只有显式设置 `MEDIDIET_LLM_SMOKE_TEST=1` 和完整 LLM 环境变量时才运行。
 
+`tests/test_http_llm_smoke.py` 验证完整 HTTP 推荐路径能通过真实 OpenAI-compatible LLM provider 返回增强解释。它默认跳过，只在 `MEDIDIET_LLM_SMOKE_TEST=1` 且 LLM 环境变量完整时运行。
+
 测试人员评估 LLM 功能时应确认：
 
 - 普通全量测试不会访问外网。
