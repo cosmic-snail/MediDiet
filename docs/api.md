@@ -5,7 +5,7 @@
 
 ## 1. API 边界
 
-当前仓库提供的是医院餐食推荐的 **Python 核心引擎**，不是完整 Web 服务。它负责：
+当前仓库提供医院餐食推荐的 **Python 核心引擎**，并提供一个用于前端联调的本地 FastAPI HTTP server。它负责：
 
 - 校验患者、摄入记录、菜单候选项和规则包。
 - 根据慢病、过敏、禁忌、偏好和今日摄入生成下一餐推荐。
@@ -14,13 +14,13 @@
 
 当前仓库不直接提供：
 
-- HTTP API server。
 - 小程序前端。
 - 真实外卖平台连接器。
 - 真实图片识别模型。
 - HIS/EMR 生产集成。
+- 生产鉴权、授权、审计、限流和数据库持久化。
 
-这些能力应通过 `src/medidiet/ports.py` 中的端口和领域事件接入。
+外部系统能力应通过 `src/medidiet/ports.py` 中的端口和领域事件接入；前端联调可先使用 `src/medidiet/server.py` 的 HTTP server。
 
 ## 2. 顶层公共 API
 
@@ -39,7 +39,9 @@ from medidiet import (
     OpenAICompatibleLLMProvider,
     RecommendationEngine,
     RecommendationResult,
+    RecommendationService,
     RulePack,
+    create_app,
     load_baseline_rule_pack,
 )
 ```
@@ -50,6 +52,8 @@ from medidiet import (
 - `src/medidiet/engine.py`
 - `src/medidiet/llm.py`
 - `src/medidiet/rules.py`
+- `src/medidiet/service.py`
+- `src/medidiet/server.py`
 
 ### 2.1 推荐引擎入口
 
@@ -567,3 +571,65 @@ answer = LLMQuestionAnswerer(provider).answer(context, result, "为什么推荐�
 ```
 
 默认脱敏策略不会发送 `patient_id`、原始图片、地址、手机号、身份证或完整病历。
+
+## 11. HTTP Server API
+
+MediDiet 也提供一个本地 FastAPI server，用于小程序/前端联调。
+
+启动：
+
+```bash
+uvicorn medidiet.server:app --app-dir src --reload
+```
+
+关键端点：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/health` | 返回服务状态、包版本、规则包版本。 |
+| `PUT` | `/patients/{patient_id}` | 创建或替换患者档案。 |
+| `POST` | `/patients/{patient_id}/intake-records` | 追加一条结构化摄入记录。 |
+| `PUT` | `/menus/today` | 上传今天医院食谱或候选菜单。 |
+| `POST` | `/reviews/nutritionist` | 记录营养师评审意见。 |
+| `POST` | `/recommendations` | 返回推荐结果、推荐菜单、LLM 增强解释和 trace id。 |
+| `GET` | `/debug/state` | 返回开发调试用内存状态摘要。 |
+
+### 11.1 推荐请求示例
+
+```json
+{
+  "patientId": "patient-001",
+  "mealLabel": 3,
+  "temporaryTasteTags": [
+    {"kind": "taste_tag", "value": "light"}
+  ],
+  "debug": true
+}
+```
+
+### 11.2 推荐响应示例
+
+```json
+{
+  "outcome": "recommended",
+  "recommendedItems": [
+    {
+      "itemId": "steamed-fish-set",
+      "merchantId": "hospital-canteen",
+      "name": "Steamed fish set"
+    }
+  ],
+  "explanation": {
+    "patient": "这份餐食符合当前营养规则...",
+    "clinician": "LLM clinician explanation.",
+    "llm": {
+      "usedFallback": false,
+      "fallbackReason": null
+    }
+  },
+  "nutritionistReviews": [],
+  "traceId": "trace-..."
+}
+```
+
+HTTP server 的 MVP 状态保存在内存中，适合本地或可信内网联调；生产前必须补充鉴权、患者授权、审计、持久化、限流和 `/debug/state` 保护。

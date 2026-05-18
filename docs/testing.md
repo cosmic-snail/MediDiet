@@ -44,7 +44,7 @@ PYTHONPATH=src python -m unittest tests.test_safety -v
 PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.test_routes_safety_events_to_human_review -v
 ```
 
-当前全量测试数量：71 个 `unittest` 用例，其中 1 个真实 LLM smoke test 默认跳过。
+当前全量测试数量会随 HTTP server 任务落地后重新统计。普通全量测试默认离线运行；真实 LLM smoke test 默认跳过。
 
 ## 3. 测试文件总览
 
@@ -59,6 +59,9 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 | `tests/test_explainer_trace.py` | `explainer.py`, `trace.py` | 解释不稳定、trace 缺字段、敏感字段泄漏。 |
 | `tests/test_llm.py` | `llm.py` | LLM 脱敏、fallback、安全输出校验、问答范围和 provider 请求错误。 |
 | `tests/test_llm_deepseek_smoke.py` | `llm.py`, DeepSeek/OpenAI-compatible API | 真实 provider 配置和返回格式，仅显式启用时运行。 |
+| `tests/test_service.py` | `service.py` | HTTP 应用服务 DTO 转换、内存状态、推荐编排、营养师评审记录和 LLM fallback metadata。 |
+| `tests/test_http_server.py` | `server.py`, `service.py` | FastAPI endpoints、payload 校验、统一错误响应、推荐响应结构和缺菜单/LLM provider error。 |
+| `tests/test_http_llm_smoke.py` | `server.py`, `llm.py`, DeepSeek/OpenAI-compatible API | 真实 HTTP 推荐 + LLM 增强链路，仅显式启用时运行。 |
 | `tests/test_engine.py` | `engine.py`, `fixtures.py` | 推荐主流程编排错误。 |
 | `tests/test_ports.py` | `ports.py` | 外部扩展契约不稳定、时间/枚举非法值。 |
 | `tests/test_public_api.py` | `__init__.py` | 顶层公共 API 意外破坏。 |
@@ -231,7 +234,7 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 | 外卖/食堂 API | 商品字段缺失、营养值异常、不可用商品、过敏原字段、分页和超时。 |
 | HIS/EMR | 患者疾病编码映射、过敏映射、授权失败、病历字段缺失。 |
 | 事件系统 | `DomainEvent` 序列化、幂等、失败重试、人工审核队列。 |
-| 服务入口 | 鉴权、请求 id、payload 校验、错误响应、trace 持久化。 |
+| 服务入口 | 鉴权、请求 id、payload 校验、错误响应、trace 持久化；当前已覆盖本地 HTTP payload 校验和统一错误响应。 |
 
 ## 10. 回归测试建议
 
@@ -268,7 +271,7 @@ PYTHONPATH=src python -m unittest tests.test_rules tests.test_engine tests.test_
 
 LLM 单元测试默认离线运行，使用 `MockLLMProvider` 覆盖解释增强、问答、fallback、安全输出校验和 provider 请求构造。
 
-真实 DeepSeek/OpenAI-compatible smoke test 位于 `tests/test_llm_deepseek_smoke.py`，默认跳过。只有显式设置 `MEDIDIET_LLM_SMOKE_TEST=1` 和完整 LLM 环境变量时才运行。
+真实 DeepSeek/OpenAI-compatible smoke test 位于 `tests/test_llm_deepseek_smoke.py`，真实 HTTP 推荐 + LLM smoke test 位于 `tests/test_http_llm_smoke.py`。两者默认跳过，只有显式设置 `MEDIDIET_LLM_SMOKE_TEST=1` 和完整 LLM 环境变量时才运行。
 
 测试人员评估 LLM 功能时应确认：
 

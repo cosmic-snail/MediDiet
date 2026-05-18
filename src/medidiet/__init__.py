@@ -13,6 +13,8 @@ from medidiet.llm import (
     OpenAICompatibleLLMProvider,
 )
 from medidiet.rules import RulePack, load_baseline_rule_pack
+from medidiet.server import create_app
+from medidiet.service import RecommendationService
 
 __version__ = "0.1.1"
 
@@ -28,6 +30,8 @@ __all__ = [
     "OpenAICompatibleLLMProvider",
     "RecommendationEngine",
     "RecommendationResult",
+    "RecommendationService",
     "RulePack",
+    "create_app",
     "load_baseline_rule_pack",
 ]

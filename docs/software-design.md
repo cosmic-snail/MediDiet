@@ -44,6 +44,8 @@ MediDiet/
 │       ├── ports.py
 │       ├── rules.py
 │       ├── safety.py
+│       ├── server.py
+│       ├── service.py
 │       └── trace.py
 ├── tests/
 │   ├── test_domain.py
@@ -51,12 +53,14 @@ MediDiet/
 │   ├── test_explainer_trace.py
 │   ├── test_llm.py
 │   ├── test_llm_deepseek_smoke.py
+│   ├── test_http_server.py
 │   ├── test_matcher.py
 │   ├── test_nutrition.py
 │   ├── test_planner.py
 │   ├── test_ports.py
 │   ├── test_public_api.py
 │   ├── test_rules.py
+│   ├── test_service.py
 │   └── test_safety.py
 └── pyproject.toml
 ```
@@ -75,6 +79,8 @@ MediDiet/
 | `trace.py` | 推荐 trace 序列化。 | `RecommendationTrace` |
 | `engine.py` | 推荐流程编排。 | `RecommendationEngine`, `RecommendationResult` |
 | `llm.py` | 推荐后的可选 LLM 解释增强、推荐范围内问答、上下文脱敏和 OpenAI-compatible provider。 | `LLMContextSanitizer`, `LLMExplanationEnhancer`, `LLMQuestionAnswerer`, `OpenAICompatibleLLMProvider` |
+| `service.py` | HTTP 工作流的内存应用服务、DTO 转换和推荐编排。 | `RecommendationService`, `InMemoryRecommendationStore` |
+| `server.py` | FastAPI adapter、HTTP payload 模型和统一错误映射。 | `create_app`, `app` |
 | `ports.py` | 外部系统扩展端口和事件契约。 | `RecommendationRequestEnvelope`, `DomainEvent`, `*Port` |
 | `fixtures.py` | deterministic demo 数据。 | `demo_request`, `DEMO_NOW` |
 | `cli.py` | 本地 demo CLI。 | `main` |
@@ -83,7 +89,9 @@ MediDiet/
 
 ```mermaid
 flowchart LR
-  app["小程序/服务端入口"]
+  app["小程序/前端"]
+  http["FastAPI HTTP Server"]
+  service["RecommendationService"]
   patientPort["PatientContextPort"]
   intakePort["IntakeEstimatorPort"]
   menuPort["MenuProviderPort"]
@@ -100,6 +108,8 @@ flowchart LR
   trace["RecommendationTrace"]
   rules["RulePack + ConceptRegistry"]
 
+  app --> http --> service
+  service --> engine
   app --> patientPort
   app --> intakePort
   app --> menuPort
@@ -118,7 +128,7 @@ flowchart LR
   llmProvider --> llm
   llm --> app
   trace --> eventPort
-  engine --> app
+  engine --> service --> http --> app
 ```
 
 LLM 只位于推荐后的后处理路径。`LLMContextSanitizer` 先基于 `RecommendationResult` 构造脱敏上下文，`LLMExplanationEnhancer` 可增强解释，`LLMQuestionAnswerer` 只回答本次推荐范围内的问题，`OpenAICompatibleLLMProvider` 负责 DeepSeek/OpenAI-compatible 接口调用。LLM 不参与菜单选择，也不能改写 outcome、排除原因、评分或安全事件。
@@ -392,7 +402,7 @@ flowchart LR
 扩展原则：
 
 - 外部适配器将外部 JSON/API 数据转换成核心 dataclass。
-- 核心引擎不依赖 HTTP、数据库、对象存储、SDK。
+- 核心引擎不依赖 HTTP、数据库、对象存储、SDK；HTTP server 只作为适配层调用 `RecommendationService`。
 - 外部系统错误应在适配层转换成安全拒绝、人工审核或服务层错误。
 - 规则包发布、回滚、人工审核完成等动作通过 `DomainEvent` 表达。
 
@@ -412,7 +422,7 @@ flowchart LR
 
 ## 11. 已知限制
 
-- 当前没有真实 HTTP API server。
+- 当前 HTTP API server 使用内存状态，仅用于本地或可信内网联调。
 - 当前没有真实图片识别、外卖平台、HIS/EMR 适配器。
 - baseline 规则阈值是演示级，需要临床审核后才能用于生产。
 - 当前 `DOWNGRADED` outcome 预留但未由引擎主动产生。

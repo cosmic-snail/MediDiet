@@ -25,7 +25,9 @@ class PublicApiTest(unittest.TestCase):
                 "OpenAICompatibleLLMProvider",
                 "RecommendationEngine",
                 "RecommendationResult",
+                "RecommendationService",
                 "RulePack",
+                "create_app",
                 "load_baseline_rule_pack",
             ],
         )
@@ -57,6 +59,12 @@ class PublicApiTest(unittest.TestCase):
         self.assertEqual(LLMQuestionAnswerer.__name__, "LLMQuestionAnswerer")
         self.assertEqual(LLMEnhancedExplanation.__name__, "LLMEnhancedExplanation")
         self.assertEqual(LLMAnswer.__name__, "LLMAnswer")
+
+    def test_http_service_exports_are_available(self):
+        from medidiet import RecommendationService, create_app
+
+        self.assertEqual(RecommendationService.__name__, "RecommendationService")
+        self.assertEqual(create_app.__name__, "create_app")
 
 
 if __name__ == "__main__":

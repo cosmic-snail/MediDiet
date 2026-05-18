@@ -1,25 +1,26 @@
 # MediDiet 使用文档
 
-版本：0.1.0
+版本：0.1.1
 目标读者：开发者、测试人员、部署负责人。
 
 ## 1. 当前交付形态
 
-当前项目交付的是 Python 推荐引擎核心包：
+当前项目交付的是 Python 推荐引擎核心包，并提供本地 FastAPI HTTP server 供前端联调：
 
 - 包名：`medidiet`
 - 源码目录：`src/medidiet`
 - 本地 demo：`python -m medidiet.cli`
+- 本地 HTTP API：`uvicorn medidiet.server:app --app-dir src --reload`
 - 测试框架：Python 标准库 `unittest`
 
 当前项目不是完整生产服务，不包含：
 
-- HTTP API server。
 - 小程序 UI。
 - 数据库。
 - 真实图片识别服务。
 - 真实外卖/食堂平台连接器。
 - HIS/EMR 生产连接器。
+- 生产鉴权、授权、审计、限流和持久化。
 
 生产部署时应在本核心包外层增加服务入口、适配器、鉴权、审计存储和运行时配置。
 
@@ -30,7 +31,7 @@
 - Python 3.11+
 - macOS/Linux/Windows 均可运行，当前开发验证环境为本地 Python + `unittest`
 
-项目当前仅使用 Python 标准库，无第三方运行时依赖。
+项目当前使用 Python 标准库、FastAPI、Pydantic、httpx 和 uvicorn。
 
 ## 3. 获取代码
 
@@ -77,6 +78,32 @@ python -m medidiet.cli
 ```
 
 如果团队只做本地开发和测试，也可以继续使用 `PYTHONPATH=src`，避免环境里残留旧安装版本。
+
+### 4.3 本地 HTTP Server
+
+安装依赖：
+
+```bash
+python -m pip install -e .
+```
+
+启动 API：
+
+```bash
+uvicorn medidiet.server:app --app-dir src --reload
+```
+
+OpenAPI 文档地址：
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+健康检查：
+
+```bash
+curl http://127.0.0.1:8000/health
+```
 
 ## 5. 运行测试
 
