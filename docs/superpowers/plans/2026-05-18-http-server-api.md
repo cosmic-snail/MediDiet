@@ -18,6 +18,7 @@ Create:
 - `src/medidiet/server.py` - FastAPI app factory, HTTP request/response models, endpoint wiring, exception handlers.
 - `tests/test_service.py` - service-level TDD coverage without HTTP.
 - `tests/test_http_server.py` - HTTP endpoint tests with FastAPI `TestClient`.
+- `tests/test_http_llm_smoke.py` - opt-in HTTP recommendation smoke test using a real OpenAI-compatible LLM.
 
 Modify:
 
@@ -1530,8 +1531,8 @@ In `docs/software-design.md`:
 
 In `docs/testing.md`:
 
-- Add `tests/test_service.py` and `tests/test_http_server.py` to the test file overview.
-- Update the total test count after running the full suite in Task 7.
+- Add `tests/test_service.py`, `tests/test_http_server.py`, and `tests/test_http_llm_smoke.py` to the test file overview.
+- Update the total test count after running the full suite in Task 8.
 
 In `docs/usage.md`, add:
 
@@ -1579,7 +1580,177 @@ git commit -m "docs: expose HTTP server API"
 
 ---
 
-### Task 7: Full Verification and Local Server Smoke Check
+### Task 7: Opt-In HTTP Recommendation Test With Real LLM
+
+**Files:**
+- Create: `tests/test_http_llm_smoke.py`
+- Modify: `docs/testing.md`
+- Modify: `docs/usage.md`
+
+- [ ] **Step 1: Write skipped-by-default HTTP LLM smoke test**
+
+Create `tests/test_http_llm_smoke.py` with this content:
+
+```python
+import os
+import unittest
+
+from fastapi.testclient import TestClient
+
+from medidiet.server import create_app
+from medidiet.service import RecommendationService
+
+
+def _smoke_enabled() -> bool:
+    required = (
+        "MEDIDIET_LLM_SMOKE_TEST",
+        "MEDIDIET_LLM_PROVIDER",
+        "MEDIDIET_LLM_BASE_URL",
+        "MEDIDIET_LLM_API_KEY",
+        "MEDIDIET_LLM_MODEL",
+    )
+    return os.getenv("MEDIDIET_LLM_SMOKE_TEST") == "1" and all(os.getenv(name) for name in required)
+
+
+def patient_payload():
+    return {
+        "age": 65,
+        "heightCm": 170,
+        "weightKg": 72,
+        "conditions": [{"kind": "condition", "value": "hypertension"}],
+        "allergens": [],
+        "contraindications": [],
+        "preferences": {
+            "tasteTags": [{"kind": "taste_tag", "value": "light"}],
+            "dislikedIngredients": [],
+            "maxPriceCents": 3000,
+            "maxDistanceMeters": 1000,
+        },
+        "keyRiskFieldsConfirmed": True,
+    }
+
+
+def menu_payload():
+    return {
+        "items": [
+            {
+                "itemId": "steamed-fish-set",
+                "name": "Steamed fish set",
+                "ingredients": [{"kind": "ingredient", "value": "fish"}],
+                "allergens": [],
+                "tasteTags": [{"kind": "taste_tag", "value": "light"}],
+                "nutritionTags": [
+                    {"kind": "nutrition_tag", "value": "low_sodium"},
+                    {"kind": "nutrition_tag", "value": "controlled_carbs"},
+                    {"kind": "nutrition_tag", "value": "vegetable_rich"},
+                ],
+                "contraindicationTags": [],
+                "nutrients": {
+                    "energyKcal": 520,
+                    "carbsG": 58,
+                    "proteinG": 34,
+                    "fatG": 14,
+                    "sodiumMg": 520,
+                    "sugarG": 6,
+                    "fiberG": 7,
+                },
+            }
+        ]
+    }
+
+
+@unittest.skipUnless(
+    _smoke_enabled(),
+    "HTTP LLM smoke test requires MEDIDIET_LLM_SMOKE_TEST=1 and complete LLM env vars",
+)
+class HTTPLLMSmokeTest(unittest.TestCase):
+    def test_http_recommendation_returns_real_llm_explanation(self):
+        client = TestClient(create_app(RecommendationService()))
+        self.assertEqual(client.put("/patients/patient-001", json=patient_payload()).status_code, 200)
+        self.assertEqual(client.put("/menus/today", json=menu_payload()).status_code, 200)
+
+        response = client.post(
+            "/recommendations",
+            json={
+                "patientId": "patient-001",
+                "mealLabel": 3,
+                "temporaryTasteTags": [{"kind": "taste_tag", "value": "light"}],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["outcome"], "recommended")
+        self.assertFalse(
+            body["explanation"]["llm"]["usedFallback"],
+            f"LLM fallback reason: {body['explanation']['llm']['fallbackReason']}",
+        )
+        self.assertIsNone(body["explanation"]["llm"]["fallbackReason"])
+        self.assertGreater(len(body["explanation"]["patient"].strip()), 0)
+        self.assertEqual(body["recommendedItems"][0]["itemId"], "steamed-fish-set")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+- [ ] **Step 2: Run smoke test without env and verify it skips**
+
+Run:
+
+```bash
+env -u MEDIDIET_LLM_SMOKE_TEST -u MEDIDIET_LLM_PROVIDER -u MEDIDIET_LLM_BASE_URL -u MEDIDIET_LLM_API_KEY -u MEDIDIET_LLM_MODEL PYTHONPATH=src python -m unittest tests.test_http_llm_smoke -v
+```
+
+Expected: OK with `skipped=1`.
+
+- [ ] **Step 3: Run smoke test with `.env` when the user asks for real API validation**
+
+Run only when `.env` has valid LLM credentials and the user explicitly wants the real call:
+
+```bash
+set -a; source .env; set +a
+PYTHONPATH=src python -m unittest tests.test_http_llm_smoke -v
+```
+
+Expected: PASS. The test calls the HTTP recommendation endpoint through FastAPI `TestClient`, uses the real OpenAI-compatible LLM provider through `RecommendationService`, and asserts `usedFallback=false`.
+
+- [ ] **Step 4: Document the opt-in HTTP LLM smoke test**
+
+Add this paragraph to the LLM testing section in `docs/testing.md`:
+
+```markdown
+`tests/test_http_llm_smoke.py` verifies the full HTTP recommendation path with a real OpenAI-compatible LLM provider. It is skipped by default and only runs when `MEDIDIET_LLM_SMOKE_TEST=1` and complete LLM environment variables are set.
+```
+
+Add this command to the LLM section in `docs/usage.md`:
+
+```bash
+set -a; source .env; set +a
+PYTHONPATH=src python -m unittest tests.test_http_llm_smoke -v
+```
+
+- [ ] **Step 5: Run offline tests and commit**
+
+Run:
+
+```bash
+env -u MEDIDIET_LLM_SMOKE_TEST -u MEDIDIET_LLM_PROVIDER -u MEDIDIET_LLM_BASE_URL -u MEDIDIET_LLM_API_KEY -u MEDIDIET_LLM_MODEL PYTHONPATH=src python -m unittest tests.test_http_llm_smoke -v
+git diff --check
+```
+
+Expected: HTTP LLM smoke test reports `OK (skipped=1)` and `git diff --check` prints nothing.
+
+Commit:
+
+```bash
+git add tests/test_http_llm_smoke.py docs/testing.md docs/usage.md
+git commit -m "test: add opt-in HTTP LLM smoke test"
+```
+
+---
+
+### Task 8: Full Verification and Local Server Smoke Check
 
 - [ ] **Step 1: Run full offline test suite**
 
@@ -1661,6 +1832,7 @@ Optional real LLM smoke test only when `.env` is configured and the user explici
 ```bash
 set -a; source .env; set +a
 PYTHONPATH=src python -m unittest tests.test_llm_deepseek_smoke -v
+PYTHONPATH=src python -m unittest tests.test_http_llm_smoke -v
 ```
 
 ## Expected Commit Series
@@ -1671,3 +1843,4 @@ PYTHONPATH=src python -m unittest tests.test_llm_deepseek_smoke -v
 4. `feat: add FastAPI HTTP server endpoints`
 5. `test: cover HTTP recommendation fallback behavior`
 6. `docs: expose HTTP server API`
+7. `test: add opt-in HTTP LLM smoke test`

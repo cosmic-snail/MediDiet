@@ -324,6 +324,7 @@ LLM safety:
 - Offline HTTP tests use a mock or missing provider and remain deterministic.
 - LLM failure returns successful recommendation response with `usedFallback=true`.
 - Real DeepSeek smoke test remains opt-in through environment variables.
+- Real HTTP recommendation plus LLM smoke test remains opt-in through the same environment variables and verifies the front-end-facing `/recommendations` path with a real provider.
 
 ## Out of Scope
 
