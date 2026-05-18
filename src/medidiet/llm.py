@@ -65,6 +65,13 @@ class LLMEnhancedExplanation:
     fallback_reason: LLMFallbackReason | None
 
 
+@dataclass(frozen=True)
+class LLMAnswer:
+    answer: str
+    used_fallback: bool
+    fallback_reason: LLMFallbackReason | None
+
+
 class LLMProviderPort(Protocol):
     def complete(self, request: LLMRequest) -> LLMResponse:
         ...
@@ -198,6 +205,50 @@ class LLMExplanationEnhancer:
         )
 
 
+class LLMQuestionAnswerer:
+    def __init__(self, provider: LLMProviderPort | None):
+        self.provider = provider
+
+    def answer(
+        self,
+        context: LLMRecommendationContext,
+        result: RecommendationResult,
+        question: str,
+    ) -> LLMAnswer:
+        if _is_out_of_scope_question(question):
+            return _fallback_answer(LLMFallbackReason.OUT_OF_SCOPE_QUESTION)
+        if self.provider is None:
+            return _fallback_answer(LLMFallbackReason.PROVIDER_NOT_CONFIGURED)
+
+        request = LLMRequest(
+            task=LLMTask.QUESTION_ANSWERING,
+            system_prompt=_EXPLANATION_SYSTEM_PROMPT,
+            user_prompt=_qa_user_prompt(context, result, question),
+        )
+        try:
+            response = self.provider.complete(request)
+        except Exception:
+            return _fallback_answer(LLMFallbackReason.PROVIDER_ERROR)
+
+        try:
+            payload = json.loads(response.content)
+        except json.JSONDecodeError:
+            return _fallback_answer(LLMFallbackReason.INVALID_JSON)
+
+        if not isinstance(payload, dict):
+            return _fallback_answer(LLMFallbackReason.INVALID_JSON)
+
+        answer = payload.get("answer")
+        if not isinstance(answer, str):
+            return _fallback_answer(LLMFallbackReason.MISSING_FIELD)
+        if not answer.strip():
+            return _fallback_answer(LLMFallbackReason.EMPTY_OUTPUT)
+        if _contains_unsafe_explanation(answer, "", context.outcome):
+            return _fallback_answer(LLMFallbackReason.UNSAFE_OUTPUT)
+
+        return LLMAnswer(answer=answer.strip(), used_fallback=False, fallback_reason=None)
+
+
 def _matched_tags_from_payload(payload: object) -> tuple[ConceptCode, ...]:
     if not isinstance(payload, list | tuple):
         return ()
@@ -272,6 +323,8 @@ Safety boundaries:
 - Return JSON only."""
 
 _FALLBACK_CLINICIAN_EXPLANATION = "LLM enhancement unavailable; deterministic template explanation was used."
+_OUT_OF_SCOPE_ANSWER = "这个问题超出了本次餐食推荐解释范围，请咨询营养师或医生。"
+_GENERAL_QA_FALLBACK_ANSWER = "暂时无法使用大模型回答，我只能基于当前推荐结果说明：请遵循页面中的安全提示和营养师建议。"
 
 _UNSAFE_EXPLANATION_PHRASES = (
     "忽略过敏",
@@ -291,6 +344,23 @@ _UNSAFE_EXPLANATION_PHRASES = (
 )
 
 
+_OUT_OF_SCOPE_QUESTION_MARKERS = (
+    "停药",
+    "换药",
+    "吃药",
+    "诊断",
+    "治疗",
+    "忽略过敏",
+    "忽略禁忌",
+    "不审核",
+    "medication",
+    "diagnosis",
+    "treatment",
+    "ignore allergy",
+    "ignore contraindication",
+)
+
+
 def _fallback_explanation(
     result: RecommendationResult,
     reason: LLMFallbackReason,
@@ -303,6 +373,14 @@ def _fallback_explanation(
     )
 
 
+def _fallback_answer(reason: LLMFallbackReason) -> LLMAnswer:
+    if reason is LLMFallbackReason.OUT_OF_SCOPE_QUESTION:
+        answer = _OUT_OF_SCOPE_ANSWER
+    else:
+        answer = _GENERAL_QA_FALLBACK_ANSWER
+    return LLMAnswer(answer=answer, used_fallback=True, fallback_reason=reason)
+
+
 def _explanation_user_prompt(context: LLMRecommendationContext) -> str:
     return json.dumps(
         {
@@ -313,6 +391,27 @@ def _explanation_user_prompt(context: LLMRecommendationContext) -> str:
         ensure_ascii=False,
         sort_keys=True,
     )
+
+
+def _qa_user_prompt(context: LLMRecommendationContext, result: RecommendationResult, question: str) -> str:
+    return json.dumps(
+        {
+            "task": "answer_recommendation_question",
+            "question": question,
+            "context": context.to_dict(),
+            "outcome": result.outcome.name,
+            "requiredOutput": {
+                "answer": "Chinese answer constrained to the current recommendation result",
+            },
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
+def _is_out_of_scope_question(question: str) -> bool:
+    lowered = question.lower()
+    return any(marker in lowered for marker in _OUT_OF_SCOPE_QUESTION_MARKERS)
 
 
 def _contains_unsafe_explanation(

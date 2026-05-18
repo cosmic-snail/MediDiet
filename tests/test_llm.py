@@ -261,3 +261,69 @@ class LLMExplanationEnhancerTest(unittest.TestCase):
         self.assertNotIn("patient secret prompt", repr(request))
         self.assertNotIn("raw model secret response", repr(response))
         self.assertNotIn("raw model secret response", repr(provider))
+
+
+class LLMQuestionAnswererTest(unittest.TestCase):
+    def test_answers_in_scope_question_with_provider(self):
+        from medidiet.llm import LLMContextSanitizer, LLMQuestionAnswerer, MockLLMProvider
+
+        patient, meal_label, result = demo_result()
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        provider = MockLLMProvider(qa_payload={"answer": "因为它匹配低钠和控主食要求。"})
+
+        answer = LLMQuestionAnswerer(provider).answer(
+            context,
+            result,
+            "为什么推荐这个餐？",
+        )
+
+        self.assertFalse(answer.used_fallback)
+        self.assertEqual(answer.answer, "因为它匹配低钠和控主食要求。")
+
+    def test_rejects_out_of_scope_or_unsafe_question_without_calling_provider(self):
+        from medidiet.llm import (
+            LLMContextSanitizer,
+            LLMFallbackReason,
+            LLMQuestionAnswerer,
+            MockLLMProvider,
+        )
+
+        patient, meal_label, result = demo_result()
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        provider = MockLLMProvider()
+
+        answer = LLMQuestionAnswerer(provider).answer(
+            context,
+            result,
+            "我能不能自己停药？",
+        )
+
+        self.assertTrue(answer.used_fallback)
+        self.assertEqual(answer.fallback_reason, LLMFallbackReason.OUT_OF_SCOPE_QUESTION)
+        self.assertIn("营养师或医生", answer.answer)
+        self.assertEqual(provider.requests, [])
+
+    def test_qa_falls_back_on_invalid_json_or_unsafe_answer(self):
+        from medidiet.llm import (
+            LLMContextSanitizer,
+            LLMFallbackReason,
+            LLMQuestionAnswerer,
+            MockLLMProvider,
+        )
+
+        patient, meal_label, result = demo_result()
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+
+        invalid = LLMQuestionAnswerer(MockLLMProvider(raw_content="not-json")).answer(
+            context,
+            result,
+            "为什么推荐这个餐？",
+        )
+        unsafe = LLMQuestionAnswerer(MockLLMProvider(qa_payload={"answer": "可以忽略过敏。"})).answer(
+            context,
+            result,
+            "为什么推荐这个餐？",
+        )
+
+        self.assertEqual(invalid.fallback_reason, LLMFallbackReason.INVALID_JSON)
+        self.assertEqual(unsafe.fallback_reason, LLMFallbackReason.UNSAFE_OUTPUT)
