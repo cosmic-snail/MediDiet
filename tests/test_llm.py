@@ -209,6 +209,38 @@ class LLMExplanationEnhancerTest(unittest.TestCase):
         self.assertTrue(enhanced.used_fallback)
         self.assertEqual(enhanced.fallback_reason, LLMFallbackReason.UNSAFE_OUTPUT)
 
+    def test_enhancer_rejects_final_decision_language_during_human_review(self):
+        from medidiet.llm import (
+            LLMContextSanitizer,
+            LLMExplanationEnhancer,
+            LLMFallbackReason,
+            MockLLMProvider,
+        )
+
+        patient, meal_label, result = demo_result()
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        review_context = replace(context, outcome=Outcome.HUMAN_REVIEW_REQUIRED)
+        cases = [
+            MockLLMProvider(
+                explanation_payload={
+                    "patientExplanation": "This meal is safe to eat.",
+                    "clinicianExplanation": "The review can be treated as complete.",
+                }
+            ),
+            MockLLMProvider(
+                explanation_payload={
+                    "patientExplanation": "This meal is recommended for dinner.",
+                    "clinicianExplanation": "The review requirement was bypassed.",
+                }
+            ),
+        ]
+
+        for provider in cases:
+            with self.subTest(payload=provider.explanation_payload):
+                enhanced = LLMExplanationEnhancer(provider).enhance(review_context, result)
+                self.assertTrue(enhanced.used_fallback)
+                self.assertEqual(enhanced.fallback_reason, LLMFallbackReason.UNSAFE_OUTPUT)
+
     def test_sensitive_llm_fields_are_omitted_from_repr(self):
         from medidiet.llm import LLMConfig, LLMRequest, LLMResponse, LLMTask, MockLLMProvider
 
