@@ -44,7 +44,7 @@ PYTHONPATH=src python -m unittest tests.test_safety -v
 PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.test_routes_safety_events_to_human_review -v
 ```
 
-当前全量测试数量会随 HTTP server 任务落地后重新统计。普通全量测试默认离线运行；真实 LLM smoke test 默认跳过。
+当前全量测试数量：90 个 `unittest` 用例，其中 2 个真实 LLM smoke test 默认跳过。普通全量测试默认离线运行。
 
 ## 3. 测试文件总览
 
