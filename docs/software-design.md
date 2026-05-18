@@ -1,6 +1,6 @@
 # MediDiet 软件设计文档
 
-版本：0.1.0
+版本：0.1.1
 目标读者：代码 reviewer、后续重构开发者、接口扩展开发者、测试负责人。
 
 ## 1. 设计目标
@@ -37,6 +37,7 @@ MediDiet/
 │       ├── engine.py
 │       ├── explainer.py
 │       ├── fixtures.py
+│       ├── llm.py
 │       ├── matcher.py
 │       ├── nutrition.py
 │       ├── planner.py
@@ -48,6 +49,8 @@ MediDiet/
 │   ├── test_domain.py
 │   ├── test_engine.py
 │   ├── test_explainer_trace.py
+│   ├── test_llm.py
+│   ├── test_llm_deepseek_smoke.py
 │   ├── test_matcher.py
 │   ├── test_nutrition.py
 │   ├── test_planner.py
@@ -71,6 +74,7 @@ MediDiet/
 | `explainer.py` | 患者解释和医生/营养师结构化解释。 | `ExplanationBuilder` |
 | `trace.py` | 推荐 trace 序列化。 | `RecommendationTrace` |
 | `engine.py` | 推荐流程编排。 | `RecommendationEngine`, `RecommendationResult` |
+| `llm.py` | 推荐后的可选 LLM 解释增强、推荐范围内问答、上下文脱敏和 OpenAI-compatible provider。 | `LLMContextSanitizer`, `LLMExplanationEnhancer`, `LLMQuestionAnswerer`, `OpenAICompatibleLLMProvider` |
 | `ports.py` | 外部系统扩展端口和事件契约。 | `RecommendationRequestEnvelope`, `DomainEvent`, `*Port` |
 | `fixtures.py` | deterministic demo 数据。 | `demo_request`, `DEMO_NOW` |
 | `cli.py` | 本地 demo CLI。 | `main` |
@@ -90,6 +94,9 @@ flowchart LR
   planner["MealPlanGenerator"]
   matcher["MenuMatcher"]
   explainer["ExplanationBuilder"]
+  llm["Optional LLM Post-Processor"]
+  sanitizer["LLMContextSanitizer"]
+  llmProvider["OpenAICompatibleLLMProvider"]
   trace["RecommendationTrace"]
   rules["RulePack + ConceptRegistry"]
 
@@ -106,9 +113,15 @@ flowchart LR
   engine --> matcher
   engine --> explainer
   engine --> trace
+  engine --> sanitizer
+  sanitizer --> llm
+  llmProvider --> llm
+  llm --> app
   trace --> eventPort
   engine --> app
 ```
+
+LLM 只位于推荐后的后处理路径。`LLMContextSanitizer` 先基于 `RecommendationResult` 构造脱敏上下文，`LLMExplanationEnhancer` 可增强解释，`LLMQuestionAnswerer` 只回答本次推荐范围内的问题，`OpenAICompatibleLLMProvider` 负责 DeepSeek/OpenAI-compatible 接口调用。LLM 不参与菜单选择，也不能改写 outcome、排除原因、评分或安全事件。
 
 设计说明：
 
@@ -404,4 +417,4 @@ flowchart LR
 - baseline 规则阈值是演示级，需要临床审核后才能用于生产。
 - 当前 `DOWNGRADED` outcome 预留但未由引擎主动产生。
 - 当前只推荐排序最高的一项；多项推荐和替代方案需要后续设计。
-- 当前患者解释是规则模板，不调用 LLM。
+- LLM 是推荐后的可选增强层；未配置 provider 时仍使用规则模板解释。

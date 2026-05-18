@@ -1,6 +1,6 @@
 # MediDiet 测试文档
 
-版本：0.1.0
+版本：0.1.1
 目标读者：测试人员、QA、代码 reviewer、后续维护开发者。
 
 ## 1. 测试目标
@@ -44,7 +44,7 @@ PYTHONPATH=src python -m unittest tests.test_safety -v
 PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.test_routes_safety_events_to_human_review -v
 ```
 
-当前全量测试数量：52 个 `unittest` 用例。
+当前全量测试数量：71 个 `unittest` 用例，其中 1 个真实 LLM smoke test 默认跳过。
 
 ## 3. 测试文件总览
 
@@ -57,6 +57,8 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 | `tests/test_planner.py` | `planner.py` | 营养目标未转成正确标签和建议。 |
 | `tests/test_matcher.py` | `matcher.py` | 菜单排除错误、排序错误、排除 code 缺失。 |
 | `tests/test_explainer_trace.py` | `explainer.py`, `trace.py` | 解释不稳定、trace 缺字段、敏感字段泄漏。 |
+| `tests/test_llm.py` | `llm.py` | LLM 脱敏、fallback、安全输出校验、问答范围和 provider 请求错误。 |
+| `tests/test_llm_deepseek_smoke.py` | `llm.py`, DeepSeek/OpenAI-compatible API | 真实 provider 配置和返回格式，仅显式启用时运行。 |
 | `tests/test_engine.py` | `engine.py`, `fixtures.py` | 推荐主流程编排错误。 |
 | `tests/test_ports.py` | `ports.py` | 外部扩展契约不稳定、时间/枚举非法值。 |
 | `tests/test_public_api.py` | `__init__.py` | 顶层公共 API 意外破坏。 |
@@ -261,3 +263,16 @@ PYTHONPATH=src python -m unittest tests.test_rules tests.test_engine tests.test_
 - trace 中 code 为整数。
 - 日志中 safety event 为 warning，且包含 pid/tid/timestamp。
 - 默认运行测试和 CLI 时不产生额外 warning 到 stderr。
+
+## 12. LLM 测试策略
+
+LLM 单元测试默认离线运行，使用 `MockLLMProvider` 覆盖解释增强、问答、fallback、安全输出校验和 provider 请求构造。
+
+真实 DeepSeek/OpenAI-compatible smoke test 位于 `tests/test_llm_deepseek_smoke.py`，默认跳过。只有显式设置 `MEDIDIET_LLM_SMOKE_TEST=1` 和完整 LLM 环境变量时才运行。
+
+测试人员评估 LLM 功能时应确认：
+
+- 普通全量测试不会访问外网。
+- smoke test 不发送 `patient_id`。
+- LLM 失败时回退到确定性模板解释。
+- LLM 输出不能改变推荐 outcome 或推荐菜单。
