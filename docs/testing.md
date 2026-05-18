@@ -261,3 +261,16 @@ PYTHONPATH=src python -m unittest tests.test_rules tests.test_engine tests.test_
 - trace 中 code 为整数。
 - 日志中 safety event 为 warning，且包含 pid/tid/timestamp。
 - 默认运行测试和 CLI 时不产生额外 warning 到 stderr。
+
+## 12. LLM 测试策略
+
+LLM 单元测试默认离线运行，使用 `MockLLMProvider` 覆盖解释增强、问答、fallback、安全输出校验和 provider 请求构造。
+
+真实 DeepSeek/OpenAI-compatible smoke test 位于 `tests/test_llm_deepseek_smoke.py`，默认跳过。只有显式设置 `MEDIDIET_LLM_SMOKE_TEST=1` 和完整 LLM 环境变量时才运行。
+
+测试人员评估 LLM 功能时应确认：
+
+- 普通全量测试不会访问外网。
+- smoke test 不发送 `patient_id`。
+- LLM 失败时回退到确定性模板解释。
+- LLM 输出不能改变推荐 outcome 或推荐菜单。

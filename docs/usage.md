@@ -295,3 +295,30 @@ Python 运行后可能生成 `__pycache__`，这些不应提交。可以按需�
 ```bash
 find src tests -type d -name __pycache__ -prune -exec rm -rf {} +
 ```
+
+## 13. 可选 DeepSeek / OpenAI-compatible LLM 配置
+
+MediDiet 的 LLM 层是可选增强层。推荐结果仍由规则引擎决定，大模型只能增强解释或回答本次推荐相关问题。
+
+环境变量：
+
+```bash
+export MEDIDIET_LLM_PROVIDER=openai_compatible
+export MEDIDIET_LLM_BASE_URL=https://api.deepseek.com
+export MEDIDIET_LLM_API_KEY=你的_api_key
+export MEDIDIET_LLM_MODEL=deepseek-v4
+export MEDIDIET_LLM_TIMEOUT_SECONDS=10
+```
+
+可选真实接口 smoke test：
+
+```bash
+MEDIDIET_LLM_SMOKE_TEST=1 \
+MEDIDIET_LLM_PROVIDER=openai_compatible \
+MEDIDIET_LLM_BASE_URL=https://api.deepseek.com \
+MEDIDIET_LLM_API_KEY=你的_api_key \
+MEDIDIET_LLM_MODEL=deepseek-v4 \
+PYTHONPATH=src python -m unittest tests.test_llm_deepseek_smoke -v
+```
+
+该测试默认跳过。启用后会访问真实模型 API，可能产生费用。测试不会发送患者真实 id、原始图片、地址或完整病历。
