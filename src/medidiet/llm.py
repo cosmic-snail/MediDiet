@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, field
 from enum import Enum, IntEnum
 from typing import Protocol
 
@@ -56,9 +57,38 @@ class LLMResponse:
     model: str
 
 
+@dataclass(frozen=True)
+class LLMEnhancedExplanation:
+    patient_explanation: str
+    clinician_explanation: str
+    used_fallback: bool
+    fallback_reason: LLMFallbackReason | None
+
+
 class LLMProviderPort(Protocol):
     def complete(self, request: LLMRequest) -> LLMResponse:
         ...
+
+
+@dataclass
+class MockLLMProvider:
+    explanation_payload: dict[str, object] | None = None
+    qa_payload: dict[str, object] | None = None
+    raw_content: str | None = None
+    error: Exception | None = None
+    requests: list[LLMRequest] = field(default_factory=list)
+
+    def complete(self, request: LLMRequest) -> LLMResponse:
+        self.requests.append(request)
+        if self.error is not None:
+            raise self.error
+        if self.raw_content is not None:
+            content = self.raw_content
+        elif request.task is LLMTask.EXPLANATION:
+            content = json.dumps(self.explanation_payload or {}, ensure_ascii=False)
+        else:
+            content = json.dumps(self.qa_payload or {}, ensure_ascii=False)
+        return LLMResponse(content=content, provider_name="mock", model="mock")
 
 
 @dataclass(frozen=True)
@@ -118,6 +148,53 @@ class LLMContextSanitizer:
             matched_nutrition_tags=_matched_tags_from_payload(matched_tags),
             patient_explanation=_redact_sensitive_text(result.patient_explanation, patient.patient_id),
             clinician_explanation=_strip_sensitive_payload(result.clinician_explanation, patient.patient_id),
+        )
+
+
+class LLMExplanationEnhancer:
+    def __init__(self, provider: LLMProviderPort | None):
+        self.provider = provider
+
+    def enhance(
+        self,
+        context: LLMRecommendationContext,
+        result: RecommendationResult,
+    ) -> LLMEnhancedExplanation:
+        if self.provider is None:
+            return _fallback_explanation(result, LLMFallbackReason.PROVIDER_NOT_CONFIGURED)
+
+        request = LLMRequest(
+            task=LLMTask.EXPLANATION,
+            system_prompt=_EXPLANATION_SYSTEM_PROMPT,
+            user_prompt=_explanation_user_prompt(context),
+        )
+        try:
+            response = self.provider.complete(request)
+        except Exception:
+            return _fallback_explanation(result, LLMFallbackReason.PROVIDER_ERROR)
+
+        try:
+            payload = json.loads(response.content)
+        except json.JSONDecodeError:
+            return _fallback_explanation(result, LLMFallbackReason.INVALID_JSON)
+
+        if not isinstance(payload, dict):
+            return _fallback_explanation(result, LLMFallbackReason.INVALID_JSON)
+
+        patient_explanation = payload.get("patientExplanation")
+        clinician_explanation = payload.get("clinicianExplanation")
+        if not isinstance(patient_explanation, str) or not isinstance(clinician_explanation, str):
+            return _fallback_explanation(result, LLMFallbackReason.MISSING_FIELD)
+        if not patient_explanation.strip() or not clinician_explanation.strip():
+            return _fallback_explanation(result, LLMFallbackReason.EMPTY_OUTPUT)
+        if _contains_unsafe_explanation(patient_explanation, clinician_explanation, context.outcome):
+            return _fallback_explanation(result, LLMFallbackReason.UNSAFE_OUTPUT)
+
+        return LLMEnhancedExplanation(
+            patient_explanation=patient_explanation,
+            clinician_explanation=clinician_explanation,
+            used_fallback=False,
+            fallback_reason=None,
         )
 
 
@@ -182,3 +259,71 @@ def _redact_sensitive_text(text: str, patient_id: str) -> str:
     if not patient_id:
         return text
     return text.replace(patient_id, "[redacted]")
+
+
+_EXPLANATION_SYSTEM_PROMPT = """You enhance explanations for a completed rules-based diet recommendation.
+Safety boundaries:
+- The rules-based recommendation is already completed.
+- You cannot change the outcome.
+- You cannot recommend excluded or unsafe items.
+- You cannot ignore allergies, contraindications, clinician review, or safety warnings.
+- Do not provide diagnosis, medication, or treatment advice.
+- Use only the provided context.
+- Return JSON only."""
+
+_FALLBACK_CLINICIAN_EXPLANATION = "LLM enhancement unavailable; deterministic template explanation was used."
+
+_UNSAFE_EXPLANATION_PHRASES = (
+    "忽略过敏",
+    "忽略禁忌",
+    "无需营养师",
+    "无需医生",
+    "不用人工审核",
+    "自行调整药",
+    "停药",
+    "ignore allergy",
+    "ignore allergies",
+    "ignore contraindication",
+    "ignore contraindications",
+    "ignore clinician",
+    "adjust medication",
+)
+
+
+def _fallback_explanation(
+    result: RecommendationResult,
+    reason: LLMFallbackReason,
+) -> LLMEnhancedExplanation:
+    return LLMEnhancedExplanation(
+        patient_explanation=result.patient_explanation,
+        clinician_explanation=_FALLBACK_CLINICIAN_EXPLANATION,
+        used_fallback=True,
+        fallback_reason=reason,
+    )
+
+
+def _explanation_user_prompt(context: LLMRecommendationContext) -> str:
+    return json.dumps(
+        {
+            "task": "explain_recommendation",
+            "context": context.to_dict(),
+            "requiredOutputFields": ["patientExplanation", "clinicianExplanation"],
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
+def _contains_unsafe_explanation(
+    patient_explanation: str,
+    clinician_explanation: str,
+    outcome: Outcome,
+) -> bool:
+    text = f"{patient_explanation}\n{clinician_explanation}".lower()
+    if any(phrase in text for phrase in _UNSAFE_EXPLANATION_PHRASES):
+        return True
+    if outcome is Outcome.REFUSED and ("推荐成功" in text or "可以放心吃" in text):
+        return True
+    if outcome is Outcome.HUMAN_REVIEW_REQUIRED and "无需" in text and "审核" in text:
+        return True
+    return False

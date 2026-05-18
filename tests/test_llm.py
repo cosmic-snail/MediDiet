@@ -47,3 +47,84 @@ class LLMContractTest(unittest.TestCase):
         self.assertIn("safetyEventCodes", payload)
         self.assertNotIn("patientId", payload)
         self.assertNotIn(patient.patient_id, str(payload))
+
+
+class LLMExplanationEnhancerTest(unittest.TestCase):
+    def test_enhancer_uses_provider_text_without_changing_result(self):
+        from medidiet.llm import (
+            LLMContextSanitizer,
+            LLMExplanationEnhancer,
+            MockLLMProvider,
+        )
+
+        patient, meal_label, result = demo_result()
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        provider = MockLLMProvider(
+            explanation_payload={
+                "patientExplanation": "这是一段来自大模型的安全解释。",
+                "clinicianExplanation": "LLM summarized rule hits and scores for review.",
+            }
+        )
+
+        enhanced = LLMExplanationEnhancer(provider).enhance(context, result)
+
+        self.assertFalse(enhanced.used_fallback)
+        self.assertIsNone(enhanced.fallback_reason)
+        self.assertEqual(enhanced.patient_explanation, "这是一段来自大模型的安全解释。")
+        self.assertEqual(result.outcome, Outcome.RECOMMENDED)
+        self.assertEqual(result.recommended_items[0].name, "Steamed fish set")
+
+    def test_enhancer_falls_back_on_provider_error(self):
+        from medidiet.llm import (
+            LLMContextSanitizer,
+            LLMExplanationEnhancer,
+            LLMFallbackReason,
+            MockLLMProvider,
+        )
+
+        patient, meal_label, result = demo_result()
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        enhanced = LLMExplanationEnhancer(MockLLMProvider(error=RuntimeError("boom secret-key"))).enhance(
+            context,
+            result,
+        )
+
+        self.assertTrue(enhanced.used_fallback)
+        self.assertEqual(enhanced.fallback_reason, LLMFallbackReason.PROVIDER_ERROR)
+        self.assertEqual(enhanced.patient_explanation, result.patient_explanation)
+        self.assertNotIn("secret-key", enhanced.clinician_explanation)
+
+    def test_enhancer_falls_back_on_invalid_missing_empty_or_unsafe_output(self):
+        from medidiet.llm import (
+            LLMContextSanitizer,
+            LLMExplanationEnhancer,
+            LLMFallbackReason,
+            MockLLMProvider,
+        )
+
+        patient, meal_label, result = demo_result()
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        cases = [
+            (MockLLMProvider(raw_content="not-json"), LLMFallbackReason.INVALID_JSON),
+            (MockLLMProvider(explanation_payload={"patientExplanation": "ok"}), LLMFallbackReason.MISSING_FIELD),
+            (
+                MockLLMProvider(explanation_payload={"patientExplanation": "", "clinicianExplanation": "ok"}),
+                LLMFallbackReason.EMPTY_OUTPUT,
+            ),
+            (
+                MockLLMProvider(
+                    explanation_payload={
+                        "patientExplanation": "可以忽略过敏继续吃。",
+                        "clinicianExplanation": "unsafe",
+                    }
+                ),
+                LLMFallbackReason.UNSAFE_OUTPUT,
+            ),
+        ]
+
+        for provider, expected_reason in cases:
+            with self.subTest(expected_reason=expected_reason):
+                enhanced = LLMExplanationEnhancer(provider).enhance(context, result)
+                self.assertTrue(enhanced.used_fallback)
+                self.assertEqual(enhanced.fallback_reason, expected_reason)
+                self.assertEqual(enhanced.patient_explanation, result.patient_explanation)
