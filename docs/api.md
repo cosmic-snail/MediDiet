@@ -1,6 +1,6 @@
 # MediDiet API 文档
 
-版本：0.1.0
+版本：0.1.1
 状态：核心推荐引擎 MVP，供后续小程序、服务端、图片识别、外卖/食堂接口扩展使用。
 
 ## 1. API 边界
@@ -427,7 +427,7 @@ envelope.to_dict()
 {
   "schemaVersion": "1.0",
   "sourceSystem": "mini_program",
-  "sourceVersion": "0.1.0",
+  "sourceVersion": "0.1.1",
   "requestId": "req-001",
   "createdAt": "2026-05-16T12:00:00+08:00"
 }

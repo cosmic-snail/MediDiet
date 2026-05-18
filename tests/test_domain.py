@@ -19,7 +19,7 @@ class DomainSmokeTest(unittest.TestCase):
     def test_package_imports(self):
         import medidiet
 
-        self.assertEqual(medidiet.__version__, "0.1.0")
+        self.assertEqual(medidiet.__version__, "0.1.1")
 
 
 class DomainModelTest(unittest.TestCase):

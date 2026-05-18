@@ -14,7 +14,7 @@ from medidiet.llm import (
 )
 from medidiet.rules import RulePack, load_baseline_rule_pack
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "LLMAnswer",
