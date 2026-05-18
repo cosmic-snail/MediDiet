@@ -28,7 +28,7 @@ class LLMFallbackReason(IntEnum):
 class LLMConfig:
     provider: str = "mock"
     base_url: str | None = None
-    api_key: str | None = None
+    api_key: str | None = field(default=None, repr=False)
     model: str | None = None
     timeout_seconds: int = 10
     send_patient_id: bool = False
@@ -41,8 +41,8 @@ class LLMConfig:
 @dataclass(frozen=True)
 class LLMRequest:
     task: LLMTask
-    system_prompt: str
-    user_prompt: str
+    system_prompt: str = field(repr=False)
+    user_prompt: str = field(repr=False)
     response_format: str = "json"
 
     def __post_init__(self) -> None:
@@ -52,7 +52,7 @@ class LLMRequest:
 
 @dataclass(frozen=True)
 class LLMResponse:
-    content: str
+    content: str = field(repr=False)
     provider_name: str
     model: str
 
@@ -72,11 +72,11 @@ class LLMProviderPort(Protocol):
 
 @dataclass
 class MockLLMProvider:
-    explanation_payload: dict[str, object] | None = None
-    qa_payload: dict[str, object] | None = None
-    raw_content: str | None = None
-    error: Exception | None = None
-    requests: list[LLMRequest] = field(default_factory=list)
+    explanation_payload: dict[str, object] | None = field(default=None, repr=False)
+    qa_payload: dict[str, object] | None = field(default=None, repr=False)
+    raw_content: str | None = field(default=None, repr=False)
+    error: Exception | None = field(default=None, repr=False)
+    requests: list[LLMRequest] = field(default_factory=list, repr=False)
 
     def complete(self, request: LLMRequest) -> LLMResponse:
         self.requests.append(request)
@@ -287,6 +287,7 @@ _UNSAFE_EXPLANATION_PHRASES = (
     "ignore contraindications",
     "ignore clinician",
     "adjust medication",
+    "directly eat",
 )
 
 
@@ -322,8 +323,15 @@ def _contains_unsafe_explanation(
     text = f"{patient_explanation}\n{clinician_explanation}".lower()
     if any(phrase in text for phrase in _UNSAFE_EXPLANATION_PHRASES):
         return True
-    if outcome is Outcome.REFUSED and ("推荐成功" in text or "可以放心吃" in text):
+    if outcome is Outcome.REFUSED and (
+        "推荐成功" in text or "可以放心吃" in text or "safe to eat" in text or "recommended" in text
+    ):
         return True
-    if outcome is Outcome.HUMAN_REVIEW_REQUIRED and "无需" in text and "审核" in text:
+    if outcome is Outcome.HUMAN_REVIEW_REQUIRED and (
+        ("无需" in text and "审核" in text)
+        or "可以直接吃" in text
+        or "no review needed" in text
+        or "review not needed" in text
+    ):
         return True
     return False

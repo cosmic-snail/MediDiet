@@ -1,3 +1,4 @@
+from dataclasses import replace
 from enum import IntEnum
 import unittest
 
@@ -128,3 +129,62 @@ class LLMExplanationEnhancerTest(unittest.TestCase):
                 self.assertTrue(enhanced.used_fallback)
                 self.assertEqual(enhanced.fallback_reason, expected_reason)
                 self.assertEqual(enhanced.patient_explanation, result.patient_explanation)
+
+    def test_enhancer_rejects_optimistic_text_for_non_recommended_outcomes(self):
+        from medidiet.llm import (
+            LLMContextSanitizer,
+            LLMExplanationEnhancer,
+            LLMFallbackReason,
+            MockLLMProvider,
+        )
+
+        patient, meal_label, result = demo_result()
+        base_context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        cases = [
+            (
+                replace(base_context, outcome=Outcome.REFUSED),
+                MockLLMProvider(
+                    explanation_payload={
+                        "patientExplanation": "This refused meal is safe to eat.",
+                        "clinicianExplanation": "safe to eat despite refusal.",
+                    }
+                ),
+            ),
+            (
+                replace(base_context, outcome=Outcome.HUMAN_REVIEW_REQUIRED),
+                MockLLMProvider(
+                    explanation_payload={
+                        "patientExplanation": "可以直接吃。",
+                        "clinicianExplanation": "No review needed.",
+                    }
+                ),
+            ),
+        ]
+
+        for context, provider in cases:
+            with self.subTest(outcome=context.outcome):
+                enhanced = LLMExplanationEnhancer(provider).enhance(context, result)
+                self.assertTrue(enhanced.used_fallback)
+                self.assertEqual(enhanced.fallback_reason, LLMFallbackReason.UNSAFE_OUTPUT)
+                self.assertEqual(enhanced.patient_explanation, result.patient_explanation)
+
+    def test_sensitive_llm_fields_are_omitted_from_repr(self):
+        from medidiet.llm import LLMConfig, LLMRequest, LLMResponse, LLMTask, MockLLMProvider
+
+        config = LLMConfig(api_key="secret-token")
+        request = LLMRequest(
+            task=LLMTask.EXPLANATION,
+            system_prompt="system secret prompt",
+            user_prompt="patient secret prompt",
+        )
+        response = LLMResponse(
+            content="raw model secret response",
+            provider_name="provider",
+            model="model",
+        )
+        provider = MockLLMProvider(raw_content="raw model secret response")
+
+        self.assertNotIn("secret-token", repr(config))
+        self.assertNotIn("patient secret prompt", repr(request))
+        self.assertNotIn("raw model secret response", repr(response))
+        self.assertNotIn("raw model secret response", repr(provider))
