@@ -255,16 +255,17 @@ class LLMExplanationEnhancer:
 
         patient_explanation = payload.get("patientExplanation")
         clinician_explanation = payload.get("clinicianExplanation")
-        if not isinstance(patient_explanation, str) or not isinstance(clinician_explanation, str):
+        clinician_explanation_text = _clinician_explanation_to_text(clinician_explanation)
+        if not isinstance(patient_explanation, str) or clinician_explanation_text is None:
             return _fallback_explanation(result, LLMFallbackReason.MISSING_FIELD)
-        if not patient_explanation.strip() or not clinician_explanation.strip():
+        if not patient_explanation.strip() or not clinician_explanation_text.strip():
             return _fallback_explanation(result, LLMFallbackReason.EMPTY_OUTPUT)
-        if _contains_unsafe_explanation(patient_explanation, clinician_explanation, context.outcome):
+        if _contains_unsafe_explanation(patient_explanation, clinician_explanation_text, context.outcome):
             return _fallback_explanation(result, LLMFallbackReason.UNSAFE_OUTPUT)
 
         return LLMEnhancedExplanation(
             patient_explanation=patient_explanation,
-            clinician_explanation=clinician_explanation,
+            clinician_explanation=clinician_explanation_text,
             used_fallback=False,
             fallback_reason=None,
         )
@@ -436,6 +437,14 @@ def _fallback_explanation(
         used_fallback=True,
         fallback_reason=reason,
     )
+
+
+def _clinician_explanation_to_text(value: object) -> str | None:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict | list):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return None
 
 
 def _fallback_answer(reason: LLMFallbackReason) -> LLMAnswer:

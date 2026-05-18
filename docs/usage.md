@@ -307,7 +307,7 @@ export MEDIDIET_LLM_PROVIDER=openai_compatible
 export MEDIDIET_LLM_BASE_URL=https://api.deepseek.com
 export MEDIDIET_LLM_API_KEY=你的_api_key
 export MEDIDIET_LLM_MODEL=deepseek-v4
-export MEDIDIET_LLM_TIMEOUT_SECONDS=10
+export MEDIDIET_LLM_TIMEOUT_SECONDS=30
 ```
 
 可选真实接口 smoke test：

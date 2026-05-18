@@ -75,6 +75,26 @@ class LLMExplanationEnhancerTest(unittest.TestCase):
         self.assertEqual(result.outcome, Outcome.RECOMMENDED)
         self.assertEqual(result.recommended_items[0].name, "Steamed fish set")
 
+    def test_enhancer_accepts_structured_clinician_explanation(self):
+        from medidiet.llm import LLMContextSanitizer, LLMExplanationEnhancer, MockLLMProvider
+
+        patient, meal_label, result = demo_result()
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        provider = MockLLMProvider(
+            explanation_payload={
+                "patientExplanation": "这是一段来自大模型的安全解释。",
+                "clinicianExplanation": {
+                    "ruleVersion": "baseline-2026-05-15",
+                    "summary": "LLM returned structured review details.",
+                },
+            }
+        )
+
+        enhanced = LLMExplanationEnhancer(provider).enhance(context, result)
+
+        self.assertFalse(enhanced.used_fallback)
+        self.assertIn('"ruleVersion"', enhanced.clinician_explanation)
+
     def test_enhancer_falls_back_on_provider_error(self):
         from medidiet.llm import (
             LLMContextSanitizer,
