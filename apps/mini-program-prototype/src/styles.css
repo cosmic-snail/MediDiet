@@ -247,6 +247,15 @@ h1 {
   background: #fef2f2;
 }
 
+.service-error {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.service-error h2 {
+  color: #991b1b;
+}
+
 .tag-row,
 .button-row {
   display: flex;

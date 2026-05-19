@@ -36,6 +36,16 @@ npm run build
 npm run dev -- --host 127.0.0.1
 ```
 
+For backend-connected recommendation calls, start the FastAPI service from the repository root:
+
+```bash
+uvicorn medidiet.server:app --app-dir src --reload
+```
+
+The Vite dev server proxies `/api/*` to `http://127.0.0.1:8000/*`. Override the API base URL with `VITE_MEDIDIET_API_BASE_URL` when needed.
+
+The patient "next meal recommendation" action now seeds demo data through the HTTP service and calls `POST /recommendations`. The client reads `GET /debug/state` first so repeated demo clicks do not append duplicate intake records, and it only submits available menu items with nutrition confidence of at least `0.7` to the backend recommendation pool.
+
 ## Boundaries
 
-This prototype does not implement real WeChat Mini Program runtime APIs, HTTP services, image recognition, payment, or production clinical rules. It is intentionally service-free and deterministic so the product flow can be reviewed before implementation hardens.
+This prototype does not implement real WeChat Mini Program runtime APIs, image recognition, payment, or production clinical rules. Dietitian review actions and catering fulfillment remain local deterministic flows while the patient recommendation action is connected to the local FastAPI service.

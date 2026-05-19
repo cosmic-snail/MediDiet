@@ -26,7 +26,19 @@ cd apps/mini-program-prototype
 npm install
 ```
 
-启动本地预览：
+启动后端 HTTP 服务。在仓库根目录打开一个终端：
+
+```bash
+uvicorn medidiet.server:app --app-dir src --reload
+```
+
+默认后端地址：
+
+```text
+http://127.0.0.1:8000
+```
+
+启动前端本地预览。另开一个终端进入原型目录：
 
 ```bash
 npm run dev -- --host 127.0.0.1
@@ -36,6 +48,12 @@ npm run dev -- --host 127.0.0.1
 
 ```text
 http://127.0.0.1:5173/
+```
+
+前端开发服务会把 `/api/*` 代理到 `http://127.0.0.1:8000/*`。如需改后端地址，可设置：
+
+```bash
+VITE_MEDIDIET_API_BASE_URL=http://127.0.0.1:8000 npm run dev -- --host 127.0.0.1
 ```
 
 运行测试：
@@ -113,6 +131,8 @@ npm run build
 - “获取下一餐推荐”：回到正常推荐结果。
 - “模拟拒绝推荐”：演示推荐引擎拒绝自动推荐的状态。
 - “模拟等待营养师审核”：演示进入营养师审核队列的状态。
+
+当前点击“获取下一餐推荐”会先读取 `GET /debug/state`，再把演示患者、必要的摄入记录和推荐候选菜单写入后端内存服务，最后调用 `POST /recommendations` 获取真实推荐结果。为避免把配餐端的“数据待补”样例误送入推荐，前端只会向后端提交可售且营养置信度不低于 `0.7` 的菜单项。后端未启动或返回错误时，页面会保留当前推荐结果，并显示后端错误信息。
 
 后续对接真实接口时，这部分应来自 `RecommendationResult` 和 `RecommendationTrace`。
 
@@ -207,6 +227,8 @@ Trace 证据链用于辅助营养师判断推荐是否可以放行。当前原�
 - `src/contracts.ts`：前端 DTO 类型定义。
 - `src/fixtures.ts`：演示用数据。
 - `src/state.ts`：本地状态机，用于模拟接口返回和角色间流转。
+- `src/api/adapters.ts`：前后端 DTO 转换。
+- `src/api/medidietApi.ts`：HTTP 请求封装。
 
 重要数据概念：
 
@@ -224,6 +246,26 @@ Trace 证据链用于辅助营养师判断推荐是否可以放行。当前原�
 - 营养师端读取 `ReviewCase` 和完整 `RecommendationTrace`。
 - 配餐端读取和更新 `MenuItem`、`Fulfillment`。
 - 推荐接口只返回结构化结果，前端只负责展示、确认和提交动作，不在前端重算临床规则。
+
+当前已接入的后端接口：
+
+- `GET /debug/state`
+- `PUT /patients/{patient_id}`
+- `POST /patients/{patient_id}/intake-records`
+- `PUT /menus/today`
+- `POST /recommendations`
+
+当前 HTTP 适配层会保持以下边界：
+
+- 患者资料和当日菜单使用幂等写入，便于重复演示。
+- 摄入记录只在后端还没有该患者记录时补写，避免重复点击推荐造成摄入记录叠加。
+- 配餐端仍展示全部演示菜单；推荐请求只提交满足后端自动推荐条件的候选菜单。
+
+当前仍保留本地原型状态的部分：
+
+- 营养师审核队列
+- 营养师确认、修改、驳回动作
+- 配餐菜单维护和履约状态
 
 ## 8. 建议演示脚本
 
