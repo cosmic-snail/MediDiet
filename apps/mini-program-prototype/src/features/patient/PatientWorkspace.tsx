@@ -7,9 +7,18 @@ import { addCorrectedIntake, requestRecommendation, type PrototypeState } from '
 interface PatientWorkspaceProps {
   state: PrototypeState;
   onStateChange: Dispatch<SetStateAction<PrototypeState>>;
+  onRequestRecommendation?: () => void;
+  recommendationPending?: boolean;
+  serviceError?: string | null;
 }
 
-export function PatientWorkspace({ state, onStateChange }: PatientWorkspaceProps) {
+export function PatientWorkspace({
+  state,
+  onStateChange,
+  onRequestRecommendation,
+  recommendationPending = false,
+  serviceError
+}: PatientWorkspaceProps) {
   const recommendation = state.recommendation;
   const patientState = recommendation ? outcomeToPatientState(recommendation.outcome) : null;
   const recommendedItem = recommendation?.recommendedItems[0];
@@ -31,12 +40,25 @@ export function PatientWorkspace({ state, onStateChange }: PatientWorkspaceProps
         <button
           className="primary-button"
           type="button"
-          onClick={() => onStateChange((current) => requestRecommendation(current, 'recommended'))}
+          disabled={recommendationPending}
+          onClick={() =>
+            onRequestRecommendation
+              ? onRequestRecommendation()
+              : onStateChange((current) => requestRecommendation(current, 'recommended'))
+          }
         >
           <CheckCircle size={18} aria-hidden="true" />
-          获取下一餐推荐
+          {recommendationPending ? '正在请求推荐' : '获取下一餐推荐'}
         </button>
       </section>
+
+      {serviceError && (
+        <section className="card service-error" role="status">
+          <p className="eyebrow">后端服务</p>
+          <h2>推荐服务暂不可用</h2>
+          <p>{serviceError}</p>
+        </section>
+      )}
 
       <section className="card">
         <div className="card-head">
