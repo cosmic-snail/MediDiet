@@ -29,6 +29,19 @@ class TestKnowledgeDocument:
         assert doc.doc_id == "doc-001"
         assert doc.source_type == "guideline"
 
+    def test_rejects_invalid_source_type(self):
+        with pytest.raises(ValueError, match="source_type"):
+            KnowledgeDocument(
+                doc_id="doc-001",
+                title="Bad",
+                source="test.md",
+                source_type="invalid_type",
+                content_raw="...",
+                chunks=[],
+                metadata={},
+                ingested_at=NOW,
+            )
+
     def test_document_default_metadata(self):
         doc = KnowledgeDocument(
             doc_id="doc-002",
@@ -56,6 +69,15 @@ class TestDocumentChunk:
         assert chunk.chunk_id == "chunk-001"
         assert chunk.chunk_index == 0
         assert chunk.embedding is None
+
+    def test_rejects_negative_chunk_index(self):
+        with pytest.raises(ValueError, match="chunk_index"):
+            DocumentChunk(
+                chunk_id="chunk-001",
+                doc_id="doc-001",
+                text="text",
+                chunk_index=-1,
+            )
 
     def test_chunk_default_metadata(self):
         chunk = DocumentChunk(
@@ -93,6 +115,57 @@ class TestExtractedConditionRule:
         assert rule.candidate_id == "cand-001"
         assert rule.status == "draft"
         assert len(rule.hard_exclusions) == 1
+
+    def test_rejects_invalid_confidence(self):
+        with pytest.raises(ValueError, match="confidence"):
+            ExtractedConditionRule(
+                candidate_id="cand-001",
+                source_doc_ids=["doc-001"],
+                source_chunk_ids=["chunk-001"],
+                condition=ConceptCode(CodeKind.CONDITION, "hypertension"),
+                hard_exclusions=set(),
+                preferred_tags=set(),
+                nutrition_limits=set(),
+                confidence=1.5,
+                extraction_method="manual",
+                reviewed_by=None,
+                status="draft",
+                created_at=NOW,
+            )
+
+    def test_rejects_invalid_extraction_method(self):
+        with pytest.raises(ValueError, match="extraction_method"):
+            ExtractedConditionRule(
+                candidate_id="cand-001",
+                source_doc_ids=["doc-001"],
+                source_chunk_ids=["chunk-001"],
+                condition=ConceptCode(CodeKind.CONDITION, "hypertension"),
+                hard_exclusions=set(),
+                preferred_tags=set(),
+                nutrition_limits=set(),
+                confidence=0.9,
+                extraction_method="invalid_method",
+                reviewed_by=None,
+                status="draft",
+                created_at=NOW,
+            )
+
+    def test_rejects_invalid_status(self):
+        with pytest.raises(ValueError, match="status"):
+            ExtractedConditionRule(
+                candidate_id="cand-001",
+                source_doc_ids=["doc-001"],
+                source_chunk_ids=["chunk-001"],
+                condition=ConceptCode(CodeKind.CONDITION, "hypertension"),
+                hard_exclusions=set(),
+                preferred_tags=set(),
+                nutrition_limits=set(),
+                confidence=0.9,
+                extraction_method="manual",
+                reviewed_by=None,
+                status="invalid_status",
+                created_at=NOW,
+            )
 
     def test_rule_with_verification_result(self):
         vr = VerificationResult(
@@ -140,6 +213,26 @@ class TestVerificationResult:
         assert vr.verdict == "pass"
         assert vr.issues == []
 
+    def test_rejects_invalid_verdict(self):
+        with pytest.raises(ValueError, match="verdict"):
+            VerificationResult(
+                verdict="invalid",
+                confidence=0.5,
+                consistency_score=0.5,
+                logic_score=0.5,
+                completeness_score=0.5,
+            )
+
+    def test_rejects_invalid_consistency_score(self):
+        with pytest.raises(ValueError, match="consistency_score"):
+            VerificationResult(
+                verdict="pass",
+                confidence=0.5,
+                consistency_score=1.5,
+                logic_score=0.5,
+                completeness_score=0.5,
+            )
+
     def test_revision_needed_result(self):
         issue = VerificationIssue(
             severity="warning",
@@ -181,6 +274,22 @@ class TestVerificationResult:
 
 
 class TestVerificationIssue:
+    def test_rejects_invalid_severity(self):
+        with pytest.raises(ValueError, match="severity"):
+            VerificationIssue(
+                severity="invalid",
+                dimension="logic",
+                description="Test",
+            )
+
+    def test_rejects_invalid_dimension(self):
+        with pytest.raises(ValueError, match="dimension"):
+            VerificationIssue(
+                severity="warning",
+                dimension="invalid",
+                description="Test",
+            )
+
     def test_all_severities(self):
         for severity in ("critical", "warning", "info"):
             issue = VerificationIssue(
