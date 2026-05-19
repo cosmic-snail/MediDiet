@@ -2,12 +2,30 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
 from medidiet.domain import ConceptCode, CodeKind
 from medidiet.rules import NutrientMetric, NutrientLimit, LimitScope
 from knowledge.schema import ExtractedConditionRule, VerificationResult, VerificationIssue
+
+
+def _normalize_version(version: str) -> str:
+    """Normalize a version string to always have a 'v' prefix.
+
+    Strips a leading "v" if present, validates the remainder against
+    ``^[a-zA-Z0-9._-]+$``, and returns ``"v" + remainder``.
+    """
+    rest = version
+    if rest.startswith("v"):
+        rest = rest[1:]
+    if not re.match(r"^[a-zA-Z0-9._-]+$", rest):
+        raise ValueError(
+            f"invalid version string: {version!r} "
+            f"(must match ^[a-zA-Z0-9._-]+$ after optional 'v' prefix)"
+        )
+    return "v" + rest
 
 
 class RuleStore:
@@ -36,7 +54,7 @@ class RuleStore:
 
     def delete(self, candidate_id: str) -> None:
         if candidate_id not in self._cache:
-            raise ValueError(f"rule not found: {candidate_id}")
+            raise ValueError(f"candidate not found: {candidate_id}")
         del self._cache[candidate_id]
         self._save()
 
@@ -54,6 +72,7 @@ class RuleStore:
         ]
 
     def publish_version(self, version: str, notes: str) -> str:
+        version = _normalize_version(version)
         approved = self.list_by_status("approved")
         rules_data = [_serialize_rule(rule) for rule in approved]
         payload = {
@@ -71,13 +90,18 @@ class RuleStore:
     def list_versions(self) -> list[str]:
         versions = []
         for entry in sorted(self._rules_dir.glob("v*.json")):
+            if entry.name == "candidates.json":
+                continue
             name = entry.stem
+            # Strip the "v" prefix so callers get clean version names.
+            display_name = name[1:] if name.startswith("v") else name
             if name not in self._versions:
                 self._versions[name] = entry
-            versions.append(name)
+            versions.append(display_name)
         return sorted(versions)
 
     def load_version(self, version: str) -> list[ExtractedConditionRule]:
+        version = _normalize_version(version)
         version_path = self._rules_dir / f"{version}.json"
         if not version_path.exists():
             raise ValueError(f"version not found: {version}")
@@ -128,7 +152,7 @@ def _serialize_rule(rule: ExtractedConditionRule) -> dict:
     }
     if rule.verification_result is not None:
         vr = rule.verification_result
-        data["verification_result"] = {
+        vr_dict = {
             "verdict": vr.verdict,
             "confidence": vr.confidence,
             "consistency_score": vr.consistency_score,
@@ -147,6 +171,12 @@ def _serialize_rule(rule: ExtractedConditionRule) -> dict:
             "missing_items": vr.missing_items,
             "evidence_quotes": vr.evidence_quotes,
         }
+        # Serialize revised_rule as a candidate_id reference string
+        # instead of full recursive nesting, since the referenced rule
+        # may contain its own VerificationResult with further nesting.
+        if vr.revised_rule is not None:
+            vr_dict["revised_rule_candidate_id"] = vr.revised_rule.candidate_id
+        data["verification_result"] = vr_dict
     return data
 
 
@@ -186,6 +216,9 @@ def _deserialize_rule(data: dict) -> ExtractedConditionRule:
                     suggested_fix=iss_data.get("suggested_fix"),
                 )
             )
+        # revised_rule is serialized as a candidate_id reference only;
+        # the referenced rule may not be in the current cache, so we
+        # always reconstruct it as None here.
         verification_result = VerificationResult(
             verdict=vr_data["verdict"],
             confidence=vr_data["confidence"],
