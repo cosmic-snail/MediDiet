@@ -1,6 +1,6 @@
 # MediDiet 测试文档
 
-版本：0.1.3
+版本：0.1.4
 目标读者：测试人员、QA、代码 reviewer、后续维护开发者。
 
 ## 1. 测试目标
@@ -29,32 +29,24 @@
 运行全量测试：
 
 ```bash
-# MediDiet 引擎测试
-PYTHONPATH=src python -m unittest discover -s tests -v
-
-# 知识库包测试
-cd knowledge && python -m pytest tests/ -v
-
-# 桥接与集成测试
-PYTHONPATH=src python -m pytest tests/test_knowledge_bridge.py tests/test_knowledge_integration.py tests/test_ports.py -v --rootdir=.
+PYTHONPATH=src:knowledge/src pytest tests/ knowledge/tests/ --rootdir=. -q
 ```
 
 运行指定测试文件：
 
 ```bash
-PYTHONPATH=src python -m unittest tests.test_safety -v
-cd knowledge && python -m pytest tests/test_store.py -v
-PYTHONPATH=src python -m pytest tests/test_knowledge_bridge.py -v --rootdir=.
+PYTHONPATH=src:knowledge/src pytest tests/test_safety.py -v --rootdir=.
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_store.py -v --rootdir=.
 ```
 
 运行指定测试用例：
 
 ```bash
-PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.test_routes_safety_events_to_human_review -v
-cd knowledge && python -m pytest tests/test_store.py::TestRuleStoreVersioning::test_publish_version -v
+PYTHONPATH=src:knowledge/src pytest tests/test_engine.py::RecommendationEngineTest::test_routes_safety_events_to_human_review -v --rootdir=.
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_store.py::TestRuleStoreVersioning::test_publish_version -v --rootdir=.
 ```
 
-当前全量测试数量：94 个 `unittest` 用例 + 98 个 `pytest` 用例（知识库 71 个 + 桥接/集成/端口 19 个 + LLM smoke 2 个），其中 2 个真实 LLM smoke test 默认跳过。普通全量测试默认离线运行。
+当前全量测试数量：254 个（含 2 个默认跳过的真实 LLM smoke test）。普通全量测试默认离线运行。
 
 ## 3. 测试文件总览
 
@@ -72,11 +64,11 @@ cd knowledge && python -m pytest tests/test_store.py::TestRuleStoreVersioning::t
 | `tests/test_service.py` | `service.py` | HTTP 应用服务 DTO 转换、内存状态、推荐编排、营养师评审记录和 LLM fallback metadata。 |
 | `tests/test_http_server.py` | `server.py`, `service.py` | FastAPI endpoints、payload 校验、统一错误响应、推荐响应结构和缺菜单/LLM provider error。 |
 | `tests/test_http_llm_smoke.py` | `server.py`, `llm.py`, DeepSeek/OpenAI-compatible API | 真实 HTTP 推荐 + LLM 增强链路，仅显式启用时运行。 |
-| `tests/test_engine.py` | `engine.py`, `fixtures.py` | 推荐主流程编排错误。 |
+| `tests/test_engine.py` | `engine.py`, `fixtures.py` | 推荐主流程编排错误；在线知识检索增强、静默降级。 |
 | `tests/test_ports.py` | `ports.py` | 外部扩展契约不稳定、时间/枚举非法值、知识库端口协议。 |
 | `tests/test_public_api.py` | `__init__.py` | 顶层公共 API 意外破坏。 |
 | `tests/test_knowledge_bridge.py` | `knowledge_bridge.py`, `ports.py` | 端口适配器类型转换错误、版本加载、检索委托。 |
-| `tests/test_knowledge_integration.py` | `knowledge_bridge.py`, `knowledge/*` | 知识库端到端流程：文档导入→向量索引→规则发布→加载→检索。 |
+| `tests/test_knowledge_integration.py` | `knowledge_bridge.py`, `knowledge/*`, `engine.py`, `nutrition.py`, `matcher.py` | Phase 1/2/3 知识库端到端流程：文档导入→向量索引→规则发布→加载→检索→在线增强推荐→缺口补尝→多样性评分。 |
 
 ### 知识库包测试文件
 
@@ -87,6 +79,8 @@ cd knowledge && python -m pytest tests/test_store.py::TestRuleStoreVersioning::t
 | `knowledge/tests/test_documents.py` | `documents.py` | 文档导入、段落分块、元数据管理、文件读取。 |
 | `knowledge/tests/test_vectordb.py` | `vectordb.py` | ChromaDB 索引、语义搜索、相关性分数、删除操作。 |
 | `knowledge/tests/test_loader.py` | `loader.py` | 目录批量导入、文件过滤、可选索引。 |
+| `knowledge/tests/test_extractor.py` | `extractor.py` | LLM 两阶段规则提取、交叉验证、MockLLMProvider 适配。 |
+| `knowledge/tests/test_curator.py` | `curator.py` | 规则审核、发布、人工归因。 |
 
 ## 4. 功能覆盖矩阵
 
@@ -146,7 +140,20 @@ cd knowledge && python -m pytest tests/test_store.py::TestRuleStoreVersioning::t
 | KnowledgeRuleProvider 端口适配 | 已覆盖 | `test_load_rule_pack_from_store`, `test_list_versions`, `test_load_latest_when_no_version_specified` |
 | KnowledgeRetriever 端口适配 | 已覆盖 | `test_search_delegates_to_vectordb`, `test_retrieve_context`, `test_explain_rule_returns_source_info` |
 | 端口 Protocol 类型检查 | 已覆盖 | `isinstance(provider, RuleProviderPort)`, `isinstance(retriever, KnowledgePort)` |
-| 知识库端到端集成 | 已覆盖 | `test_full_workflow`（导入→索引→规则发布→加载→检索→解释） |
+| 知识库端到端集成（Phase 1） | 已覆盖 | `test_full_workflow`（导入→索引→规则发布→加载→检索→解释） |
+| LLM 规则提取与交叉验证（Phase 2） | 已覆盖 | `test_full_extraction_pipeline`（导入→索引→提取→审核→发布→加载→验证） |
+| 在线引擎 + 缺口补尝 + 多样性 + 知识片段（Phase 3） | 已覆盖 | `test_online_engine_with_gap_compensation` |
+| 在线知识检索增强解释 | 已覆盖 | `test_engine_with_knowledge_includes_snippets` |
+| 知识检索失败静默降级 | 已覆盖 | `test_engine_with_failing_knowledge_degrades_gracefully` |
+| 无知识库时无 snippets | 已覆盖 | `test_engine_without_knowledge_has_no_snippets` |
+| 营养素缺口补尝（低蛋白→lean_protein） | 已覆盖 | `test_compensation_tags_low_protein_adds_lean_protein` |
+| 营养素缺口补尝（低纤维→high_fiber） | 已覆盖 | `test_compensation_tags_low_fiber_adds_high_fiber` |
+| 缺口补尝跨记录合并 | 已覆盖 | `test_compensation_tags_combines_across_records` |
+| 缺口补尝空记录/足够时返回空 | 已覆盖 | `test_compensation_tags_empty_records_returns_empty`, `test_compensation_tags_adequate_meal_returns_empty` |
+| 食材多样性评分（重复食材扣分） | 已覆盖 | `test_repeated_ingredient_penalty_reduces_score` |
+| 多样性评分多食材累加 | 已覆盖 | `test_multiple_repeated_ingredients_accumulate_penalty` |
+| 多样性评分默认空不影响 | 已覆盖 | `test_recent_ingredients_default_empty_has_no_effect` |
+| LLM fallback 保留 knowledge snippets | 已覆盖 | `test_fallback_preserves_knowledge_snippets_from_deterministic_clinician_payload` |
 | KnowledgeSnippet / KnowledgeContext | 已覆盖 | `test_valid_snippet`, `test_valid_context` |
 | RuleProviderPort / KnowledgePort 协议 | 已覆盖 | `test_protocol_is_usable_for_type_checking` |
 
@@ -263,7 +270,9 @@ cd knowledge && python -m pytest tests/test_store.py::TestRuleStoreVersioning::t
 
 | 测试 | 覆盖范围 | 说明 |
 | --- | --- | --- |
-| `tests/test_knowledge_integration.py` | `knowledge` 包 → `knowledge_bridge` → `medidiet` | 端到端验证知识库全流程：文档导入、向量索引、规则创建发布、RulePack 加载、语义检索、解释生成。 |
+| `tests/test_knowledge_integration.py::TestPhase1EndToEnd` | `knowledge` 包 → `knowledge_bridge` → `medidiet` | Phase 1 端到端：文档导入、向量索引、规则创建发布、RulePack 加载、语义检索、解释生成。 |
+| `tests/test_knowledge_integration.py::TestPhase2EndToEnd` | `knowledge/*` → `extractor` → `curator` → `knowledge_bridge` | Phase 2 端到端：文档导入→向量索引→LLM 规则提取→交叉验证→审核→发布→RulePack 加载。 |
+| `tests/test_knowledge_integration.py::TestPhase3EndToEnd` | `knowledge_bridge` → `engine` → `nutrition` → `matcher` | Phase 3 端到端：在线引擎 + KnowledgePort + 缺口补尝 + 食材多样性 + 知识片段验证。 |
 
 后续接入外部系统时建议新增：
 
@@ -275,14 +284,14 @@ cd knowledge && python -m pytest tests/test_store.py::TestRuleStoreVersioning::t
 | 事件系统 | `DomainEvent` 序列化、幂等、失败重试、人工审核队列。 |
 | 服务入口 | 鉴权、请求 id、payload 校验、错误响应、trace 持久化；当前已覆盖本地 HTTP payload 校验和统一错误响应。 |
 
+Phase 3 端到端测试详见 `docs/phase-3-knowledge-engine-e2e-testing.md`。
+
 ## 10. 回归测试建议
 
 每次修改推荐逻辑前后至少运行：
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
-cd knowledge && python -m pytest tests/ -v
-PYTHONPATH=src python -m pytest tests/test_knowledge_bridge.py tests/test_knowledge_integration.py tests/test_ports.py -v --rootdir=.
+PYTHONPATH=src:knowledge/src pytest tests/ knowledge/tests/ --rootdir=. -q
 PYTHONPATH=src python -m medidiet.cli
 git diff --check
 ```
@@ -290,14 +299,13 @@ git diff --check
 若修改规则包、枚举、trace 或公共 API，还应重点运行：
 
 ```bash
-PYTHONPATH=src python -m unittest tests.test_rules tests.test_engine tests.test_explainer_trace tests.test_public_api -v
+PYTHONPATH=src:knowledge/src pytest tests/test_rules.py tests/test_engine.py tests/test_explainer_trace.py tests/test_public_api.py -v --rootdir=.
 ```
 
 若修改知识库或桥接适配器，还应重点运行：
 
 ```bash
-cd knowledge && python -m pytest tests/ -v
-PYTHONPATH=src python -m pytest tests/test_knowledge_bridge.py tests/test_knowledge_integration.py tests/test_ports.py -v --rootdir=.
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/ tests/test_knowledge_bridge.py tests/test_knowledge_integration.py tests/test_ports.py -v --rootdir=.
 ```
 
 ## 11. 测试人员验收清单

@@ -1,6 +1,6 @@
 # MediDiet 软件设计文档
 
-版本：0.1.3
+版本：0.1.4
 目标读者：代码 reviewer、后续重构开发者、接口扩展开发者、测试负责人。
 
 ## 1. 设计目标
@@ -89,12 +89,12 @@ MediDiet/
 | `domain.py` | 领域模型、枚举、基础校验。 | `PatientProfile`, `IntakeRecord`, `MenuItem`, `ConceptCode`, `MealLabel` |
 | `rules.py` | 版本化规则包、概念注册表、营养限制。 | `RulePack`, `ConditionRule`, `NutrientLimit`, `load_baseline_rule_pack` |
 | `safety.py` | 安全门禁、阻断/不确定性事件、warning 日志。 | `SafetyGate`, `SafetyEvent`, `SafetyCode` |
-| `nutrition.py` | 今日摄入聚合、下一餐剩余营养目标。 | `DailyNutritionCalculator`, `NextMealTarget` |
+| `nutrition.py` | 今日摄入聚合、下一餐剩余营养目标、上一餐营养素缺口检测与补尝标签。 | `DailyNutritionCalculator`, `NextMealTarget` |
 | `planner.py` | 把营养目标转换为下一餐计划。 | `MealPlanGenerator`, `MealPlan`, `MealInstruction` |
-| `matcher.py` | 菜单候选项硬排除和排序。 | `MenuMatcher`, `MatchResult`, `MatchRejectionCode` |
-| `explainer.py` | 患者解释和医生/营养师结构化解释。 | `ExplanationBuilder` |
+| `matcher.py` | 菜单候选项硬排除、排序和食材多样性评分。 | `MenuMatcher`, `MatchResult`, `MatchRejectionCode` |
+| `explainer.py` | 患者解释和医生/营养师结构化解释，支持在线知识片段注入。 | `ExplanationBuilder` |
 | `trace.py` | 推荐 trace 序列化。 | `RecommendationTrace` |
-| `engine.py` | 推荐流程编排。 | `RecommendationEngine`, `RecommendationResult` |
+| `engine.py` | 推荐流程编排，支持在线知识检索增强、营养素缺口补尝、食材多样性评分。 | `RecommendationEngine`, `RecommendationResult` |
 | `llm.py` | 推荐后的可选 LLM 解释增强、推荐范围内问答、上下文脱敏和 OpenAI-compatible provider。 | `LLMContextSanitizer`, `LLMExplanationEnhancer`, `LLMQuestionAnswerer`, `OpenAICompatibleLLMProvider` |
 | `service.py` | HTTP 工作流的内存应用服务、DTO 转换和推荐编排。 | `RecommendationService`, `InMemoryRecommendationStore` |
 | `server.py` | FastAPI adapter、HTTP payload 模型和统一错误映射。 | `create_app`, `app` |
@@ -112,7 +112,8 @@ MediDiet/
 | `documents.py` | 文档导入、段落分块、元数据管理。 | `DocumentImporter` |
 | `vectordb.py` | ChromaDB 向量存储、语义搜索。 | `KnowledgeVectorDB` |
 | `loader.py` | 从 `knowledge/source_documents/` 批量导入文档并可选索引。 | `KnowledgeLoader` |
-| `extractor.py` | LLM 规则提取（Phase 2 实现）。 | （预留） |
+| `extractor.py` | LLM 规则提取与交叉验证（两阶段：提取 + 不同 persona 交叉验证）。 | `RuleExtractor`, `ExtractionResult` |
+| `curator.py` | 规则审核与发布 API。 | `KnowledgeCurator` |
 
 ## 4. 总体架构
 
@@ -125,6 +126,7 @@ flowchart LR
   intakePort["IntakeEstimatorPort"]
   menuPort["MenuProviderPort"]
   eventPort["EventPublisherPort"]
+  knowledgePort["KnowledgePort"]
   engine["RecommendationEngine"]
   safety["SafetyGate"]
   nutrition["DailyNutritionCalculator"]
@@ -146,6 +148,7 @@ flowchart LR
   intakePort --> engine
   menuPort --> engine
   rules --> engine
+  knowledgePort --> engine
   engine --> safety
   engine --> nutrition
   engine --> planner
@@ -179,12 +182,14 @@ flowchart TD
   safety["SafetyGate.evaluate"]
   review{"有 hard block 或 uncertainty?"}
   target["DailyNutritionCalculator.next_meal_target"]
+  gap["检测上一餐营养素缺口\n→ 注入补尝 preferred_tags"]
   plan["MealPlanGenerator.generate"]
-  match["MenuMatcher.match"]
+  match["MenuMatcher.match\n（含食材多样性评分）"]
   accepted{"存在 accepted 菜单项?"}
   explainReview["生成人工审核解释"]
   explainRefuse["生成拒绝解释"]
   explainOk["生成患者解释和医生解释"]
+  knowledge["在线知识检索 enrich\n→ clinician_explanation 附加 knowledgeSnippets\n（可选，失败静默降级）"]
   trace["生成 RecommendationTrace"]
   outReview["Outcome.HUMAN_REVIEW_REQUIRED"]
   outRefuse["Outcome.REFUSED"]
@@ -192,16 +197,19 @@ flowchart TD
 
   start --> input --> validate --> safety --> review
   review -- 是 --> explainReview --> trace --> outReview
-  review -- 否 --> target --> plan --> match --> accepted
+  review -- 否 --> target --> gap --> plan --> match --> accepted
   accepted -- 否 --> explainRefuse --> trace --> outRefuse
-  accepted -- 是 --> explainOk --> trace --> outOk
+  accepted -- 是 --> explainOk --> knowledge --> trace --> outOk
 ```
 
 关键分支：
 
 - 安全门禁触发任何 hard block 或 uncertainty 时，不进入菜单排序，直接人工审核。
+- 营养素缺口补尝：检测上一餐蛋白质（<15g）和纤维（<3g）摄入是否不足，不足时向下一餐 target 注入 `lean_protein` / `high_fiber` 偏好标签。
 - 菜单匹配阶段若所有候选都被排除，返回拒绝推荐。
+- 食材多样性评分：候选菜单中与近期已摄入食材重复的每种食材扣 1 分。
 - 推荐成功时只返回排序最高的菜单项，trace 仍保留所有 accepted 分数和 excluded 原因。
+- 在线知识检索在推荐成功后运行，仅丰富 `clinician_explanation`；检索失败静默降级，不阻断推荐。
 
 ## 6. 核心类图
 
@@ -209,6 +217,8 @@ flowchart TD
 classDiagram
   class RecommendationEngine {
     +RulePack rule_pack
+    +KnowledgePort knowledge
+    +frozenset recent_ingredients
     +recommend(patient, intake_records, candidate_menu_items, meal_label) RecommendationResult
   }
 
@@ -280,6 +290,7 @@ classDiagram
   class DailyNutritionCalculator {
     +aggregate(records) DailyNutritionState
     +next_meal_target(conditions, records) NextMealTarget
+    +compensation_tags(previous_meal_records) Set~ConceptCode~
   }
 
   class MealPlanGenerator {
@@ -287,12 +298,12 @@ classDiagram
   }
 
   class MenuMatcher {
-    +match(plan, candidates, preference) MatchResult
+    +match(plan, candidates, preference, recent_ingredients) MatchResult
   }
 
   class ExplanationBuilder {
     +patient_explanation(outcome, tags, instructions) str
-    +clinician_explanation(rule_version, safety_events, exclusions, scores, matched_tags) dict
+    +clinician_explanation(rule_version, safety_events, exclusions, scores, matched_tags, knowledge_snippets) dict
   }
 
   class RecommendationTrace {
@@ -377,8 +388,15 @@ MVP baseline：
    - merchant reliability。
    - 价格和距离是否在偏好范围内。
    - 价格和距离的轻量连续加分。
+   - 食材多样性：候选菜单中与 `recent_ingredients` 重复的每种食材扣 1 分。
 
 排序公式当前是确定性启发式，后续可替换，但必须保留排除 code 和 trace。
+
+### 7.5 营养缺口补尝与食材多样性
+
+**营养缺口补尝**：`DailyNutritionCalculator.compensation_tags()` 检测上一餐的营养素摄入缺口。当上一餐蛋白质总量低于 15g 时，向下一餐 target 注入 `lean_protein` 偏好标签；当纤维总量低于 3g 时，注入 `high_fiber` 标签。引擎通过 `_PREVIOUS_MEAL` 映射确定上一餐：午餐补尝早餐、晚餐补尝午餐。补尝只考虑当天的上一餐记录。
+
+**食材多样性评分**：`MenuMatcher.match()` 接受可选的 `recent_ingredients: frozenset[ConceptCode]` 参数。候选菜单中与近期已摄入食材重复的每种食材扣 1 分，促进食材多样化。引擎通过 `recent_ingredients` 参数将近期食材传入匹配器。
 
 ## 8. 营养学知识库
 
@@ -429,12 +447,16 @@ flowchart LR
 
 ### 8.5 双模运行
 
+`RecommendationEngine` 构造函数接受可选的 `knowledge: KnowledgePort | None` 参数。引擎根据此参数自动切换模式：
+
 | 模式 | 触发条件 | 行为 |
 | --- | --- | --- |
-| 离线（默认） | 未注入 `KnowledgePort` | 纯规则引擎，行为与原有完全一致。 |
-| 在线增强 | 注入 `KnowledgePort` 实现 | 推荐后在 `clinician_explanation` 中附加 `knowledge_snippets`。 |
+| 离线（默认） | `knowledge=None` | 纯规则引擎，行为与原有完全一致。 |
+| 在线增强 | 注入 `KnowledgePort` 实现（如 `KnowledgeRetriever`） | 推荐后在 `clinician_explanation` 中附加 `knowledgeSnippets` 字段，包含源文档引用和相关性分数。 |
 
-在线检索不参与规则决策（安全门禁、匹配器、评分均保持确定性），仅丰富解释。检索超时或失败静默降级，不阻断推荐。
+在线检索通过 `knowledge.retrieve_context(patient, meal_label)` 调用，检索不参与规则决策（安全门禁、匹配器、评分均保持确定性），仅丰富解释。检索超时或失败静默降级，不阻断推荐。
+
+`RecommendationService` 同样接受可选的 `knowledge` 参数并透传给引擎，实现服务层在线增强。
 
 ### 8.6 知识库包 API 摘要
 
@@ -481,7 +503,7 @@ context = retriever.retrieve_context(patient, meal_label)
 explanation = retriever.explain_rule(condition_code)
 ```
 
-> **Phase 3 规划：** `RecommendationEngine` 后续将支持 `rule_provider` 和 `knowledge` 可选注入参数。当前可先通过 `KnowledgeRuleProvider.load_rule_pack()` 获取 `RulePack`，再传入引擎现有构造函数。
+**Phase 3 已实现：** `RecommendationEngine` 现已支持 `knowledge: KnowledgePort | None` 和 `recent_ingredients: frozenset[ConceptCode]` 可选注入参数。前者用于在线知识检索增强解释，后者用于食材多样性评分。引擎还内置营养素缺口补尝（上一餐蛋白质/纤维不足 → 下一餐偏好标签）。详见第 8.5 节。
 
 ## 9. 安全设计
 
@@ -559,7 +581,9 @@ flowchart LR
 - baseline 规则阈值是演示级，需要临床审核后才能用于生产。
 - 当前 `DOWNGRADED` outcome 预留但未由引擎主动产生。
 - 当前只推荐排序最高的一项；多项推荐和替代方案需要后续设计。
-- LLM 是推荐后的可选增强层；未配置 provider 时仍使用规则模板解释。
-- 知识库 LLM 规则提取和交叉验证管道（Phase 2）尚未实现；当前仅支持人工整理规则。
-- 知识库在线检索仅丰富解释，不参与评分或推荐决策；检索失败静默降级。
+- LLM 是推荐后的可选增强层；未配置 provider 时仍使用规则模板解释。LLM 增强失败回退时，`knowledgeSnippets` 从确定性 clinician_explanation 保留到 fallback 文本中。
+- 知识库 LLM 规则提取和交叉验证管道（Phase 2）已实现：两阶段提取（提取 + 不同 persona 交叉验证），支持 MockLLMProvider 离线测试。
+- 知识库在线检索（Phase 3）已实现：引擎支持 `KnowledgePort` 注入，检索仅丰富解释，不参与评分或推荐决策；检索失败静默降级。
+- 营养素缺口补尝（Phase 3）已实现：检测上一餐蛋白质（<15g）和纤维（<3g）不足，向下一餐注入补尝偏好标签。
+- 食材多样性评分（Phase 3）已实现：引擎接受 `recent_ingredients`，匹配器对重复食材扣分。
 - ChromaDB 默认使用 `sentence-transformers/all-MiniLM-L6-v2` embedding 模型，首次运行自动下载（约 80 MB）。如需自定义 embedding 函数，需在 `KnowledgeVectorDB` 初始化时注入。
