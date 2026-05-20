@@ -482,26 +482,25 @@ explanation = retriever.explain_rule(condition_code)
 ```
 
 > **Phase 3 规划：** `RecommendationEngine` 后续将支持 `rule_provider` 和 `knowledge` 可选注入参数。当前可先通过 `KnowledgeRuleProvider.load_rule_pack()` 获取 `RulePack`，再传入引擎现有构造函数。
-```
 
 ## 9. 安全设计
 
 `SafetyGate` 在进入营养计算和菜单排序前运行。
 
-### 8.1 hard block
+### 9.1 hard block
 
 - 非成人。
 - 过敏原命中。
 - 患者禁忌与疾病规则 hard exclusion 命中。
 - 菜单候选项单餐营养值超过疾病规则硬上限。
 
-### 8.2 uncertainty
+### 9.2 uncertainty
 
 - 患者关键风险字段未确认。
 - 摄入识别低置信度且未人工修正。
 - 菜单营养数据低置信度。
 
-### 8.3 日志
+### 9.3 日志
 
 - 只有 safety event 以 `WARNING` 写入。
 - 默认不写 stderr。

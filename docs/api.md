@@ -30,8 +30,6 @@
 from medidiet import (
     KnowledgeContext,
     KnowledgePort,
-    KnowledgeRetriever,
-    KnowledgeRuleProvider,
     KnowledgeSnippet,
     LLMAnswer,
     LLMConfig,
@@ -50,6 +48,12 @@ from medidiet import (
     create_app,
     load_baseline_rule_pack,
 )
+```
+
+桥接适配器需从子模块导入（依赖 `knowledge/` 包 + `chromadb`）：
+
+```python
+from medidiet.knowledge_bridge import KnowledgeRetriever, KnowledgeRuleProvider
 ```
 
 对应文件：

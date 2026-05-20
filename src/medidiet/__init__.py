@@ -1,7 +1,6 @@
 """MediDiet recommendation engine core."""
 
 from medidiet.engine import RecommendationEngine, RecommendationResult
-from medidiet.knowledge_bridge import KnowledgeRetriever, KnowledgeRuleProvider
 from medidiet.llm import (
     LLMAnswer,
     LLMConfig,
@@ -23,8 +22,6 @@ __version__ = "0.1.1"
 __all__ = [
     "KnowledgeContext",
     "KnowledgePort",
-    "KnowledgeRetriever",
-    "KnowledgeRuleProvider",
     "KnowledgeSnippet",
     "LLMAnswer",
     "LLMConfig",

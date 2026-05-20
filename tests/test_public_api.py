@@ -16,8 +16,6 @@ class PublicApiTest(unittest.TestCase):
             [
                 "KnowledgeContext",
                 "KnowledgePort",
-                "KnowledgeRetriever",
-                "KnowledgeRuleProvider",
                 "KnowledgeSnippet",
                 "LLMAnswer",
                 "LLMConfig",
@@ -72,22 +70,29 @@ class PublicApiTest(unittest.TestCase):
         self.assertEqual(RecommendationService.__name__, "RecommendationService")
         self.assertEqual(create_app.__name__, "create_app")
 
-    def test_knowledge_exports_are_available(self):
+    def test_knowledge_port_exports_are_available(self):
+        """Lightweight port types are top-level exports (no heavy deps)."""
         from medidiet import (
             KnowledgeContext,
             KnowledgePort,
-            KnowledgeRetriever,
-            KnowledgeRuleProvider,
             KnowledgeSnippet,
             RuleProviderPort,
         )
 
         self.assertEqual(KnowledgeContext.__name__, "KnowledgeContext")
         self.assertEqual(KnowledgePort.__name__, "KnowledgePort")
-        self.assertEqual(KnowledgeRetriever.__name__, "KnowledgeRetriever")
-        self.assertEqual(KnowledgeRuleProvider.__name__, "KnowledgeRuleProvider")
         self.assertEqual(KnowledgeSnippet.__name__, "KnowledgeSnippet")
         self.assertEqual(RuleProviderPort.__name__, "RuleProviderPort")
+
+    def test_knowledge_bridge_imports_from_submodule(self):
+        """Bridge adapters require knowledge + chromadb, import from submodule."""
+        from medidiet.knowledge_bridge import (
+            KnowledgeRetriever,
+            KnowledgeRuleProvider,
+        )
+
+        self.assertEqual(KnowledgeRetriever.__name__, "KnowledgeRetriever")
+        self.assertEqual(KnowledgeRuleProvider.__name__, "KnowledgeRuleProvider")
 
 
 if __name__ == "__main__":
