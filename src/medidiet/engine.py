@@ -1,17 +1,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
-from medidiet.domain import IntakeRecord, MealLabel, MenuItem, Outcome, PatientProfile, RiskLevel
+from medidiet.domain import ConceptCode, IntakeRecord, MealLabel, MenuItem, Outcome, PatientProfile, RiskLevel
 from medidiet.explainer import ExplanationBuilder
 from medidiet.matcher import MatchRejection, MenuMatcher
-from medidiet.nutrition import DailyNutritionCalculator
+from medidiet.nutrition import DailyNutritionCalculator, NextMealTarget
 from medidiet.planner import MealPlan, MealPlanGenerator
+from medidiet.ports import KnowledgePort
 from medidiet.rules import RulePack
 from medidiet.safety import SafetyEvent, SafetyGate
 from medidiet.trace import RecommendationTrace
+
+# Previous meal for gap compensation: lunch compensates breakfast, dinner compensates lunch
+_PREVIOUS_MEAL: dict[MealLabel, MealLabel] = {
+    MealLabel.LUNCH: MealLabel.BREAKFAST,
+    MealLabel.DINNER: MealLabel.LUNCH,
+}
 
 
 @dataclass(frozen=True)
@@ -24,8 +31,16 @@ class RecommendationResult:
 
 
 class RecommendationEngine:
-    def __init__(self, rule_pack: RulePack, now: datetime | None = None):
+    def __init__(
+        self,
+        rule_pack: RulePack,
+        now: datetime | None = None,
+        knowledge: KnowledgePort | None = None,
+        recent_ingredients: frozenset[ConceptCode] = frozenset(),
+    ):
         self.rule_pack = rule_pack
+        self.knowledge = knowledge
+        self.recent_ingredients = recent_ingredients
         self.safety_gate = SafetyGate(rule_pack)
         self.calculator = DailyNutritionCalculator(rule_pack, now=now)
         self.planner = MealPlanGenerator(rule_pack)
@@ -47,6 +62,7 @@ class RecommendationEngine:
             explanation = self.explainer.patient_explanation(Outcome.HUMAN_REVIEW_REQUIRED)
             return self._finalize(
                 patient=patient,
+                meal_label=meal_label,
                 outcome=Outcome.HUMAN_REVIEW_REQUIRED,
                 risk_level=RiskLevel.HIGH,
                 recommended_items=(),
@@ -58,13 +74,29 @@ class RecommendationEngine:
             )
 
         target = self.calculator.next_meal_target(patient.conditions, intake_records)
+
+        # Nutrient gap compensation: previous meal deficiencies → preference boost
+        previous_label = _PREVIOUS_MEAL.get(meal_label)
+        if previous_label is not None:
+            today = self.calculator.now.astimezone(timezone.utc).date()
+            previous_records = [
+                r for r in intake_records
+                if r.meal_label is previous_label
+                and r.occurred_at.astimezone(timezone.utc).date() == today
+            ]
+            gap_tags = self.calculator.compensation_tags(previous_records)
+            if gap_tags:
+                merged_tags = frozenset(target.preferred_tags | gap_tags)
+                target = NextMealTarget(limits=target.limits, preferred_tags=merged_tags)
+
         plan = self.planner.generate(target, meal_label)
-        match_result = self.matcher.match(plan, candidate_menu_items, patient.preferences)
+        match_result = self.matcher.match(plan, candidate_menu_items, patient.preferences, self.recent_ingredients)
 
         if not match_result.accepted:
             explanation = self.explainer.patient_explanation(Outcome.REFUSED)
             return self._finalize(
                 patient=patient,
+                meal_label=meal_label,
                 outcome=Outcome.REFUSED,
                 risk_level=RiskLevel.HIGH,
                 recommended_items=(),
@@ -84,6 +116,7 @@ class RecommendationEngine:
         )
         return self._finalize(
             patient=patient,
+            meal_label=meal_label,
             outcome=Outcome.RECOMMENDED,
             risk_level=RiskLevel.LOW,
             recommended_items=(top_score.item,),
@@ -97,6 +130,7 @@ class RecommendationEngine:
     def _finalize(
         self,
         patient: PatientProfile,
+        meal_label: MealLabel,
         outcome: Outcome,
         risk_level: RiskLevel,
         recommended_items: tuple[MenuItem, ...],
@@ -106,12 +140,30 @@ class RecommendationEngine:
         scores: dict[str, float],
         matched_tags: tuple,
     ) -> RecommendationResult:
+        # Online knowledge enrichment (silently degrades on failure)
+        knowledge_snippets: list[dict[str, object]] | None = None
+        if self.knowledge is not None:
+            try:
+                context = self.knowledge.retrieve_context(patient, meal_label)
+                knowledge_snippets = [
+                    {
+                        "text": s.text,
+                        "sourceTitle": s.source_title,
+                        "sourceUrl": s.source_url,
+                        "chunkId": s.chunk_id,
+                        "relevanceScore": s.relevance_score,
+                    }
+                    for s in context.snippets
+                ]
+            except Exception:
+                pass
         clinician_explanation = self.explainer.clinician_explanation(
             rule_version=self.rule_pack.version,
             safety_events=safety_events,
             exclusions=exclusions,
             scores=scores,
             matched_tags=matched_tags,
+            knowledge_snippets=knowledge_snippets,
         )
         trace = RecommendationTrace(
             trace_id=f"trace-{uuid4()}",

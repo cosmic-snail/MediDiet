@@ -115,6 +115,36 @@ class LLMExplanationEnhancerTest(unittest.TestCase):
         self.assertEqual(enhanced.patient_explanation, result.patient_explanation)
         self.assertNotIn("secret-key", enhanced.clinician_explanation)
 
+    def test_fallback_preserves_knowledge_snippets_from_deterministic_clinician_payload(self):
+        from medidiet.llm import (
+            LLMContextSanitizer,
+            LLMExplanationEnhancer,
+            LLMFallbackReason,
+            MockLLMProvider,
+        )
+
+        patient, meal_label, result = demo_result()
+        # Simulate knowledge snippets injected by the engine's _finalize()
+        snippets = [{"text": "Limit sodium to 700mg/meal.", "sourceTitle": "CKD Guidelines"}]
+        result = result.__class__(
+            outcome=result.outcome,
+            recommended_items=result.recommended_items,
+            patient_explanation=result.patient_explanation,
+            clinician_explanation={**result.clinician_explanation, "knowledgeSnippets": snippets},
+            trace=result.trace,
+        )
+        context = LLMContextSanitizer().sanitize(result, patient, meal_label)
+        enhanced = LLMExplanationEnhancer(MockLLMProvider(error=RuntimeError("down"))).enhance(
+            context,
+            result,
+        )
+
+        self.assertTrue(enhanced.used_fallback)
+        self.assertEqual(enhanced.fallback_reason, LLMFallbackReason.PROVIDER_ERROR)
+        self.assertIn("knowledgeSnippets", enhanced.clinician_explanation)
+        self.assertIn("Limit sodium to 700mg/meal.", enhanced.clinician_explanation)
+        self.assertIn("CKD Guidelines", enhanced.clinician_explanation)
+
     def test_enhancer_falls_back_on_invalid_missing_empty_or_unsafe_output(self):
         from medidiet.llm import (
             LLMContextSanitizer,

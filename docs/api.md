@@ -1,6 +1,6 @@
 # MediDiet API 文档
 
-版本：0.1.3
+版本：0.1.4
 状态：核心推荐引擎 MVP，供后续小程序、服务端、图片识别、外卖/食堂接口扩展使用。
 
 ## 1. API 边界
@@ -70,23 +70,44 @@ from medidiet.knowledge_bridge import KnowledgeRetriever, KnowledgeRuleProvider
 ### 2.1 推荐引擎入口
 
 ```python
-RecommendationEngine(rule_pack: RulePack, now: datetime | None = None)
+RecommendationEngine(
+    rule_pack: RulePack,
+    now: datetime | None = None,
+    knowledge: KnowledgePort | None = None,
+    recent_ingredients: frozenset[ConceptCode] = frozenset(),
+)
 ```
 
 参数：
 
 | 参数 | 类型 | 说明 |
 | --- | --- | --- |
-| `rule_pack` | `RulePack` | 已加载的规则包。MVP 使用 `load_baseline_rule_pack()`。 |
+| `rule_pack` | `RulePack` | 已加载的规则包。MVP 使用 `load_baseline_rule_pack()`；知识库模式使用 `KnowledgeRuleProvider.load_rule_pack()`。 |
 | `now` | `datetime | None` | 可选的当前时间。测试或 demo 可传固定时区时间；生产默认使用当前 UTC 时间。 |
+| `knowledge` | `KnowledgePort | None` | 可选的知识库端口实现。非 None 时在推荐后在线检索相关知识片段，附加到 `clinician_explanation.knowledgeSnippets` 中。检索失败静默降级，不阻断推荐。 |
+| `recent_ingredients` | `frozenset[ConceptCode]` | 可选的近期已摄入食材集合。非空时启用食材多样性评分：候选菜单中与近期食材重复的每种食材扣 1 分。 |
 
-> **Phase 3 规划：** `RecommendationEngine` 后续将支持 `rule_provider: RuleProviderPort` 和 `knowledge: KnowledgePort` 可选参数，实现端口方式加载规则和在线检索增强解释。当前可使用桥接适配器独立获取 `RulePack` 后传入引擎：
+**在线增强示例（知识库模式）：**
 
 ```python
-# 当前可用：通过桥接适配器获取 RulePack，再传给引擎
-provider = KnowledgeRuleProvider(store=RuleStore())
+from medidiet import RecommendationEngine
+from medidiet.domain import CodeKind, ConceptCode
+from knowledge.store import RuleStore
+from knowledge.vectordb import KnowledgeVectorDB
+from medidiet.knowledge_bridge import KnowledgeRuleProvider, KnowledgeRetriever
+
+store = RuleStore(data_dir="data")
+provider = KnowledgeRuleProvider(store=store, version="v1.0")
 rule_pack = provider.load_rule_pack()
-engine = RecommendationEngine(rule_pack=rule_pack)
+
+vectordb = KnowledgeVectorDB(persist_dir="data/chroma")
+retriever = KnowledgeRetriever(vectordb=vectordb)
+
+engine = RecommendationEngine(
+    rule_pack=rule_pack,
+    knowledge=retriever,
+    recent_ingredients=frozenset({ConceptCode(CodeKind.INGREDIENT, "fish")}),
+)
 ```
 
 ### 2.2 推荐调用
@@ -623,10 +644,12 @@ explanation = retriever.explain_rule(ConceptCode(CodeKind.CONDITION, "hypertensi
 
 ### 8.6 双模运行约束
 
-- 离线模式（未注入 `KnowledgePort`）：引擎行为与原有完全一致。
-- 在线增强模式：检索仅在推荐完成后丰富 `clinician_explanation` 中的 `knowledge_snippets` 字段。
+- **离线模式**（`knowledge=None`，默认）：引擎行为与原有完全一致。
+- **在线增强模式**（注入 `KnowledgePort` 实现）：检索仅在推荐完成后丰富 `clinician_explanation` 中的 `knowledgeSnippets` 字段。检索通过 `knowledge.retrieve_context(patient, meal_label)` 调用。
 - 在线检索不参与安全门禁、营养计算、菜单匹配或评分决策。
 - 检索超时或失败静默降级，不阻断推荐流程。
+- `Recent_ingredients` 食材多样性评分与知识库模式独立，可单独使用或组合使用。
+- 营养素缺口补尝（上一餐蛋白质/纤维不足 → 下一餐偏好标签）对所有模式生效，不依赖 `KnowledgePort`。
 
 ## 9. 安全日志 API
 
@@ -707,7 +730,7 @@ uvicorn medidiet.server:app --app-dir src --reload
 | `POST` | `/recommendations` | 返回推荐结果、推荐菜单、LLM 增强解释和 trace id。 |
 | `GET` | `/debug/state` | 返回开发调试用内存状态摘要。 |
 
-### 11.1 推荐请求示例
+### 12.1 推荐请求示例
 
 ```json
 {
@@ -720,7 +743,7 @@ uvicorn medidiet.server:app --app-dir src --reload
 }
 ```
 
-### 11.2 推荐响应示例
+### 12.2 推荐响应示例
 
 ```json
 {
@@ -734,7 +757,7 @@ uvicorn medidiet.server:app --app-dir src --reload
   ],
   "explanation": {
     "patient": "这份餐食符合当前营养规则...",
-    "clinician": "LLM clinician explanation.",
+    "clinician": "{\"ruleVersion\":\"v1.0\",\"safetyEventCodes\":[],\"exclusions\":{},\"scores\":{\"steamed-fish-set\":12.5},\"matchedTags\":[{\"kind\":\"nutrition_tag\",\"value\":\"low_sodium\"},{\"kind\":\"nutrition_tag\",\"value\":\"lean_protein\"}],\"knowledgeSnippets\":[{\"text\":\"Limit sodium to under 700mg per meal for CKD patients.\",\"sourceTitle\":\"CKD Dietary Guidelines 2024\",\"sourceUrl\":\"ckd-guidelines.md\",\"chunkId\":\"ckd-2024-chunk-0000\",\"relevanceScore\":0.92}]}",
     "llm": {
       "usedFallback": false,
       "fallbackReason": null

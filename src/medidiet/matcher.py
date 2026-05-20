@@ -44,7 +44,13 @@ class MatchResult:
 
 
 class MenuMatcher:
-    def match(self, plan: MealPlan, candidates: list[MenuItem], preference: Preference) -> MatchResult:
+    def match(
+        self,
+        plan: MealPlan,
+        candidates: list[MenuItem],
+        preference: Preference,
+        recent_ingredients: frozenset[ConceptCode] = frozenset(),
+    ) -> MatchResult:
         accepted: list[MenuItemScore] = []
         excluded: dict[str, MatchRejection] = {}
 
@@ -53,7 +59,7 @@ class MenuMatcher:
             if rejection is not None:
                 excluded[candidate.item_id] = rejection
                 continue
-            accepted.append(self._score(plan, candidate, preference))
+            accepted.append(self._score(plan, candidate, preference, recent_ingredients))
 
         accepted.sort(key=lambda item_score: item_score.score, reverse=True)
         return MatchResult(accepted=tuple(accepted), excluded=excluded)
@@ -86,7 +92,13 @@ class MenuMatcher:
 
         return None
 
-    def _score(self, plan: MealPlan, candidate: MenuItem, preference: Preference) -> MenuItemScore:
+    def _score(
+        self,
+        plan: MealPlan,
+        candidate: MenuItem,
+        preference: Preference,
+        recent_ingredients: frozenset[ConceptCode] = frozenset(),
+    ) -> MenuItemScore:
         matched_required_tags = frozenset(plan.required_tags.intersection(candidate.nutrition_tags))
         matched_taste_tags = frozenset(preference.taste_tags.intersection(candidate.taste_tags))
         score = 0.0
@@ -99,6 +111,9 @@ class MenuMatcher:
             score += 2
         score += max(0, 2 - candidate.price_cents / 5000)
         score += max(0, 2 - candidate.distance_meters / 3000)
+        # Ingredient diversity: small penalty per repeated ingredient
+        repeated = len(candidate.ingredients.intersection(recent_ingredients))
+        score -= 1.0 * repeated
         return MenuItemScore(
             item=candidate,
             score=round(score, 4),

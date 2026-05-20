@@ -25,6 +25,7 @@ from medidiet.llm import (
     LLMProviderPort,
     OpenAICompatibleLLMProvider,
 )
+from medidiet.ports import KnowledgePort
 from medidiet.rules import RulePack, load_baseline_rule_pack
 
 
@@ -274,11 +275,13 @@ class RecommendationService:
         rule_pack: RulePack | None = None,
         store: InMemoryRecommendationStore | None = None,
         llm_provider: LLMProviderPort | None = None,
+        knowledge: KnowledgePort | None = None,
         now: datetime | None = None,
     ):
         self.rule_pack = rule_pack or load_baseline_rule_pack()
         self.store = store or InMemoryRecommendationStore()
         self.llm_provider = llm_provider
+        self.knowledge = knowledge
         self.now = now
 
     def upsert_patient(self, patient_id: str, input_profile: PatientProfileInput) -> PatientProfile:
@@ -323,7 +326,7 @@ class RecommendationService:
             raise ServiceError(ServiceErrorCode.INVALID_MEAL_LABEL, "mealLabel must be a valid MealLabel")
 
         patient_for_request = self._patient_with_temporary_tastes(patient, input_request.temporary_taste_tags)
-        engine = RecommendationEngine(self.rule_pack, now=self.now)
+        engine = RecommendationEngine(self.rule_pack, now=self.now, knowledge=self.knowledge)
         result = engine.recommend(
             patient_for_request,
             self.store.intake_records.get(input_request.patient_id, []),
