@@ -19,11 +19,8 @@ Phase 3 为推荐引擎新增三项能力，本文档描述端到端验证场景
 # 依赖
 pip install chromadb sentence-transformers
 
-# 环境变量
-PYTHONPATH=src:knowledge/src
-
 # 运行所有 Phase 3 相关测试
-pytest tests/test_knowledge_integration.py tests/test_engine.py tests/test_nutrition.py tests/test_matcher.py tests/test_llm.py -v --rootdir=.
+PYTHONPATH=src:knowledge/src pytest tests/test_knowledge_integration.py tests/test_engine.py tests/test_nutrition.py tests/test_matcher.py tests/test_llm.py -v --rootdir=.
 ```
 
 ## 3. E2E 场景

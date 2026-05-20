@@ -90,11 +90,13 @@ RecommendationEngine(
 **在线增强示例（知识库模式）：**
 
 ```python
+from medidiet import RecommendationEngine
+from medidiet.domain import CodeKind, ConceptCode
 from knowledge.store import RuleStore
 from knowledge.vectordb import KnowledgeVectorDB
 from medidiet.knowledge_bridge import KnowledgeRuleProvider, KnowledgeRetriever
 
-store = RuleStore(data_dir="data/rules")
+store = RuleStore(data_dir="data")
 provider = KnowledgeRuleProvider(store=store, version="v1.0")
 rule_pack = provider.load_rule_pack()
 
