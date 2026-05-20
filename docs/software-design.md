@@ -24,15 +24,15 @@ MediDiet/
 │   ├── software-design.md
 │   ├── testing.md
 │   ├── usage.md
-│   ├── knowledge/                       # 知识库源文档
-│   │   ├── guidelines/
-│   │   ├── papers/
-│   │   └── food_db/
 │   └── superpowers/
 │       ├── plans/
 │       └── specs/
 ├── knowledge/                           # 独立知识库包
 │   ├── pyproject.toml
+│   ├── source_documents/                  # 知识库源文档
+│   │   ├── guidelines/
+│   │   ├── papers/
+│   │   └── food_db/
 │   ├── src/knowledge/
 │   │   ├── schema.py                    # 知识库数据模型
 │   │   ├── store.py                     # 规则存储与版本化
@@ -111,7 +111,7 @@ MediDiet/
 | `store.py` | 结构化规则 CRUD、JSON 文件版本化。 | `RuleStore` |
 | `documents.py` | 文档导入、段落分块、元数据管理。 | `DocumentImporter` |
 | `vectordb.py` | ChromaDB 向量存储、语义搜索。 | `KnowledgeVectorDB` |
-| `loader.py` | 从 `docs/knowledge/` 批量导入文档并可选索引。 | `KnowledgeLoader` |
+| `loader.py` | 从 `knowledge/source_documents/` 批量导入文档并可选索引。 | `KnowledgeLoader` |
 | `extractor.py` | LLM 规则提取（Phase 2 实现）。 | （预留） |
 
 ## 4. 总体架构
@@ -451,7 +451,7 @@ from knowledge.documents import DocumentImporter
 importer = DocumentImporter()
 doc = importer.import_from_text(doc_id="ckd-2024", title="...", source="...",
                                 source_type="guideline", content="...")
-doc = importer.import_from_file("docs/knowledge/guidelines/ckd.md")
+doc = importer.import_from_file("knowledge/source_documents/guidelines/ckd.md")
 
 # 向量存储
 from knowledge.vectordb import KnowledgeVectorDB

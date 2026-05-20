@@ -27,7 +27,11 @@ MediDiet/
 │   │       ├── extractor.py            # LLM rule extraction pipeline (2-stage with cross-validation)
 │   │       ├── curator.py              # Manual curation API
 │   │       ├── retriever.py            # Online retrieval for dual-mode
-│   │       └── loader.py               # Batch import from docs/knowledge/
+│   │       └── loader.py               # Batch import from knowledge/source_documents/
+│   ├── source_documents/                  # Knowledge source documents
+│   │   ├── guidelines/                    # Clinical dietary guideline PDFs/MD
+│   │   ├── papers/                        # Research papers
+│   │   └── food_db/                       # Food composition tables
 │   └── tests/
 │       ├── test_store.py
 │       ├── test_documents.py
@@ -43,10 +47,7 @@ MediDiet/
 │   └── ...                             # Remaining files unchanged
 │
 ├── docs/
-│   └── knowledge/                      # New: unstructured knowledge documents
-│       ├── guidelines/                 # Clinical dietary guideline PDFs/MD
-│       ├── papers/                     # Research papers
-│       └── food_db/                    # Food composition tables
+│   └── ...                             # Project documentation unchanged
 │
 └── data/                               # Runtime data (gitignored)
     ├── chroma/                         # Vector persistence
@@ -291,7 +292,7 @@ Chunking preserves structural info (section headings, list hierarchy) so retriev
 | Vector embeddings | `data/chroma/` | No (gitignored) |
 | Structured rules | `data/rules/v*.json` | Yes (git tracked) |
 | Document metadata | `data/knowledge.db` (SQLite) | No (gitignored) |
-| Source documents | `docs/knowledge/` | Yes (git tracked) |
+| Source documents | `knowledge/source_documents/` | Yes (git tracked) |
 
 ## 8. Phased Delivery
 
@@ -301,7 +302,7 @@ Chunking preserves structural info (section headings, list hierarchy) so retriev
 - `store.py`: structured rule CRUD + JSON file versioning
 - `documents.py`: document import, chunking, metadata
 - `vectordb.py`: ChromaDB integration, indexing, semantic search
-- `loader.py`: batch import from `docs/knowledge/`
+- `loader.py`: batch import from `knowledge/source_documents/`
 - `medidiet/ports.py`: `RuleProviderPort` + `KnowledgePort` interfaces
 - `medidiet/knowledge_bridge.py`: port adapter implementation
 - Tests for store, documents, vectordb
