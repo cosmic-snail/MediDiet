@@ -479,12 +479,9 @@ retriever = KnowledgeRetriever(vectordb=KnowledgeVectorDB())
 snippets = retriever.search("protein restriction CKD")
 context = retriever.retrieve_context(patient, meal_label)
 explanation = retriever.explain_rule(condition_code)
+```
 
-# 引擎注入
-engine = RecommendationEngine(
-    rule_provider=provider,   # 替代 rule_pack
-    knowledge=retriever,      # 可选在线增强
-)
+> **Phase 3 规划：** `RecommendationEngine` 后续将支持 `rule_provider` 和 `knowledge` 可选注入参数。当前可先通过 `KnowledgeRuleProvider.load_rule_pack()` 获取 `RulePack`，再传入引擎现有构造函数。
 ```
 
 ## 9. 安全设计
@@ -566,3 +563,4 @@ flowchart LR
 - LLM 是推荐后的可选增强层；未配置 provider 时仍使用规则模板解释。
 - 知识库 LLM 规则提取和交叉验证管道（Phase 2）尚未实现；当前仅支持人工整理规则。
 - 知识库在线检索仅丰富解释，不参与评分或推荐决策；检索失败静默降级。
+- ChromaDB 默认使用 `sentence-transformers/all-MiniLM-L6-v2` embedding 模型，首次运行自动下载（约 80 MB）。如需自定义 embedding 函数，需在 `KnowledgeVectorDB` 初始化时注入。
