@@ -100,6 +100,47 @@ class NutritionCalculatorTest(unittest.TestCase):
         self.assertEqual(sodium_limit.remaining_value, 700)
         self.assertEqual(sodium_limit.reason, NutritionReason.PER_MEAL_LIMIT)
 
+    # ------------------------------------------------------------------
+    # Phase 3: Nutrient gap compensation tests
+    # ------------------------------------------------------------------
+
+    def test_compensation_tags_empty_records_returns_empty(self):
+        tags = self.calculator.compensation_tags([])
+        self.assertEqual(len(tags), 0)
+
+    def test_compensation_tags_low_protein_adds_lean_protein(self):
+        lean_protein = self.pack.concepts.require(CodeKind.NUTRITION_TAG, "lean_protein")
+        records = [
+            intake("light breakfast", 4, Nutrients(protein_g=8, fiber_g=8), confidence=0.9),
+        ]
+        tags = self.calculator.compensation_tags(records)
+        self.assertIn(lean_protein, tags)
+
+    def test_compensation_tags_low_fiber_adds_high_fiber(self):
+        high_fiber = self.pack.concepts.require(CodeKind.NUTRITION_TAG, "high_fiber")
+        records = [
+            intake("low-fiber meal", 4, Nutrients(protein_g=20, fiber_g=1), confidence=0.9),
+        ]
+        tags = self.calculator.compensation_tags(records)
+        self.assertIn(high_fiber, tags)
+
+    def test_compensation_tags_adequate_meal_returns_empty(self):
+        records = [
+            intake("balanced meal", 4, Nutrients(protein_g=25, fiber_g=8), confidence=0.9),
+        ]
+        tags = self.calculator.compensation_tags(records)
+        self.assertEqual(len(tags), 0)
+
+    def test_compensation_tags_combines_across_records(self):
+        """Two small records that together meet thresholds should not trigger gaps."""
+        records = [
+            intake("half meal 1", 4, Nutrients(protein_g=8, fiber_g=2), confidence=0.9),
+            intake("half meal 2", 4, Nutrients(protein_g=10, fiber_g=2), confidence=0.9),
+        ]
+        tags = self.calculator.compensation_tags(records)
+        # Total: 18g protein, 4g fiber — above both thresholds
+        self.assertEqual(len(tags), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

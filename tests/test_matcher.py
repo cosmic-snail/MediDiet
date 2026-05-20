@@ -142,6 +142,88 @@ class MenuMatcherTest(unittest.TestCase):
         self.assertEqual([score.item.item_id for score in result.accepted], ["best", "ok"])
         self.assertGreater(result.accepted[0].score, result.accepted[1].score)
 
+    # ------------------------------------------------------------------
+    # Phase 3: Ingredient diversity scoring tests
+    # ------------------------------------------------------------------
+
+    def test_recent_ingredients_default_empty_has_no_effect(self):
+        """Default empty recent_ingredients does not change scoring."""
+        plan = MealPlan(meal_label=MealLabel.DINNER)
+        candidates = [item(self.pack, "meal")]
+        result = self.matcher.match(plan, candidates, Preference())
+        self.assertEqual(len(result.accepted), 1)
+
+    def test_repeated_ingredient_penalty_reduces_score(self):
+        """Item with repeated ingredients scores lower."""
+        fish = ConceptCode(CodeKind.INGREDIENT, "fish")
+        plan = MealPlan(meal_label=MealLabel.DINNER)
+        # Create an item whose ingredient (fish) is in recent_ingredients
+        meal_item = MenuItem(
+            item_id="fish-meal",
+            merchant_id="shop",
+            name="fish-meal",
+            ingredients={fish},
+            allergens=set(),
+            taste_tags=set(),
+            nutrition_tags=set(),
+            contraindication_tags=set(),
+            nutrients=Nutrients(energy_kcal=500, carbs_g=40, protein_g=30, fat_g=15, sodium_mg=400, sugar_g=5, fiber_g=3),
+            nutrition_confidence=Confidence(0.9),
+            source=DataSource.MERCHANT_LABEL,
+            price_cents=3000,
+            distance_meters=800,
+            merchant_reliability=0.9,
+        )
+        # Same item scored without recent_ingredients
+        result_no_penalty = self.matcher.match(plan, [meal_item], Preference(), recent_ingredients=frozenset())
+        # Same item scored with fish in recent_ingredients → -1 penalty
+        result_with_penalty = self.matcher.match(
+            plan, [meal_item], Preference(), recent_ingredients=frozenset({fish})
+        )
+        self.assertEqual(len(result_no_penalty.accepted), 1)
+        self.assertEqual(len(result_with_penalty.accepted), 1)
+        self.assertGreater(
+            result_no_penalty.accepted[0].score,
+            result_with_penalty.accepted[0].score,
+        )
+
+    def test_multiple_repeated_ingredients_accumulate_penalty(self):
+        """Each repeated ingredient adds -1 to the score."""
+        fish = ConceptCode(CodeKind.INGREDIENT, "fish")
+        vegetable = ConceptCode(CodeKind.INGREDIENT, "vegetable")
+        plan = MealPlan(meal_label=MealLabel.DINNER)
+        meal_item = MenuItem(
+            item_id="combo",
+            merchant_id="shop",
+            name="combo",
+            ingredients={fish, vegetable},
+            allergens=set(),
+            taste_tags=set(),
+            nutrition_tags=set(),
+            contraindication_tags=set(),
+            nutrients=Nutrients(energy_kcal=500, carbs_g=40, protein_g=30, fat_g=15, sodium_mg=400, sugar_g=5, fiber_g=3),
+            nutrition_confidence=Confidence(0.9),
+            source=DataSource.MERCHANT_LABEL,
+            price_cents=3000,
+            distance_meters=800,
+            merchant_reliability=0.9,
+        )
+
+        result_no_penalty = self.matcher.match(plan, [meal_item], Preference(), recent_ingredients=frozenset())
+        result_one_penalty = self.matcher.match(
+            plan, [meal_item], Preference(), recent_ingredients=frozenset({fish})
+        )
+        result_two_penalty = self.matcher.match(
+            plan, [meal_item], Preference(), recent_ingredients=frozenset({fish, vegetable})
+        )
+
+        score_none = result_no_penalty.accepted[0].score
+        score_one = result_one_penalty.accepted[0].score
+        score_two = result_two_penalty.accepted[0].score
+        # Each penalty = -1
+        self.assertAlmostEqual(score_one, score_none - 1.0)
+        self.assertAlmostEqual(score_two, score_none - 2.0)
+
 
 if __name__ == "__main__":
     unittest.main()

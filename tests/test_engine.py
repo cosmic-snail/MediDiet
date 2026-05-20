@@ -157,6 +157,72 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertIn('"outcome"', trace_json)
         self.assertIn(result.outcome.value, trace_json)
 
+    # ------------------------------------------------------------------
+    # Phase 3: KnowledgePort integration tests
+    # ------------------------------------------------------------------
+
+    def test_engine_without_knowledge_has_no_snippets(self):
+        """Without KnowledgePort, clinician_explanation has no knowledgeSnippets."""
+        candidates = [menu(self.pack, "best")]
+        result = self.engine.recommend(profile(self.pack), [intake()], candidates, MealLabel.DINNER)
+        self.assertNotIn("knowledgeSnippets", result.clinician_explanation)
+
+    def test_engine_with_knowledge_includes_snippets(self):
+        """With KnowledgePort, clinician_explanation includes knowledgeSnippets."""
+        from datetime import datetime, timezone
+        from medidiet.ports import KnowledgeSnippet, KnowledgeContext
+
+        class _MockKnowledge:
+            def search(self, query, top_k=5):
+                return []
+
+            def explain_rule(self, condition):
+                return ""
+
+            def retrieve_context(self, patient, meal_label):
+                return KnowledgeContext(
+                    snippets=(
+                        KnowledgeSnippet(
+                            text="Limit sodium to under 700mg per meal.",
+                            source_title="CKD Guidelines 2024",
+                            source_url="",
+                            chunk_id="ckd-001-0000",
+                            relevance_score=0.95,
+                        ),
+                    ),
+                    related_conditions=(ConceptCode(CodeKind.CONDITION, "hypertension"),),
+                    retrieved_at=datetime.now(timezone.utc),
+                )
+
+        engine = RecommendationEngine(self.pack, now=NOW, knowledge=_MockKnowledge())
+        candidates = [menu(self.pack, "best")]
+        result = engine.recommend(profile(self.pack), [intake()], candidates, MealLabel.DINNER)
+        self.assertIn("knowledgeSnippets", result.clinician_explanation)
+        snippets = result.clinician_explanation["knowledgeSnippets"]
+        self.assertEqual(len(snippets), 1)
+        self.assertEqual(snippets[0]["sourceTitle"], "CKD Guidelines 2024")
+
+    def test_engine_with_failing_knowledge_degrades_gracefully(self):
+        """When KnowledgePort.retrieve_context raises, recommendation still succeeds."""
+        class _FailingKnowledge:
+            def search(self, query, top_k=5):
+                raise RuntimeError("db down")
+
+            def explain_rule(self, condition):
+                raise RuntimeError("db down")
+
+            def retrieve_context(self, patient, meal_label):
+                raise RuntimeError("vector DB connection refused")
+
+        engine = RecommendationEngine(self.pack, now=NOW, knowledge=_FailingKnowledge())
+        candidates = [menu(self.pack, "best")]
+        result = engine.recommend(profile(self.pack), [intake()], candidates, MealLabel.DINNER)
+        # Recommendation must still succeed
+        self.assertEqual(result.outcome, Outcome.RECOMMENDED)
+        self.assertEqual(result.recommended_items[0].item_id, "best")
+        # No snippets field since retrieval failed
+        self.assertNotIn("knowledgeSnippets", result.clinician_explanation)
+
 
 if __name__ == "__main__":
     unittest.main()

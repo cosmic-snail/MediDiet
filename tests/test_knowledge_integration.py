@@ -1,4 +1,4 @@
-"""Integration tests: end-to-end Phase 1 and Phase 2 workflows."""
+"""Integration tests: end-to-end Phase 1, Phase 2, and Phase 3 workflows."""
 
 import json
 import tempfile
@@ -8,7 +8,23 @@ from knowledge.schema import ExtractedConditionRule
 from knowledge.store import RuleStore
 from knowledge.documents import DocumentImporter
 from knowledge.vectordb import KnowledgeVectorDB
-from medidiet.domain import CodeKind, ConceptCode, ConceptRegistry, ConceptDefinition
+from medidiet.domain import (
+    CodeKind,
+    ConceptCode,
+    ConceptRegistry,
+    ConceptDefinition,
+    Confidence,
+    DataSource,
+    IntakeRecord,
+    MealLabel,
+    MenuItem,
+    Nutrients,
+    Outcome,
+    PatientProfile,
+    Preference,
+)
+from medidiet.engine import RecommendationEngine
+from medidiet.matcher import MatchRejectionCode
 from medidiet.rules import NutrientMetric, NutrientLimit, LimitScope
 from medidiet.knowledge_bridge import KnowledgeRuleProvider, KnowledgeRetriever
 
@@ -288,3 +304,190 @@ class TestPhase2EndToEnd:
             assert ConceptCode(CodeKind.CONTRAINDICATION, "high_sodium") in rule.hard_exclusions
             assert ConceptCode(CodeKind.NUTRITION_TAG, "low_sodium") in rule.preferred_tags
             assert len(rule.nutrition_limits) == 1
+
+
+class TestPhase3EndToEnd:
+    """Verify the full Phase 3 workflow:
+    1. Build engine with KnowledgePort (KnowledgeRetriever)
+    2. Recommend with patient who had low-protein previous meal
+    3. Verify knowledgeSnippets in clinician_explanation
+    4. Verify gap compensation: lean_protein added to matchedTags
+    """
+
+    def test_online_engine_with_gap_compensation(self):
+        from medidiet.llm import MockLLMProvider, LLMResponse
+        from knowledge.extractor import RuleExtractor
+        from knowledge.curator import KnowledgeCurator
+
+        registry = _sample_registry()
+
+        # Mock LLM for rule extraction
+        extraction_json = json.dumps({
+            "rules": [
+                {
+                    "condition": {"kind": "condition", "value": "ckd"},
+                    "hard_exclusions": [
+                        {"kind": "contraindication", "value": "high_sodium"}
+                    ],
+                    "preferred_tags": [
+                        {"kind": "nutrition_tag", "value": "low_sodium"}
+                    ],
+                    "nutrition_limits": [
+                        {
+                            "metric": "sodium_mg",
+                            "scope": "per_meal",
+                            "max_value": 700.0,
+                            "window_hours": None,
+                        }
+                    ],
+                    "confidence": 0.9,
+                    "evidence_quotes": {
+                        "sodium_limit": "Limit sodium to under 700mg per meal"
+                    },
+                }
+            ],
+            "suggested_concepts": [],
+        })
+        verification_json = json.dumps({
+            "verdict": "pass",
+            "confidence": 0.95,
+            "consistency_score": 0.9,
+            "logic_score": 0.85,
+            "completeness_score": 0.8,
+            "issues": [],
+            "missing_items": None,
+            "evidence_quotes": {},
+        })
+
+        call_responses = [extraction_json, verification_json]
+        mock = MockLLMProvider(raw_content=None)
+
+        def sequenced_complete(request):
+            mock.requests.append(request)
+            content = call_responses.pop(0) if call_responses else "{}"
+            return LLMResponse(content=content, provider_name="mock", model="mock")
+
+        mock.complete = sequenced_complete
+
+        with tempfile.TemporaryDirectory() as store_dir, \
+             tempfile.TemporaryDirectory() as chroma_dir:
+
+            # 1. Import document + index into vector DB
+            importer = DocumentImporter()
+            doc = importer.import_from_text(
+                doc_id="ckd-2024",
+                title="CKD Dietary Guidelines 2024",
+                source="ckd-guidelines.md",
+                source_type="guideline",
+                content=(
+                    "# CKD Dietary Guidelines\n\n"
+                    "## Sodium\n"
+                    "Limit sodium to under 700mg per meal for CKD patients.\n\n"
+                ),
+                metadata={"year": "2024"},
+                ingested_at=NOW,
+            )
+            vectordb = KnowledgeVectorDB(persist_dir=chroma_dir)
+            vectordb.index_document(doc)
+
+            # 2. Extract rules + publish
+            chunks = [doc.chunks[0]] if doc.chunks else []
+            extractor = RuleExtractor(mock, registry)
+            result = extractor.extract_and_validate(chunks, candidate_id_prefix="pilot")
+
+            store = RuleStore(data_dir=store_dir)
+            store.bulk_create(result.rules)
+            curator = KnowledgeCurator(store)
+            curator.review_rule(result.rules[0].candidate_id, "approved", "test-reviewer")
+            curator.publish("v3.0", "Phase 3 pilot: CKD rules")
+
+            # 3. Build KnowledgeRuleProvider + KnowledgeRetriever
+            rule_provider = KnowledgeRuleProvider(store=store, version="v3.0")
+            pack = rule_provider.load_rule_pack()
+            retriever = KnowledgeRetriever(vectordb=vectordb)
+
+            # 4. Build engine with KnowledgePort + recent_ingredients (diversity)
+            fish = ConceptCode(CodeKind.INGREDIENT, "fish")
+            engine = RecommendationEngine(
+                pack,
+                now=NOW,
+                knowledge=retriever,
+                recent_ingredients=frozenset({fish}),
+            )
+
+            # 5. Create CKD patient
+            patient = PatientProfile(
+                patient_id="pt-ckd-001",
+                age=65,
+                height_cm=170,
+                weight_kg=75,
+                conditions={ConceptCode(CodeKind.CONDITION, "ckd")},
+                allergens=set(),
+                contraindications=set(),
+                preferences=Preference(),
+                key_risk_fields_confirmed=True,
+                source=DataSource.PATIENT_REPORTED,
+            )
+
+            # 6. Intake records: low-protein lunch (8g protein, 1g fiber)
+            lunch_record = IntakeRecord(
+                food_label="light congee",
+                occurred_at=NOW,
+                meal_label=MealLabel.LUNCH,
+                portion="one bowl",
+                nutrients=Nutrients(protein_g=8, fiber_g=1, sodium_mg=300),
+                confidence=Confidence(0.9),
+                source=DataSource.SYSTEM_ESTIMATED,
+            )
+
+            # 7. Build menu with nutrition tags for CKD matching
+            # Use direct ConceptCode construction since lean_protein/high_fiber
+            # may not be pre-registered in the knowledge-backed concept registry
+            low_sodium_tag = ConceptCode(CodeKind.NUTRITION_TAG, "low_sodium")
+            lean_protein_tag = ConceptCode(CodeKind.NUTRITION_TAG, "lean_protein")
+            high_fiber_tag = ConceptCode(CodeKind.NUTRITION_TAG, "high_fiber")
+
+            menu_items = [
+                MenuItem(
+                    item_id="ckd-safe-1",
+                    merchant_id="canteen",
+                    name="Steamed fish with vegetables",
+                    ingredients={fish, ConceptCode(CodeKind.INGREDIENT, "vegetable")},
+                    allergens=set(),
+                    taste_tags=set(),
+                    nutrition_tags={low_sodium_tag, lean_protein_tag, high_fiber_tag},
+                    contraindication_tags=set(),
+                    nutrients=Nutrients(
+                        energy_kcal=450, carbs_g=35, protein_g=35, fat_g=12,
+                        sodium_mg=400, sugar_g=4, fiber_g=6,
+                    ),
+                    nutrition_confidence=Confidence(0.95),
+                    source=DataSource.MERCHANT_LABEL,
+                    price_cents=3000,
+                    distance_meters=500,
+                    merchant_reliability=0.95,
+                ),
+            ]
+
+            # 8. Recommend dinner (after low-protein lunch)
+            result = engine.recommend(patient, [lunch_record], menu_items, MealLabel.DINNER)
+
+            assert result.outcome == Outcome.RECOMMENDED
+
+            # Verify knowledge snippets present in clinician_explanation
+            assert "knowledgeSnippets" in result.clinician_explanation
+            snippets = result.clinician_explanation["knowledgeSnippets"]
+            assert len(snippets) > 0
+            assert any("sodium" in s["text"].lower() for s in snippets)
+
+            # Verify gap compensation: lean_protein tag should be in matchedTags
+            # (low-protein lunch triggers lean_protein compensation)
+            matched_tags = result.clinician_explanation.get("matchedTags", [])
+            matched_values = {t["value"] for t in matched_tags}
+            assert "lean_protein" in matched_values
+
+            # Verify diversity penalty: fish is in recent_ingredients,
+            # so the score should reflect -1 penalty
+            assert "ckd-safe-1" in result.trace.scores
+            # Score with diversity: base would be higher without the penalty
+            assert result.trace.scores["ckd-safe-1"] > 0

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import IntEnum
 
-from medidiet.domain import ConceptCode, IntakeRecord, Nutrients
+from medidiet.domain import CodeKind, ConceptCode, IntakeRecord, Nutrients
 from medidiet.rules import LimitScope, NutrientLimit, NutrientMetric, RulePack
 
 
@@ -61,6 +61,32 @@ class DailyNutritionCalculator:
         self.rule_pack = rule_pack
         self.confidence_threshold = confidence_threshold
         self.now = now or datetime.now(timezone.utc)
+
+    # Thresholds for previous-meal nutrient gap detection
+    _PROTEIN_GAP_THRESHOLD_G = 15.0
+    _FIBER_GAP_THRESHOLD_G = 3.0
+
+    def compensation_tags(
+        self,
+        previous_meal_records: list[IntakeRecord],
+    ) -> set[ConceptCode]:
+        """Return nutrition tags to compensate for previous meal deficiencies.
+
+        Uses direct ConceptCode construction (not require()) so that
+        compensation works even when the rule pack's concept registry
+        doesn't pre-register these standard nutrition tags.
+        """
+        tags: set[ConceptCode] = set()
+        if not previous_meal_records:
+            return tags
+        total = Nutrients()
+        for r in previous_meal_records:
+            total += r.nutrients
+        if total.protein_g < self._PROTEIN_GAP_THRESHOLD_G:
+            tags.add(ConceptCode(CodeKind.NUTRITION_TAG, "lean_protein"))
+        if total.fiber_g < self._FIBER_GAP_THRESHOLD_G:
+            tags.add(ConceptCode(CodeKind.NUTRITION_TAG, "high_fiber"))
+        return tags
 
     def aggregate(self, records: list[IntakeRecord]) -> DailyNutritionState:
         total = Nutrients()

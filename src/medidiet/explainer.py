@@ -38,8 +38,9 @@ class ExplanationBuilder:
         exclusions: dict[str, MatchRejection],
         scores: dict[str, float],
         matched_tags: tuple[ConceptCode, ...],
+        knowledge_snippets: list[dict[str, object]] | None = None,
     ) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "ruleVersion": rule_version,
             "safetyEvents": [_safety_event_payload(event) for event in safety_events],
             "exclusions": {item_id: _match_rejection_payload(rejection) for item_id, rejection in exclusions.items()},
@@ -47,6 +48,9 @@ class ExplanationBuilder:
             "matchedTags": [_concept_payload(tag) for tag in matched_tags],
             "llmBoundary": "Explanation is generated only from rule hits, nutrition facts, and scored candidates.",
         }
+        if knowledge_snippets is not None:
+            payload["knowledgeSnippets"] = knowledge_snippets
+        return payload
 
     def _tag_label(self, tag: ConceptCode) -> str:
         labels = {
