@@ -1,6 +1,6 @@
 # MediDiet API 文档
 
-版本：0.1.2
+版本：0.1.3
 状态：核心推荐引擎 MVP，供后续小程序、服务端、图片识别、外卖/食堂接口扩展使用。
 
 ## 1. API 边界
@@ -28,6 +28,9 @@
 
 ```python
 from medidiet import (
+    KnowledgeContext,
+    KnowledgePort,
+    KnowledgeSnippet,
     LLMAnswer,
     LLMConfig,
     LLMContextSanitizer,
@@ -41,16 +44,25 @@ from medidiet import (
     RecommendationResult,
     RecommendationService,
     RulePack,
+    RuleProviderPort,
     create_app,
     load_baseline_rule_pack,
 )
+```
+
+桥接适配器需从子模块导入（依赖 `knowledge/` 包 + `chromadb`）：
+
+```python
+from medidiet.knowledge_bridge import KnowledgeRetriever, KnowledgeRuleProvider
 ```
 
 对应文件：
 
 - `src/medidiet/__init__.py`
 - `src/medidiet/engine.py`
+- `src/medidiet/knowledge_bridge.py`
 - `src/medidiet/llm.py`
+- `src/medidiet/ports.py`
 - `src/medidiet/rules.py`
 - `src/medidiet/service.py`
 - `src/medidiet/server.py`
@@ -67,6 +79,15 @@ RecommendationEngine(rule_pack: RulePack, now: datetime | None = None)
 | --- | --- | --- |
 | `rule_pack` | `RulePack` | 已加载的规则包。MVP 使用 `load_baseline_rule_pack()`。 |
 | `now` | `datetime | None` | 可选的当前时间。测试或 demo 可传固定时区时间；生产默认使用当前 UTC 时间。 |
+
+> **Phase 3 规划：** `RecommendationEngine` 后续将支持 `rule_provider: RuleProviderPort` 和 `knowledge: KnowledgePort` 可选参数，实现端口方式加载规则和在线检索增强解释。当前可使用桥接适配器独立获取 `RulePack` 后传入引擎：
+
+```python
+# 当前可用：通过桥接适配器获取 RulePack，再传给引擎
+provider = KnowledgeRuleProvider(store=RuleStore())
+rule_pack = provider.load_rule_pack()
+engine = RecommendationEngine(rule_pack=rule_pack)
+```
 
 ### 2.2 推荐调用
 
@@ -515,7 +536,99 @@ class EventPublisherPort(Protocol):
 - HIS/EMR 或小程序患者档案服务实现 `PatientContextPort`。
 - 消息队列、审计系统或日志平台实现 `EventPublisherPort`。
 
-## 8. 安全日志 API
+## 8. 知识库端口 API
+
+文件：`src/medidiet/ports.py`（协议定义）、`src/medidiet/knowledge_bridge.py`（适配器实现）。
+
+### 8.1 KnowledgeSnippet
+
+```python
+@dataclass(frozen=True)
+class KnowledgeSnippet:
+    text: str                        # 检索到的文本片段
+    source_title: str                # 来源文档标题
+    source_url: str                  # 来源文档 URL
+    chunk_id: str                    # 文档分块 ID
+    relevance_score: float           # 相关性分数 (0-1)
+```
+
+### 8.2 KnowledgeContext
+
+```python
+@dataclass(frozen=True)
+class KnowledgeContext:
+    snippets: tuple[KnowledgeSnippet, ...]    # 检索到的知识片段（最多 5 个）
+    related_conditions: tuple[ConceptCode, ...]  # 关联的疾病概念
+    retrieved_at: datetime                     # 检索时间（timezone-aware）
+```
+
+### 8.3 RuleProviderPort
+
+```python
+@runtime_checkable
+class RuleProviderPort(Protocol):
+    def load_rule_pack(self, version: str | None = None) -> RulePack:
+        """加载指定版本的 RulePack；version 为 None 时加载最新版本。"""
+        ...
+
+    def list_versions(self) -> list[str]:
+        """列出所有已发布的版本号。"""
+        ...
+
+    def publish_version(self, version: str, notes: str) -> RulePack:
+        """发布新版本并返回对应的 RulePack。"""
+        ...
+```
+
+### 8.4 KnowledgePort
+
+```python
+@runtime_checkable
+class KnowledgePort(Protocol):
+    def search(self, query: str, top_k: int = 5) -> list[KnowledgeSnippet]:
+        """语义搜索知识库，返回相关文本片段。"""
+        ...
+
+    def explain_rule(self, condition: ConceptCode) -> str:
+        """返回疾病规则对应的源文档引用和解释。"""
+        ...
+
+    def retrieve_context(
+        self, patient: PatientProfile, meal_label: MealLabel,
+    ) -> KnowledgeContext:
+        """根据患者疾病检索相关知识上下文。"""
+        ...
+```
+
+### 8.5 适配器使用示例
+
+```python
+from knowledge.store import RuleStore
+from knowledge.vectordb import KnowledgeVectorDB
+from medidiet.knowledge_bridge import KnowledgeRuleProvider, KnowledgeRetriever
+
+# 规则提供者
+store = RuleStore(data_dir="data")
+provider = KnowledgeRuleProvider(store=store, version="v1.0")
+rule_pack = provider.load_rule_pack()
+versions = provider.list_versions()
+
+# 知识检索
+vectordb = KnowledgeVectorDB(persist_dir="data/chroma")
+retriever = KnowledgeRetriever(vectordb=vectordb)
+snippets = retriever.search("sodium hypertension limit", top_k=5)
+context = retriever.retrieve_context(patient, MealLabel.LUNCH)
+explanation = retriever.explain_rule(ConceptCode(CodeKind.CONDITION, "hypertension"))
+```
+
+### 8.6 双模运行约束
+
+- 离线模式（未注入 `KnowledgePort`）：引擎行为与原有完全一致。
+- 在线增强模式：检索仅在推荐完成后丰富 `clinician_explanation` 中的 `knowledge_snippets` 字段。
+- 在线检索不参与安全门禁、营养计算、菜单匹配或评分决策。
+- 检索超时或失败静默降级，不阻断推荐流程。
+
+## 9. 安全日志 API
 
 `SafetyGate` 可选写入 warning 日志文件：
 
@@ -534,7 +647,7 @@ gate = SafetyGate(rule_pack, log_file_path="logs/safety.log")
 
 详细原则见 `docs/superpowers/specs/2026-05-15-safety-logging-principles.md`。
 
-## 9. 版本兼容策略
+## 10. 版本兼容策略
 
 后续扩展时应遵守：
 
@@ -544,7 +657,7 @@ gate = SafetyGate(rule_pack, log_file_path="logs/safety.log")
 - 外部 payload 字段使用 camelCase，Python 内部 dataclass 字段使用 snake_case。
 - 涉及临床阈值的变更必须进入版本化规则包，并保留来源和审核信息。
 
-## 10. LLM 解释与问答 API
+## 11. LLM 解释与问答 API
 
 LLM 是推荐后的可选增强层。它不能改变 `outcome`、推荐菜单、安全事件、排除原因或评分。
 
@@ -572,7 +685,7 @@ answer = LLMQuestionAnswerer(provider).answer(context, result, "为什么推荐�
 
 默认脱敏策略不会发送 `patient_id`、原始图片、地址、手机号、身份证或完整病历。
 
-## 11. HTTP Server API
+## 12. HTTP Server API
 
 MediDiet 也提供一个本地 FastAPI server，用于小程序/前端联调。
 

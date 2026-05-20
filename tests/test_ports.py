@@ -1,14 +1,18 @@
 from datetime import datetime, timezone
 import unittest
 
-from medidiet.domain import MealLabel
+from medidiet.domain import ConceptCode, CodeKind, MealLabel, PatientProfile, Preference, DataSource
+from medidiet.safety import SafetyCode
 from medidiet.ports import (
     DomainEvent,
     EventName,
     IntakeEstimationRequest,
+    KnowledgeContext,
+    KnowledgePort,
+    KnowledgeSnippet,
     RecommendationRequestEnvelope,
+    RuleProviderPort,
 )
-from medidiet.safety import SafetyCode
 
 
 NOW = datetime(2026, 5, 16, 12, 0, tzinfo=timezone.utc)
@@ -77,6 +81,75 @@ class PortsTest(unittest.TestCase):
                 payload={},
                 created_at=datetime(2026, 5, 16, 12, 0),
             )
+
+
+class TestKnowledgeSnippet(unittest.TestCase):
+    def test_valid_snippet(self):
+        snippet = KnowledgeSnippet(
+            text="Limit sodium to 2000mg per day.",
+            source_title="CKD Guidelines",
+            source_url="https://example.org/ckd.pdf",
+            chunk_id="doc-001-chunk-0000",
+            relevance_score=0.85,
+        )
+        assert snippet.text == "Limit sodium to 2000mg per day."
+        assert snippet.relevance_score == 0.85
+
+
+class TestKnowledgeContext(unittest.TestCase):
+    def test_valid_context(self):
+        snippets = (
+            KnowledgeSnippet(
+                text="Sodium restriction.",
+                source_title="Guide",
+                source_url="https://example.org",
+                chunk_id="chunk-001",
+                relevance_score=0.9,
+            ),
+        )
+        ctx = KnowledgeContext(
+            snippets=snippets,
+            related_conditions=(ConceptCode(CodeKind.CONDITION, "hypertension"),),
+            retrieved_at=datetime(2026, 5, 19, tzinfo=timezone.utc),
+        )
+        assert len(ctx.snippets) == 1
+        assert len(ctx.related_conditions) == 1
+
+
+class TestRuleProviderPortProtocol(unittest.TestCase):
+    def test_protocol_is_usable_for_type_checking(self):
+        class FakeProvider:
+            def load_rule_pack(self, version=None):
+                pass
+
+            def list_versions(self):
+                return []
+
+            def publish_version(self, version, notes):
+                pass
+
+        provider = FakeProvider()
+        assert isinstance(provider, RuleProviderPort)
+
+
+class TestKnowledgePortProtocol(unittest.TestCase):
+    def test_protocol_is_usable_for_type_checking(self):
+        class FakeKnowledge:
+            def search(self, query, top_k=5):
+                return []
+
+            def explain_rule(self, condition):
+                return ""
+
+            def retrieve_context(self, patient, meal_label):
+                return KnowledgeContext(
+                    snippets=(),
+                    related_conditions=(),
+                    retrieved_at=datetime.now(timezone.utc),
+                )
+
+        kp = FakeKnowledge()
+        assert isinstance(kp, KnowledgePort)
 
 
 if __name__ == "__main__":

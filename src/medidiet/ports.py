@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
-from medidiet.domain import IntakeRecord, MealLabel, MenuItem, PatientProfile
+from medidiet.domain import ConceptCode, IntakeRecord, MealLabel, MenuItem, PatientProfile
+from medidiet.rules import RulePack
 
 
 @dataclass(frozen=True)
@@ -107,3 +108,45 @@ def _require_aware_datetime(field_name: str, value: datetime) -> None:
         raise TypeError(f"{field_name} must be a datetime")
     if value.tzinfo is None:
         raise ValueError(f"{field_name} must be timezone-aware")
+
+
+@dataclass(frozen=True)
+class KnowledgeSnippet:
+    text: str
+    source_title: str
+    source_url: str
+    chunk_id: str
+    relevance_score: float
+
+
+@dataclass(frozen=True)
+class KnowledgeContext:
+    snippets: tuple[KnowledgeSnippet, ...]
+    related_conditions: tuple[ConceptCode, ...]
+    retrieved_at: datetime
+
+
+@runtime_checkable
+class RuleProviderPort(Protocol):
+    def load_rule_pack(self, version: str | None = None) -> RulePack:
+        ...
+
+    def list_versions(self) -> list[str]:
+        ...
+
+    def publish_version(self, version: str, notes: str) -> RulePack:
+        ...
+
+
+@runtime_checkable
+class KnowledgePort(Protocol):
+    def search(self, query: str, top_k: int = 5) -> list[KnowledgeSnippet]:
+        ...
+
+    def explain_rule(self, condition: ConceptCode) -> str:
+        ...
+
+    def retrieve_context(
+        self, patient: PatientProfile, meal_label: MealLabel,
+    ) -> KnowledgeContext:
+        ...

@@ -12,6 +12,7 @@ from medidiet.llm import (
     MockLLMProvider,
     OpenAICompatibleLLMProvider,
 )
+from medidiet.ports import KnowledgeContext, KnowledgePort, KnowledgeSnippet, RuleProviderPort
 from medidiet.rules import RulePack, load_baseline_rule_pack
 from medidiet.server import create_app
 from medidiet.service import RecommendationService
@@ -19,6 +20,9 @@ from medidiet.service import RecommendationService
 __version__ = "0.1.1"
 
 __all__ = [
+    "KnowledgeContext",
+    "KnowledgePort",
+    "KnowledgeSnippet",
     "LLMAnswer",
     "LLMConfig",
     "LLMContextSanitizer",
@@ -32,6 +36,7 @@ __all__ = [
     "RecommendationResult",
     "RecommendationService",
     "RulePack",
+    "RuleProviderPort",
     "create_app",
     "load_baseline_rule_pack",
 ]

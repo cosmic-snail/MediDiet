@@ -1,6 +1,6 @@
 # MediDiet 测试文档
 
-版本：0.1.2
+版本：0.1.3
 目标读者：测试人员、QA、代码 reviewer、后续维护开发者。
 
 ## 1. 测试目标
@@ -29,22 +29,32 @@
 运行全量测试：
 
 ```bash
+# MediDiet 引擎测试
 PYTHONPATH=src python -m unittest discover -s tests -v
+
+# 知识库包测试
+cd knowledge && python -m pytest tests/ -v
+
+# 桥接与集成测试
+PYTHONPATH=src python -m pytest tests/test_knowledge_bridge.py tests/test_knowledge_integration.py tests/test_ports.py -v --rootdir=.
 ```
 
 运行指定测试文件：
 
 ```bash
 PYTHONPATH=src python -m unittest tests.test_safety -v
+cd knowledge && python -m pytest tests/test_store.py -v
+PYTHONPATH=src python -m pytest tests/test_knowledge_bridge.py -v --rootdir=.
 ```
 
 运行指定测试用例：
 
 ```bash
 PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.test_routes_safety_events_to_human_review -v
+cd knowledge && python -m pytest tests/test_store.py::TestRuleStoreVersioning::test_publish_version -v
 ```
 
-当前全量测试数量：90 个 `unittest` 用例，其中 2 个真实 LLM smoke test 默认跳过。普通全量测试默认离线运行。
+当前全量测试数量：94 个 `unittest` 用例 + 98 个 `pytest` 用例（知识库 71 个 + 桥接/集成/端口 19 个 + LLM smoke 2 个），其中 2 个真实 LLM smoke test 默认跳过。普通全量测试默认离线运行。
 
 ## 3. 测试文件总览
 
@@ -63,8 +73,20 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 | `tests/test_http_server.py` | `server.py`, `service.py` | FastAPI endpoints、payload 校验、统一错误响应、推荐响应结构和缺菜单/LLM provider error。 |
 | `tests/test_http_llm_smoke.py` | `server.py`, `llm.py`, DeepSeek/OpenAI-compatible API | 真实 HTTP 推荐 + LLM 增强链路，仅显式启用时运行。 |
 | `tests/test_engine.py` | `engine.py`, `fixtures.py` | 推荐主流程编排错误。 |
-| `tests/test_ports.py` | `ports.py` | 外部扩展契约不稳定、时间/枚举非法值。 |
+| `tests/test_ports.py` | `ports.py` | 外部扩展契约不稳定、时间/枚举非法值、知识库端口协议。 |
 | `tests/test_public_api.py` | `__init__.py` | 顶层公共 API 意外破坏。 |
+| `tests/test_knowledge_bridge.py` | `knowledge_bridge.py`, `ports.py` | 端口适配器类型转换错误、版本加载、检索委托。 |
+| `tests/test_knowledge_integration.py` | `knowledge_bridge.py`, `knowledge/*` | 知识库端到端流程：文档导入→向量索引→规则发布→加载→检索。 |
+
+### 知识库包测试文件
+
+| 测试文件 | 覆盖模块 | 主要风险 |
+| --- | --- | --- |
+| `knowledge/tests/test_schema.py` | `schema.py` | 数据模型校验、非法字段值、类型约束。 |
+| `knowledge/tests/test_store.py` | `store.py` | 规则 CRUD、JSON 持久化、版本化发布与加载。 |
+| `knowledge/tests/test_documents.py` | `documents.py` | 文档导入、段落分块、元数据管理、文件读取。 |
+| `knowledge/tests/test_vectordb.py` | `vectordb.py` | ChromaDB 索引、语义搜索、相关性分数、删除操作。 |
+| `knowledge/tests/test_loader.py` | `loader.py` | 目录批量导入、文件过滤、可选索引。 |
 
 ## 4. 功能覆盖矩阵
 
@@ -116,6 +138,17 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 | 摄入估算请求使用图片 URI 和 `MealLabel` | 已覆盖 | `test_intake_request_carries_image_reference_and_meal_label` |
 | 领域事件稳定名称和整数 payload | 已覆盖 | `test_domain_event_names_are_stable_and_payload_can_carry_integer_codes` |
 | 顶层公共 API | 已覆盖 | `test_engine_exports_are_available` |
+| 知识库数据模型校验 | 已覆盖 | `test_schema.py` 全覆盖（6 个 dataclass + 边界值） |
+| 规则存储 CRUD + 版本化 | 已覆盖 | `test_store.py` 全覆盖（CRUD、持久化、版本发布/加载） |
+| 文档导入与分块 | 已覆盖 | `test_documents.py` 全覆盖（文本导入、文件导入、段落分块） |
+| ChromaDB 向量索引与搜索 | 已覆盖 | `test_vectordb.py` 全覆盖（索引、语义搜索、top_k、删除） |
+| 批量文档加载 | 已覆盖 | `test_loader.py` 全覆盖（目录导入、文件过滤、索引） |
+| KnowledgeRuleProvider 端口适配 | 已覆盖 | `test_load_rule_pack_from_store`, `test_list_versions`, `test_load_latest_when_no_version_specified` |
+| KnowledgeRetriever 端口适配 | 已覆盖 | `test_search_delegates_to_vectordb`, `test_retrieve_context`, `test_explain_rule_returns_source_info` |
+| 端口 Protocol 类型检查 | 已覆盖 | `isinstance(provider, RuleProviderPort)`, `isinstance(retriever, KnowledgePort)` |
+| 知识库端到端集成 | 已覆盖 | `test_full_workflow`（导入→索引→规则发布→加载→检索→解释） |
+| KnowledgeSnippet / KnowledgeContext | 已覆盖 | `test_valid_snippet`, `test_valid_context` |
+| RuleProviderPort / KnowledgePort 协议 | 已覆盖 | `test_protocol_is_usable_for_type_checking` |
 
 ## 5. 关键业务路径测试
 
@@ -224,9 +257,15 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 - 检查医生解释是否足以定位规则命中原因。
 - 检查拒绝推荐和人工审核提示是否避免过度承诺。
 
-## 9. 集成测试建议
+## 9. 集成测试
 
-当前仓库尚未包含真实集成测试。后续接入外部系统时建议新增：
+当前仓库包含以下集成测试：
+
+| 测试 | 覆盖范围 | 说明 |
+| --- | --- | --- |
+| `tests/test_knowledge_integration.py` | `knowledge` 包 → `knowledge_bridge` → `medidiet` | 端到端验证知识库全流程：文档导入、向量索引、规则创建发布、RulePack 加载、语义检索、解释生成。 |
+
+后续接入外部系统时建议新增：
 
 | 集成对象 | 建议测试 |
 | --- | --- |
@@ -242,6 +281,8 @@ PYTHONPATH=src python -m unittest tests.test_engine.RecommendationEngineTest.tes
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
+cd knowledge && python -m pytest tests/ -v
+PYTHONPATH=src python -m pytest tests/test_knowledge_bridge.py tests/test_knowledge_integration.py tests/test_ports.py -v --rootdir=.
 PYTHONPATH=src python -m medidiet.cli
 git diff --check
 ```
@@ -250,6 +291,13 @@ git diff --check
 
 ```bash
 PYTHONPATH=src python -m unittest tests.test_rules tests.test_engine tests.test_explainer_trace tests.test_public_api -v
+```
+
+若修改知识库或桥接适配器，还应重点运行：
+
+```bash
+cd knowledge && python -m pytest tests/ -v
+PYTHONPATH=src python -m pytest tests/test_knowledge_bridge.py tests/test_knowledge_integration.py tests/test_ports.py -v --rootdir=.
 ```
 
 ## 11. 测试人员验收清单
