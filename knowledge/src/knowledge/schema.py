@@ -128,3 +128,11 @@ class SuggestedConcept:
     definition: str
     source_chunk_ids: list[str]
     display_name: str
+
+
+@dataclass
+class ExtractionResult:
+    """Bundles extraction output: rules, suggested concepts, and errors."""
+    rules: list[ExtractedConditionRule]
+    suggested_concepts: list[SuggestedConcept]
+    extraction_errors: list[str] = field(default_factory=list)

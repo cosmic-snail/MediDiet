@@ -15,6 +15,8 @@ from medidiet.engine import RecommendationResult
 class LLMTask(str, Enum):
     EXPLANATION = "explanation"
     QUESTION_ANSWERING = "question_answering"
+    RULE_EXTRACTION = "rule_extraction"
+    RULE_VALIDATION = "rule_validation"
 
 
 class LLMFallbackReason(IntEnum):
@@ -100,6 +102,8 @@ class LLMProviderPort(Protocol):
 class MockLLMProvider:
     explanation_payload: dict[str, object] | None = field(default=None, repr=False)
     qa_payload: dict[str, object] | None = field(default=None, repr=False)
+    extraction_payload: dict[str, object] | None = field(default=None, repr=False)
+    validation_payload: dict[str, object] | None = field(default=None, repr=False)
     raw_content: str | None = field(default=None, repr=False)
     error: Exception | None = field(default=None, repr=False)
     requests: list[LLMRequest] = field(default_factory=list, repr=False)
@@ -112,6 +116,10 @@ class MockLLMProvider:
             content = self.raw_content
         elif request.task is LLMTask.EXPLANATION:
             content = json.dumps(self.explanation_payload or {}, ensure_ascii=False)
+        elif request.task is LLMTask.RULE_EXTRACTION:
+            content = json.dumps(self.extraction_payload or {}, ensure_ascii=False)
+        elif request.task is LLMTask.RULE_VALIDATION:
+            content = json.dumps(self.validation_payload or {}, ensure_ascii=False)
         else:
             content = json.dumps(self.qa_payload or {}, ensure_ascii=False)
         return LLMResponse(content=content, provider_name="mock", model="mock")

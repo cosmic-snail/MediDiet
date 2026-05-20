@@ -283,6 +283,66 @@ class LLMExplanationEnhancerTest(unittest.TestCase):
         self.assertNotIn("raw model secret response", repr(provider))
 
 
+    def test_llm_task_has_rule_extraction_and_validation(self):
+        from medidiet.llm import LLMTask
+
+        self.assertEqual(LLMTask.RULE_EXTRACTION, "rule_extraction")
+        self.assertEqual(LLMTask.RULE_VALIDATION, "rule_validation")
+
+    def test_mock_provider_dispatches_extraction_payload(self):
+        from medidiet.llm import LLMRequest, LLMTask, MockLLMProvider
+
+        provider = MockLLMProvider(
+            extraction_payload={"rules": [{"condition": {"kind": "condition", "value": "ckd"}}]}
+        )
+        request = LLMRequest(
+            task=LLMTask.RULE_EXTRACTION,
+            system_prompt="extract rules",
+            user_prompt="...",
+        )
+        response = provider.complete(request)
+        self.assertIn("ckd", response.content)
+
+    def test_mock_provider_dispatches_validation_payload(self):
+        from medidiet.llm import LLMRequest, LLMTask, MockLLMProvider
+
+        provider = MockLLMProvider(
+            validation_payload={"verdict": "pass", "confidence": 0.95}
+        )
+        request = LLMRequest(
+            task=LLMTask.RULE_VALIDATION,
+            system_prompt="validate rules",
+            user_prompt="...",
+        )
+        response = provider.complete(request)
+        self.assertIn("pass", response.content)
+
+    def test_mock_provider_records_extraction_requests(self):
+        from medidiet.llm import LLMRequest, LLMTask, MockLLMProvider
+
+        provider = MockLLMProvider(extraction_payload={})
+        request = LLMRequest(
+            task=LLMTask.RULE_EXTRACTION,
+            system_prompt="extract rules",
+            user_prompt="...",
+        )
+        provider.complete(request)
+        self.assertEqual(len(provider.requests), 1)
+        self.assertIs(provider.requests[0].task, LLMTask.RULE_EXTRACTION)
+
+    def test_mock_provider_raw_content_bypasses_task(self):
+        from medidiet.llm import LLMRequest, LLMTask, MockLLMProvider
+
+        provider = MockLLMProvider(raw_content='{"custom": "output"}')
+        request = LLMRequest(
+            task=LLMTask.RULE_EXTRACTION,
+            system_prompt="...",
+            user_prompt="...",
+        )
+        response = provider.complete(request)
+        self.assertEqual(response.content, '{"custom": "output"}')
+
+
 class LLMQuestionAnswererTest(unittest.TestCase):
     def test_answers_in_scope_question_with_provider(self):
         from medidiet.llm import LLMContextSanitizer, LLMQuestionAnswerer, MockLLMProvider
