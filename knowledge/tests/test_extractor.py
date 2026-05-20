@@ -482,3 +482,363 @@ class TestParseVerificationResponse:
         })
         result = _parse_verification_response(raw)
         assert result.issues[0].severity == "info"
+
+
+# ---------------------------------------------------------------------------
+# RuleExtractor tests (using MockLLMProvider for deterministic testing)
+# ---------------------------------------------------------------------------
+
+
+class TestRuleExtractorExtract:
+    def test_extract_returns_rules_from_valid_llm_json(self):
+        from medidiet.llm import MockLLMProvider
+        from knowledge.extractor import RuleExtractor
+
+        registry = _sample_registry()
+        raw = json.dumps({
+            "rules": [
+                {
+                    "condition": {"kind": "condition", "value": "hypertension"},
+                    "hard_exclusions": [
+                        {"kind": "contraindication", "value": "high_sodium"}
+                    ],
+                    "preferred_tags": [
+                        {"kind": "nutrition_tag", "value": "low_sodium"}
+                    ],
+                    "nutrition_limits": [
+                        {
+                            "metric": "sodium_mg",
+                            "scope": "per_meal",
+                            "max_value": 700.0,
+                            "window_hours": None,
+                        }
+                    ],
+                    "confidence": 0.9,
+                    "evidence_quotes": {
+                        "sodium_limit": "Limit sodium to 700mg per meal"
+                    },
+                }
+            ],
+            "suggested_concepts": [],
+        })
+        mock = MockLLMProvider(raw_content=raw)
+        extractor = RuleExtractor(mock, registry)
+        chunks = [_make_chunk("ckd-001-0000", "Limit sodium to 700mg per meal.")]
+
+        rules, suggestions = extractor.extract(chunks)
+        assert len(rules) == 1
+        assert rules[0].condition.value == "hypertension"
+        assert len(suggestions) == 0
+
+    def test_extract_uses_correct_task(self):
+        from medidiet.llm import MockLLMProvider, LLMTask
+        from knowledge.extractor import RuleExtractor
+
+        registry = _sample_registry()
+        mock = MockLLMProvider(raw_content=json.dumps({"rules": [], "suggested_concepts": []}))
+        extractor = RuleExtractor(mock, registry)
+        chunks = [_make_chunk("chunk-1", "Some text.")]
+
+        extractor.extract(chunks)
+        assert len(mock.requests) == 1
+        assert mock.requests[0].task is LLMTask.RULE_EXTRACTION
+
+    def test_extract_llm_error_wraps_in_rule_extraction_error(self):
+        import pytest
+        from medidiet.llm import MockLLMProvider
+        from knowledge.extractor import RuleExtractor, RuleExtractionError
+
+        registry = _sample_registry()
+        mock = MockLLMProvider(error=RuntimeError("LLM down"))
+        extractor = RuleExtractor(mock, registry)
+        chunks = [_make_chunk("chunk-1", "Some text.")]
+
+        with pytest.raises(RuleExtractionError, match="LLM extraction call failed"):
+            extractor.extract(chunks)
+
+    def test_extract_malformed_json_wraps_error(self):
+        import pytest
+        from medidiet.llm import MockLLMProvider
+        from knowledge.extractor import RuleExtractor, RuleExtractionError
+
+        registry = _sample_registry()
+        mock = MockLLMProvider(raw_content="not valid json")
+        extractor = RuleExtractor(mock, registry)
+        chunks = [_make_chunk("chunk-1", "Some text.")]
+
+        with pytest.raises(RuleExtractionError, match="Invalid JSON"):
+            extractor.extract(chunks)
+
+
+class TestRuleExtractorCrossValidate:
+    def test_cross_validate_pass(self):
+        from medidiet.llm import MockLLMProvider
+        from knowledge.extractor import RuleExtractor
+        from knowledge.schema import ExtractedConditionRule
+        from datetime import datetime, timezone
+
+        registry = _sample_registry()
+        raw = json.dumps({
+            "verdict": "pass",
+            "confidence": 0.95,
+            "consistency_score": 0.9,
+            "logic_score": 0.85,
+            "completeness_score": 0.8,
+            "issues": [],
+            "missing_items": None,
+            "evidence_quotes": {},
+        })
+        mock = MockLLMProvider(raw_content=raw)
+        extractor = RuleExtractor(mock, registry)
+
+        rule = ExtractedConditionRule(
+            candidate_id="cand-001",
+            source_doc_ids=["doc-001"],
+            source_chunk_ids=["chunk-001"],
+            condition=ConceptCode(CodeKind.CONDITION, "hypertension"),
+            hard_exclusions=set(),
+            preferred_tags=set(),
+            nutrition_limits=set(),
+            confidence=0.9,
+            extraction_method="llm",
+            reviewed_by=None,
+            status="draft",
+            created_at=datetime(2026, 5, 20, tzinfo=timezone.utc),
+        )
+        chunks = [_make_chunk("chunk-001", "Limit sodium to 700mg per meal.")]
+
+        vr = extractor.cross_validate(rule, chunks)
+        assert vr.verdict == "pass"
+
+    def test_cross_validate_uses_correct_task(self):
+        from medidiet.llm import MockLLMProvider, LLMTask
+        from knowledge.extractor import RuleExtractor
+        from knowledge.schema import ExtractedConditionRule
+        from datetime import datetime, timezone
+
+        registry = _sample_registry()
+        mock = MockLLMProvider(raw_content=json.dumps({
+            "verdict": "pass", "confidence": 0.9,
+            "consistency_score": 0.9, "logic_score": 0.9, "completeness_score": 0.9,
+            "issues": [], "missing_items": None, "evidence_quotes": {},
+        }))
+        extractor = RuleExtractor(mock, registry)
+
+        rule = ExtractedConditionRule(
+            candidate_id="cand-001",
+            source_doc_ids=["doc-001"],
+            source_chunk_ids=["chunk-001"],
+            condition=ConceptCode(CodeKind.CONDITION, "hypertension"),
+            hard_exclusions=set(),
+            preferred_tags=set(),
+            nutrition_limits=set(),
+            confidence=0.9,
+            extraction_method="llm",
+            reviewed_by=None,
+            status="draft",
+            created_at=datetime(2026, 5, 20, tzinfo=timezone.utc),
+        )
+        mock.requests.clear()
+        extractor.cross_validate(rule, [_make_chunk("chunk-001", "...")])
+        assert len(mock.requests) == 1
+        assert mock.requests[0].task is LLMTask.RULE_VALIDATION
+
+
+class TestExtractAndValidate:
+    def test_full_pipeline_pass(self):
+        from medidiet.llm import MockLLMProvider
+        from knowledge.extractor import RuleExtractor
+
+        registry = _sample_registry()
+        extraction_json = json.dumps({
+            "rules": [
+                {
+                    "condition": {"kind": "condition", "value": "hypertension"},
+                    "hard_exclusions": [],
+                    "preferred_tags": [],
+                    "nutrition_limits": [],
+                    "confidence": 0.9,
+                    "evidence_quotes": {},
+                }
+            ],
+            "suggested_concepts": [],
+        })
+        verification_json = json.dumps({
+            "verdict": "pass",
+            "confidence": 0.95,
+            "consistency_score": 0.9,
+            "logic_score": 0.9,
+            "completeness_score": 0.9,
+            "issues": [],
+            "missing_items": None,
+            "evidence_quotes": {},
+        })
+        mock = MockLLMProvider(raw_content=None)
+        # Will be called twice: extraction then verification
+        call_responses = [extraction_json, verification_json]
+        # Override complete() to return different responses per call
+
+        original_complete = mock.complete
+
+        def sequenced_complete(request):
+            mock.requests.append(request)
+            if mock.error is not None:
+                raise mock.error
+            if mock.raw_content is not None:
+                return type("Response", (), {
+                    "content": mock.raw_content,
+                    "provider_name": "mock",
+                    "model": "mock",
+                })()
+            # Pop first response
+            content = call_responses.pop(0) if call_responses else "{}"
+            from medidiet.llm import LLMResponse
+            return LLMResponse(content=content, provider_name="mock", model="mock")
+
+        mock.complete = sequenced_complete
+
+        extractor = RuleExtractor(mock, registry)
+        chunks = [_make_chunk("chunk-001", "Limit sodium to 700mg per meal.")]
+
+        result = extractor.extract_and_validate(chunks)
+        assert len(result.rules) == 1
+        assert result.rules[0].status == "draft"
+        assert result.rules[0].verification_result is not None
+        assert result.rules[0].verification_result.verdict == "pass"
+
+    def test_pipeline_rejected_rule(self):
+        from medidiet.llm import MockLLMProvider
+        from knowledge.extractor import RuleExtractor
+
+        registry = _sample_registry()
+        extraction_json = json.dumps({
+            "rules": [
+                {
+                    "condition": {"kind": "condition", "value": "hypertension"},
+                    "hard_exclusions": [],
+                    "preferred_tags": [],
+                    "nutrition_limits": [],
+                    "confidence": 0.9,
+                    "evidence_quotes": {},
+                }
+            ],
+            "suggested_concepts": [],
+        })
+        rejection_json = json.dumps({
+            "verdict": "rejected",
+            "confidence": 0.1,
+            "consistency_score": 0.2,
+            "logic_score": 0.5,
+            "completeness_score": 0.3,
+            "issues": [
+                {
+                    "severity": "critical",
+                    "dimension": "consistency",
+                    "description": "Rule contradicts source",
+                    "related_field": None,
+                    "suggested_fix": None,
+                }
+            ],
+            "missing_items": None,
+            "evidence_quotes": {},
+        })
+        mock = MockLLMProvider(raw_content=None)
+
+        call_responses = [extraction_json, rejection_json]
+
+        def sequenced_complete(request):
+            mock.requests.append(request)
+            if mock.error is not None:
+                raise mock.error
+            content = call_responses.pop(0) if call_responses else "{}"
+            from medidiet.llm import LLMResponse
+            return LLMResponse(content=content, provider_name="mock", model="mock")
+
+        mock.complete = sequenced_complete
+
+        extractor = RuleExtractor(mock, registry)
+        chunks = [_make_chunk("chunk-001", "Some text.")]
+
+        result = extractor.extract_and_validate(chunks)
+        assert len(result.rules) == 1
+        assert result.rules[0].status == "rejected"
+
+    def test_pipeline_retry_on_revision_needed(self):
+        from medidiet.llm import MockLLMProvider
+        from knowledge.extractor import RuleExtractor
+
+        registry = _sample_registry()
+        extraction_json = json.dumps({
+            "rules": [
+                {
+                    "condition": {"kind": "condition", "value": "hypertension"},
+                    "hard_exclusions": [],
+                    "preferred_tags": [],
+                    "nutrition_limits": [],
+                    "confidence": 0.9,
+                    "evidence_quotes": {},
+                }
+            ],
+            "suggested_concepts": [],
+        })
+        revision_json = json.dumps({
+            "verdict": "revision_needed",
+            "confidence": 0.5,
+            "consistency_score": 0.6,
+            "logic_score": 0.9,
+            "completeness_score": 0.5,
+            "issues": [
+                {
+                    "severity": "warning",
+                    "dimension": "consistency",
+                    "description": "Missing sodium limit",
+                    "related_field": "nutrition_limits",
+                    "suggested_fix": "Add sodium restriction",
+                }
+            ],
+            "missing_items": ["sodium_limit"],
+            "evidence_quotes": {},
+        })
+        pass_json = json.dumps({
+            "verdict": "pass",
+            "confidence": 0.9,
+            "consistency_score": 0.9,
+            "logic_score": 0.9,
+            "completeness_score": 0.9,
+            "issues": [],
+            "missing_items": None,
+            "evidence_quotes": {},
+        })
+        # Response sequence: extract, verify(revision), retry-extract, verify(pass)
+        call_responses = [extraction_json, revision_json, extraction_json, pass_json]
+        mock = MockLLMProvider(raw_content=None)
+
+        def sequenced_complete(request):
+            mock.requests.append(request)
+            content = call_responses.pop(0) if call_responses else "{}"
+            from medidiet.llm import LLMResponse
+            return LLMResponse(content=content, provider_name="mock", model="mock")
+
+        mock.complete = sequenced_complete
+
+        extractor = RuleExtractor(mock, registry)
+        chunks = [_make_chunk("chunk-001", "Limit sodium.")]
+
+        result = extractor.extract_and_validate(chunks, max_retries=1)
+        assert len(result.rules) == 1
+        assert result.rules[0].verification_result.verdict == "pass"
+        # Should have 4 LLM calls: extract, verify, retry-extract, verify
+        assert len(mock.requests) == 4
+
+    def test_pipeline_llm_error_returns_error_result(self):
+        from medidiet.llm import MockLLMProvider
+        from knowledge.extractor import RuleExtractor
+
+        registry = _sample_registry()
+        mock = MockLLMProvider(error=RuntimeError("LLM unavailable"))
+        extractor = RuleExtractor(mock, registry)
+        chunks = [_make_chunk("chunk-001", "Some text.")]
+
+        result = extractor.extract_and_validate(chunks)
+        assert len(result.rules) == 0
+        assert len(result.extraction_errors) == 1

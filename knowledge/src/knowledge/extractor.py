@@ -42,7 +42,7 @@ Output a JSON array of rule objects. Each rule object has these fields:
 - evidence_quotes: {"<field_name>": "<exact source text>"} — must quote the source
 
 Existing concept codes (use these when applicable):
-{concept_registry}
+__CONCEPT_REGISTRY__
 
 Important rules:
 - ONLY use condition codes listed under CodeKind.CONDITION above
@@ -435,3 +435,236 @@ def _parse_verification_response(json_str: str) -> VerificationResult:
         evidence_quotes=evidence_quotes,
         revised_rule=None,
     )
+
+
+# ---------------------------------------------------------------------------
+# RuleExtractor
+# ---------------------------------------------------------------------------
+
+
+class RuleExtractor:
+    """Two-stage LLM rule extraction with cross-validation.
+
+    Stage 1: Extract candidate rules from document chunks via LLM.
+    Stage 2: Cross-validate each rule with a different LLM persona.
+    """
+
+    def __init__(self, llm: LLMProviderPort, registry: ConceptRegistry):
+        self._llm = llm
+        self._registry = registry
+
+    def extract(
+        self,
+        chunks: list[DocumentChunk],
+        candidate_id_prefix: str = "extracted",
+    ) -> tuple[list[ExtractedConditionRule], list[SuggestedConcept]]:
+        """Stage 1: Extract candidate rules from document chunks via LLM."""
+        source_chunk_ids = [c.chunk_id for c in chunks]
+        registry_text = _serialize_concept_registry_for_prompt(self._registry)
+        system_prompt = _EXTRACTION_SYSTEM_PROMPT.replace(
+            "__CONCEPT_REGISTRY__", registry_text
+        )
+        user_prompt = _build_extraction_user_prompt(chunks)
+
+        request = LLMRequest(
+            task=LLMTask.RULE_EXTRACTION,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
+
+        try:
+            response = self._llm.complete(request)
+        except Exception as e:
+            raise RuleExtractionError(
+                f"LLM extraction call failed: {e}",
+                raw_response=None,
+            ) from e
+
+        try:
+            return _parse_extraction_response(
+                response.content, self._registry, candidate_id_prefix, source_chunk_ids
+            )
+        except RuleExtractionError:
+            raise
+        except Exception as e:
+            raise RuleExtractionError(
+                f"Failed to parse extraction response: {e}",
+                raw_response=response.content,
+            ) from e
+
+    def cross_validate(
+        self,
+        rule: ExtractedConditionRule,
+        chunks: list[DocumentChunk],
+    ) -> VerificationResult:
+        """Stage 2: Cross-validate a single rule against source fragments."""
+        user_prompt = _build_verification_user_prompt(rule, chunks)
+
+        request = LLMRequest(
+            task=LLMTask.RULE_VALIDATION,
+            system_prompt=_VERIFICATION_SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+        )
+
+        try:
+            response = self._llm.complete(request)
+        except Exception as e:
+            raise RuleExtractionError(
+                f"LLM verification call failed: {e}",
+                raw_response=None,
+            ) from e
+
+        try:
+            return _parse_verification_response(response.content)
+        except RuleExtractionError:
+            raise
+        except Exception as e:
+            raise RuleExtractionError(
+                f"Failed to parse verification response: {e}",
+                raw_response=response.content,
+            ) from e
+
+    def extract_and_validate(
+        self,
+        chunks: list[DocumentChunk],
+        candidate_id_prefix: str = "extracted",
+        max_retries: int = 2,
+    ) -> "ExtractionResult":
+        """Full pipeline: extract rules, cross-validate, retry on revision_needed.
+
+        Returns an ExtractionResult bundling all extracted rules, suggested
+        concepts, and any errors encountered.
+        """
+        errors: list[str] = []
+
+        # Stage 1: Extract
+        try:
+            rules, suggestions = self.extract(chunks, candidate_id_prefix)
+        except RuleExtractionError as e:
+            return ExtractionResult(
+                rules=[],
+                suggested_concepts=[],
+                extraction_errors=[str(e)],
+            )
+
+        # Stage 2: Cross-validate each rule
+        validated_rules: list[ExtractedConditionRule] = []
+        for rule in rules:
+            try:
+                vr = self._verify_with_retry(rule, chunks, max_retries)
+            except RuleExtractionError as e:
+                errors.append(f"Verification failed for {rule.candidate_id}: {e}")
+                rule.status = "pending_review"
+                validated_rules.append(rule)
+                continue
+
+            rule.verification_result = vr
+
+            if vr.verdict == "pass":
+                rule.status = "draft"
+                validated_rules.append(rule)
+            elif vr.verdict == "rejected":
+                rule.status = "rejected"
+                validated_rules.append(rule)
+            elif vr.verdict == "revision_needed":
+                rule.status = "pending_review"
+                validated_rules.append(rule)
+            else:
+                rule.status = "pending_review"
+                validated_rules.append(rule)
+
+        return ExtractionResult(
+            rules=validated_rules,
+            suggested_concepts=suggestions,
+            extraction_errors=errors if errors else [],
+        )
+
+    def _verify_with_retry(
+        self,
+        rule: ExtractedConditionRule,
+        chunks: list[DocumentChunk],
+        max_retries: int,
+    ) -> VerificationResult:
+        """Cross-validate with retry on revision_needed."""
+        vr = self.cross_validate(rule, chunks)
+
+        retries = 0
+        while vr.verdict == "revision_needed" and retries < max_retries:
+            # Build a revised extraction prompt incorporating verification issues
+            issue_descriptions = "\n".join(
+                f"- [{i.dimension}] {i.description}"
+                + (f" (suggested fix: {i.suggested_fix})" if i.suggested_fix else "")
+                for i in vr.issues
+            )
+            revision_prompt = (
+                f"Previous extraction was flagged with these issues:\n"
+                f"{issue_descriptions}\n\n"
+                f"Please re-extract the rules addressing these issues.\n\n"
+            )
+            chunks_context = "\n\n---\n\n".join(
+                f"[{c.chunk_id}]\n{c.text}" for c in chunks
+            )
+            user_prompt = revision_prompt + chunks_context
+
+            registry_text = _serialize_concept_registry_for_prompt(self._registry)
+            system_prompt = _EXTRACTION_SYSTEM_PROMPT.replace(
+                "__CONCEPT_REGISTRY__", registry_text
+            )
+
+            request = LLMRequest(
+                task=LLMTask.RULE_EXTRACTION,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+            )
+
+            try:
+                response = self._llm.complete(request)
+            except Exception as e:
+                raise RuleExtractionError(
+                    f"LLM retry call failed: {e}",
+                ) from e
+
+            try:
+                revised_rules, _ = _parse_extraction_response(
+                    response.content,
+                    self._registry,
+                    f"{rule.candidate_id}-r{retries + 1}",
+                    [c.chunk_id for c in chunks],
+                )
+            except RuleExtractionError as e:
+                raise RuleExtractionError(
+                    f"Failed to parse retry response: {e}",
+                    raw_response=response.content,
+                ) from e
+
+            if revised_rules:
+                # Take the first revised rule and update the original
+                revised = revised_rules[0]
+                rule.hard_exclusions = revised.hard_exclusions
+                rule.preferred_tags = revised.preferred_tags
+                rule.nutrition_limits = revised.nutrition_limits
+                rule.confidence = revised.confidence
+
+            vr = self.cross_validate(rule, chunks)
+            retries += 1
+
+        return vr
+
+
+# ---------------------------------------------------------------------------
+# ExtractionResult (needed by RuleExtractor.extract_and_validate)
+# ---------------------------------------------------------------------------
+
+
+class ExtractionResult:
+    """Bundles extraction output: rules, suggested concepts, and errors."""
+
+    def __init__(
+        self,
+        rules: list[ExtractedConditionRule],
+        suggested_concepts: list[SuggestedConcept],
+        extraction_errors: list[str] | None = None,
+    ):
+        self.rules = rules
+        self.suggested_concepts = suggested_concepts
+        self.extraction_errors = extraction_errors or []
