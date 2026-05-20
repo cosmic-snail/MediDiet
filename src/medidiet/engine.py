@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from medidiet.domain import ConceptCode, IntakeRecord, MealLabel, MenuItem, Outcome, PatientProfile, RiskLevel
@@ -78,7 +78,12 @@ class RecommendationEngine:
         # Nutrient gap compensation: previous meal deficiencies → preference boost
         previous_label = _PREVIOUS_MEAL.get(meal_label)
         if previous_label is not None:
-            previous_records = [r for r in intake_records if r.meal_label is previous_label]
+            today = self.calculator.now.astimezone(timezone.utc).date()
+            previous_records = [
+                r for r in intake_records
+                if r.meal_label is previous_label
+                and r.occurred_at.astimezone(timezone.utc).date() == today
+            ]
             gap_tags = self.calculator.compensation_tags(previous_records)
             if gap_tags:
                 merged_tags = frozenset(target.preferred_tags | gap_tags)

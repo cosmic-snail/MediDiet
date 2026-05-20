@@ -439,9 +439,20 @@ def _fallback_explanation(
     result: RecommendationResult,
     reason: LLMFallbackReason,
 ) -> LLMEnhancedExplanation:
+    clinician_explanation = _FALLBACK_CLINICIAN_EXPLANATION
+    # Preserve knowledge snippets from the deterministic clinician payload
+    # so they remain available when LLM enhancement falls back.
+    if isinstance(result.clinician_explanation, dict):
+        snippets = result.clinician_explanation.get("knowledgeSnippets")
+        if snippets:
+            snippets_json = json.dumps(snippets, ensure_ascii=False)
+            clinician_explanation = (
+                f"{_FALLBACK_CLINICIAN_EXPLANATION}\n\n"
+                f"knowledgeSnippets: {snippets_json}"
+            )
     return LLMEnhancedExplanation(
         patient_explanation=result.patient_explanation,
-        clinician_explanation=_FALLBACK_CLINICIAN_EXPLANATION,
+        clinician_explanation=clinician_explanation,
         used_fallback=True,
         fallback_reason=reason,
     )
