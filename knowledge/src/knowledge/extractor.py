@@ -11,6 +11,7 @@ from medidiet.llm import LLMProviderPort, LLMRequest, LLMTask, LLMResponse
 from medidiet.rules import NutrientMetric, NutrientLimit, LimitScope
 from knowledge.schema import (
     ExtractedConditionRule,
+    ExtractionResult,
     SuggestedConcept,
     VerificationIssue,
     VerificationResult,
@@ -650,21 +651,15 @@ class RuleExtractor:
 
         return vr
 
-
-# ---------------------------------------------------------------------------
-# ExtractionResult (needed by RuleExtractor.extract_and_validate)
-# ---------------------------------------------------------------------------
-
-
-class ExtractionResult:
-    """Bundles extraction output: rules, suggested concepts, and errors."""
-
-    def __init__(
+    def extract_and_save(
         self,
-        rules: list[ExtractedConditionRule],
-        suggested_concepts: list[SuggestedConcept],
-        extraction_errors: list[str] | None = None,
-    ):
-        self.rules = rules
-        self.suggested_concepts = suggested_concepts
-        self.extraction_errors = extraction_errors or []
+        chunks: list[DocumentChunk],
+        store: "RuleStore",
+        candidate_id_prefix: str = "extracted",
+        max_retries: int = 2,
+    ) -> ExtractionResult:
+        """Full pipeline that extracts, validates, and saves rules to the store."""
+        result = self.extract_and_validate(chunks, candidate_id_prefix, max_retries)
+        if result.rules:
+            store.bulk_create(result.rules)
+        return result

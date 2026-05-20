@@ -85,6 +85,29 @@ class TestRuleStoreCRUD:
         rules = temp_store.list_all()
         assert len(rules) == 2
 
+    def test_bulk_create_and_retrieve(self, temp_store):
+        rules = [
+            _make_rule("cand-001", "hypertension"),
+            _make_rule("cand-002", "diabetes"),
+            _make_rule("cand-003", "hyperlipidemia"),
+        ]
+        temp_store.bulk_create(rules)
+        assert len(temp_store.list_all()) == 3
+        assert temp_store.get("cand-001") is not None
+        assert temp_store.get("cand-002") is not None
+        assert temp_store.get("cand-003") is not None
+
+    def test_bulk_create_duplicate_raises(self, temp_store):
+        temp_store.create(_make_rule("cand-001", "hypertension"))
+        rules = [
+            _make_rule("cand-001", "hypertension"),
+            _make_rule("cand-002", "diabetes"),
+        ]
+        with pytest.raises(ValueError, match="already exists"):
+            temp_store.bulk_create(rules)
+        # cand-002 should NOT have been saved
+        assert temp_store.get("cand-002") is None
+
     def test_list_by_status(self, temp_store):
         temp_store.create(_make_rule("cand-001", "hypertension", status="draft"))
         temp_store.create(_make_rule("cand-002", "diabetes", status="approved"))

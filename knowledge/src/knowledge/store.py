@@ -43,6 +43,15 @@ class RuleStore:
         self._cache[rule.candidate_id] = rule
         self._save()
 
+    def bulk_create(self, rules: list[ExtractedConditionRule]) -> None:
+        """Create multiple rules. Checks all exist before saving any."""
+        for rule in rules:
+            if rule.candidate_id in self._cache:
+                raise ValueError(f"rule already exists: {rule.candidate_id}")
+        for rule in rules:
+            self._cache[rule.candidate_id] = rule
+        self._save()
+
     def get(self, candidate_id: str) -> ExtractedConditionRule | None:
         return self._cache.get(candidate_id)
 

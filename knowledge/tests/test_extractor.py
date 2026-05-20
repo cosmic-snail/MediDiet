@@ -842,3 +842,56 @@ class TestExtractAndValidate:
         result = extractor.extract_and_validate(chunks)
         assert len(result.rules) == 0
         assert len(result.extraction_errors) == 1
+
+
+class TestExtractAndSave:
+    def test_extract_and_save_persists_rules(self, tmp_path):
+        from medidiet.llm import MockLLMProvider, LLMResponse
+        from knowledge.extractor import RuleExtractor
+        from knowledge.store import RuleStore
+
+        registry = _sample_registry()
+        extraction_json = json.dumps({
+            "rules": [
+                {
+                    "condition": {"kind": "condition", "value": "hypertension"},
+                    "hard_exclusions": [],
+                    "preferred_tags": [],
+                    "nutrition_limits": [],
+                    "confidence": 0.9,
+                    "evidence_quotes": {},
+                }
+            ],
+            "suggested_concepts": [],
+        })
+        verification_json = json.dumps({
+            "verdict": "pass",
+            "confidence": 0.95,
+            "consistency_score": 0.9,
+            "logic_score": 0.9,
+            "completeness_score": 0.9,
+            "issues": [],
+            "missing_items": None,
+            "evidence_quotes": {},
+        })
+
+        call_responses = [extraction_json, verification_json]
+        mock = MockLLMProvider(raw_content=None)
+
+        def sequenced_complete(request):
+            mock.requests.append(request)
+            content = call_responses.pop(0) if call_responses else "{}"
+            return LLMResponse(content=content, provider_name="mock", model="mock")
+
+        mock.complete = sequenced_complete
+
+        store = RuleStore(data_dir=str(tmp_path))
+        extractor = RuleExtractor(mock, registry)
+        chunks = [_make_chunk("chunk-001", "Limit sodium to 700mg per meal.")]
+
+        result = extractor.extract_and_save(chunks, store)
+        assert len(result.rules) == 1
+        assert len(store.list_all()) == 1
+        stored = store.get(result.rules[0].candidate_id)
+        assert stored is not None
+        assert stored.condition.value == "hypertension"
