@@ -34,7 +34,27 @@ You are a clinical nutrition knowledge extraction specialist. Your task is to \
 read document fragments from medical dietary guidelines and extract structured \
 dietary constraint rules for patients with specific health conditions.
 
-Output a JSON array of rule objects. Each rule object has these fields:
+Output a JSON object with two fields:
+
+	{
+	  "rules": [
+	    {
+	      "condition": {"kind": "condition", "value": "<snake_case>"},
+	      "hard_exclusions": [{"kind": "contraindication", "value": "<snake_case>"}, ...],
+	      "preferred_tags": [{"kind": "nutrition_tag", "value": "<snake_case>"}, ...],
+	      "nutrition_limits": [
+	        {"metric": "<value>", "scope": "<value>", "max_value": <float>, "window_hours": <int|null>}
+	      ],
+	      "confidence": <float 0-1>,
+	      "evidence_quotes": {"<field_name>": "<exact source text>"}
+	    }
+	  ],
+	  "suggested_concepts": [
+	    {"kind": "<CodeKind>", "value": "<snake_case>", "definition": "<description>", "display_name": "<Human Name>"}
+	  ]
+	}
+
+	Rule object fields:
 - condition: {"kind": "condition", "value": "<snake_case>"} — the medical condition
 - hard_exclusions: [{"kind": "contraindication", "value": "<snake_case>"}, ...]
 - preferred_tags: [{"kind": "nutrition_tag", "value": "<snake_case>"}, ...]
@@ -56,7 +76,7 @@ Important rules:
 - Every claim MUST have an evidence_quote from the provided fragments
 - If a fragment does not contain extractable dietary rules, do not fabricate
 - Confidence should reflect how explicit and clear the source text is
-- Return empty array [] if no rules can be extracted
+- Return empty rules array if no rules can be extracted
 """
 
 _EXTRACTION_USER_PROMPT_TEMPLATE = """\
@@ -200,6 +220,7 @@ def _parse_extraction_response(
     registry: ConceptRegistry,
     candidate_id_prefix: str,
     source_chunk_ids: list[str],
+    source_doc_ids: list[str],
 ) -> tuple[list[ExtractedConditionRule], list[SuggestedConcept]]:
     """Parse LLM extraction JSON into rules and suggested concepts."""
     try:
@@ -210,7 +231,10 @@ def _parse_extraction_response(
     rules: list[ExtractedConditionRule] = []
     suggestions: list[SuggestedConcept] = []
 
-    if not isinstance(data, dict):
+    # Defend against bare array (LLM may ignore the object-wrapper instruction)
+    if isinstance(data, list):
+        data = {"rules": data, "suggested_concepts": []}
+    elif not isinstance(data, dict):
         raise RuleExtractionError(
             f"Expected JSON object at top level, got {type(data).__name__}",
             raw_response=json_str,
@@ -302,7 +326,7 @@ def _parse_extraction_response(
 
         rule = ExtractedConditionRule(
             candidate_id=candidate_id,
-            source_doc_ids=[],
+            source_doc_ids=list(source_doc_ids),
             source_chunk_ids=list(source_chunk_ids),
             condition=cond_code,
             hard_exclusions=hard_exclusions,
@@ -425,6 +449,17 @@ def _parse_verification_response(json_str: str) -> VerificationResult:
             if isinstance(v, str):
                 evidence_quotes[k] = v
 
+    # Hard enforcement: LLM may return "pass" verdict alongside low scores or
+    # critical issues. Downgrade the verdict to match the actual evidence.
+    has_critical = any(i.severity == "critical" for i in issues)
+    min_score = min(consistency_score, logic_score, completeness_score)
+
+    if consistency_score < 0.3:
+        verdict = "rejected"
+    elif has_critical or min_score < 0.7:
+        if verdict == "pass":
+            verdict = "revision_needed"
+
     return VerificationResult(
         verdict=verdict,
         confidence=confidence,
@@ -461,6 +496,7 @@ class RuleExtractor:
     ) -> tuple[list[ExtractedConditionRule], list[SuggestedConcept]]:
         """Stage 1: Extract candidate rules from document chunks via LLM."""
         source_chunk_ids = [c.chunk_id for c in chunks]
+        source_doc_ids = list({c.doc_id for c in chunks})
         registry_text = _serialize_concept_registry_for_prompt(self._registry)
         system_prompt = _EXTRACTION_SYSTEM_PROMPT.replace(
             "__CONCEPT_REGISTRY__", registry_text
@@ -483,7 +519,7 @@ class RuleExtractor:
 
         try:
             return _parse_extraction_response(
-                response.content, self._registry, candidate_id_prefix, source_chunk_ids
+                response.content, self._registry, candidate_id_prefix, source_chunk_ids, source_doc_ids
             )
         except RuleExtractionError:
             raise
@@ -631,6 +667,7 @@ class RuleExtractor:
                     self._registry,
                     f"{rule.candidate_id}-r{retries + 1}",
                     [c.chunk_id for c in chunks],
+                    list({c.doc_id for c in chunks}),
                 )
             except RuleExtractionError as e:
                 raise RuleExtractionError(

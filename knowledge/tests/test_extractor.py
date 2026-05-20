@@ -170,7 +170,7 @@ class TestParseExtractionResponse:
             "suggested_concepts": [],
         })
         rules, suggestions = _parse_extraction_response(
-            raw, registry, "test", ["chunk-001"]
+            raw, registry, "test", ["chunk-001"], ["doc-001"]
         )
         assert len(rules) == 1
         assert rules[0].condition.value == "hypertension"
@@ -202,7 +202,7 @@ class TestParseExtractionResponse:
             ],
             "suggested_concepts": [],
         })
-        rules, _ = _parse_extraction_response(raw, registry, "test", ["chunk-001"])
+        rules, _ = _parse_extraction_response(raw, registry, "test", ["chunk-001"], ["doc-001"])
         assert len(rules) == 1
         assert rules[0].verification_result is not None
         assert rules[0].verification_result.evidence_quotes == {
@@ -225,7 +225,7 @@ class TestParseExtractionResponse:
             "suggested_concepts": [],
         })
         rules, _ = _parse_extraction_response(
-            raw, registry, "test", ["chunk-001"]
+            raw, registry, "test", ["chunk-001"], ["doc-001"]
         )
         assert len(rules) == 0
 
@@ -252,7 +252,7 @@ class TestParseExtractionResponse:
             ],
         })
         rules, suggestions = _parse_extraction_response(
-            raw, registry, "test", ["chunk-001"]
+            raw, registry, "test", ["chunk-001"], ["doc-001"]
         )
         assert len(rules) == 1
         assert len(suggestions) == 1
@@ -263,7 +263,7 @@ class TestParseExtractionResponse:
         registry = _sample_registry()
         raw = json.dumps({"rules": [], "suggested_concepts": []})
         rules, suggestions = _parse_extraction_response(
-            raw, registry, "test", ["chunk-001"]
+            raw, registry, "test", ["chunk-001"], ["doc-001"]
         )
         assert len(rules) == 0
         assert len(suggestions) == 0
@@ -283,19 +283,19 @@ class TestParseExtractionResponse:
             ],
             "suggested_concepts": [],
         })
-        rules, _ = _parse_extraction_response(raw, registry, "test", ["chunk-001"])
+        rules, _ = _parse_extraction_response(raw, registry, "test", ["chunk-001"], ["doc-001"])
         assert rules[0].confidence == 1.0
 
     def test_malformed_json_raises(self):
         registry = _sample_registry()
         with pytest.raises(RuleExtractionError, match="JSON"):
-            _parse_extraction_response("not json", registry, "test", ["chunk-001"])
+            _parse_extraction_response("not json", registry, "test", ["chunk-001"], ["doc-001"])
 
     def test_rules_not_a_list(self):
         registry = _sample_registry()
         raw = json.dumps({"rules": "not a list"})
         with pytest.raises(RuleExtractionError, match="array"):
-            _parse_extraction_response(raw, registry, "test", ["chunk-001"])
+            _parse_extraction_response(raw, registry, "test", ["chunk-001"], ["doc-001"])
 
     def test_candidate_id_is_unique(self):
         registry = _sample_registry()
@@ -320,7 +320,7 @@ class TestParseExtractionResponse:
             ],
             "suggested_concepts": [],
         })
-        rules, _ = _parse_extraction_response(raw, registry, "pilot", ["chunk-001"])
+        rules, _ = _parse_extraction_response(raw, registry, "pilot", ["chunk-001"], ["doc-001"])
         assert len(rules) == 2
         assert rules[0].candidate_id != rules[1].candidate_id
         assert rules[0].candidate_id.startswith("pilot-")
@@ -343,7 +343,7 @@ class TestParseExtractionResponse:
             ],
             "suggested_concepts": [],
         })
-        rules, _ = _parse_extraction_response(raw, registry, "test", ["chunk-001"])
+        rules, _ = _parse_extraction_response(raw, registry, "test", ["chunk-001"], ["doc-001"])
         assert len(rules) == 1
         assert len(rules[0].nutrition_limits) == 0
 
@@ -466,6 +466,8 @@ class TestParseVerificationResponse:
         assert result.consistency_score == 0.0
         assert result.logic_score == 1.0
         assert result.completeness_score == 0.0
+        # Hard enforcement: consistency 0.0 < 0.3 triggers rejected
+        assert result.verdict == "rejected"
 
     def test_invalid_severity_falls_back(self):
         raw = json.dumps({
@@ -482,6 +484,59 @@ class TestParseVerificationResponse:
         })
         result = _parse_verification_response(raw)
         assert result.issues[0].severity == "info"
+
+    def test_downgrade_pass_to_revision_on_critical_issue(self):
+        """Hard enforcement: pass + critical issue → revision_needed."""
+        raw = json.dumps({
+            "verdict": "pass",
+            "confidence": 0.9,
+            "consistency_score": 0.9,
+            "logic_score": 0.9,
+            "completeness_score": 0.9,
+            "issues": [
+                {
+                    "severity": "critical",
+                    "dimension": "consistency",
+                    "description": "Sodium limit contradicts source",
+                    "related_field": "nutrition_limits",
+                    "suggested_fix": "Remove sodium limit",
+                }
+            ],
+            "missing_items": None,
+            "evidence_quotes": {},
+        })
+        result = _parse_verification_response(raw)
+        assert result.verdict == "revision_needed"
+
+    def test_downgrade_pass_to_revision_on_low_score(self):
+        """Hard enforcement: pass + score < 0.7 → revision_needed."""
+        raw = json.dumps({
+            "verdict": "pass",
+            "confidence": 0.9,
+            "consistency_score": 0.6,
+            "logic_score": 0.9,
+            "completeness_score": 0.9,
+            "issues": [],
+            "missing_items": None,
+            "evidence_quotes": {},
+        })
+        result = _parse_verification_response(raw)
+        assert result.verdict == "revision_needed"
+
+    def test_downgrade_pass_to_rejected_on_very_low_consistency(self):
+        """Hard enforcement: pass + consistency < 0.3 → rejected."""
+        raw = json.dumps({
+            "verdict": "pass",
+            "confidence": 0.8,
+            "consistency_score": 0.2,
+            "logic_score": 0.8,
+            "completeness_score": 0.8,
+            "issues": [],
+            "missing_items": None,
+            "evidence_quotes": {},
+        })
+        result = _parse_verification_response(raw)
+        assert result.verdict == "rejected"
 
 
 # ---------------------------------------------------------------------------

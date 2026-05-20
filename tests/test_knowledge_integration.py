@@ -262,6 +262,7 @@ class TestPhase2EndToEnd:
             result = extractor.extract_and_validate(chunks, candidate_id_prefix="pilot")
             assert len(result.rules) == 1
             assert result.rules[0].condition.value == "ckd"
+            assert result.rules[0].source_doc_ids == ["ckd-2024"]
 
             # 4. Save to store + approve via KnowledgeCurator
             store = RuleStore(data_dir=store_dir)
