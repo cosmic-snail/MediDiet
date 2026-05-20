@@ -10,6 +10,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The knowledge package is developed in-repo. Install separately:
+#   pip install -e knowledge/
 knowledge = ["medidiet-knowledge"]
 
 [tool.setuptools.packages.find]

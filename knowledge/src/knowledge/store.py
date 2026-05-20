@@ -88,17 +88,27 @@ class RuleStore:
         return str(version_path)
 
     def list_versions(self) -> list[str]:
-        versions = []
-        for entry in sorted(self._rules_dir.glob("v*.json")):
+        """List published versions sorted by published_at (oldest first).
+
+        Returns version names without the 'v' prefix.
+        """
+        entries: list[tuple[datetime, str]] = []
+        for entry in self._rules_dir.glob("v*.json"):
             if entry.name == "candidates.json":
                 continue
             name = entry.stem
-            # Strip the "v" prefix so callers get clean version names.
-            display_name = name[1:] if name.startswith("v") else name
             if name not in self._versions:
                 self._versions[name] = entry
-            versions.append(display_name)
-        return sorted(versions)
+            try:
+                with open(entry, encoding="utf-8") as f:
+                    data = json.load(f)
+                published_at = datetime.fromisoformat(data.get("published_at", ""))
+            except (json.JSONDecodeError, ValueError, KeyError):
+                published_at = datetime.min.replace(tzinfo=timezone.utc)
+            display_name = name[1:] if name.startswith("v") else name
+            entries.append((published_at, display_name))
+        entries.sort(key=lambda e: e[0])
+        return [name for _, name in entries]
 
     def load_version(self, version: str) -> list[ExtractedConditionRule]:
         version = _normalize_version(version)

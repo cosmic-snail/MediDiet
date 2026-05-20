@@ -107,6 +107,61 @@ class TestKnowledgeRuleProvider:
         pack = provider.load_rule_pack()
         assert pack.version == "v2.0"
 
+    def test_merges_same_condition_rules(self, temp_store):
+        rule1 = ExtractedConditionRule(
+            candidate_id="cand-001",
+            source_doc_ids=["doc-001"],
+            source_chunk_ids=["chunk-001"],
+            condition=ConceptCode(CodeKind.CONDITION, "hypertension"),
+            hard_exclusions={ConceptCode(CodeKind.CONTRAINDICATION, "high_sodium")},
+            preferred_tags={ConceptCode(CodeKind.NUTRITION_TAG, "low_sodium")},
+            nutrition_limits={
+                NutrientLimit(
+                    metric=NutrientMetric.SODIUM_MG,
+                    scope=LimitScope.PER_MEAL,
+                    max_value=700,
+                )
+            },
+            confidence=0.9,
+            extraction_method="manual",
+            reviewed_by="dietitian-01",
+            status="approved",
+            created_at=NOW,
+        )
+        rule2 = ExtractedConditionRule(
+            candidate_id="cand-002",
+            source_doc_ids=["doc-002"],
+            source_chunk_ids=["chunk-002"],
+            condition=ConceptCode(CodeKind.CONDITION, "hypertension"),
+            hard_exclusions={ConceptCode(CodeKind.CONTRAINDICATION, "deep_fried")},
+            preferred_tags={ConceptCode(CodeKind.NUTRITION_TAG, "vegetable_rich")},
+            nutrition_limits={
+                NutrientLimit(
+                    metric=NutrientMetric.FAT_G,
+                    scope=LimitScope.PER_MEAL,
+                    max_value=40,
+                )
+            },
+            confidence=0.9,
+            extraction_method="manual",
+            reviewed_by=None,
+            status="approved",
+            created_at=NOW,
+        )
+        temp_store.create(rule1)
+        temp_store.create(rule2)
+        temp_store.publish_version("v1.0", notes="Test")
+
+        provider = KnowledgeRuleProvider(store=temp_store, version="v1.0")
+        pack = provider.load_rule_pack()
+        merged = pack.for_condition(ConceptCode(CodeKind.CONDITION, "hypertension"))
+
+        assert ConceptCode(CodeKind.CONTRAINDICATION, "high_sodium") in merged.hard_exclusions
+        assert ConceptCode(CodeKind.CONTRAINDICATION, "deep_fried") in merged.hard_exclusions
+        assert ConceptCode(CodeKind.NUTRITION_TAG, "low_sodium") in merged.preferred_tags
+        assert ConceptCode(CodeKind.NUTRITION_TAG, "vegetable_rich") in merged.preferred_tags
+        assert len(merged.nutrition_limits) == 2
+
     def test_implements_rule_provider_port(self, temp_store):
         provider = KnowledgeRuleProvider(store=temp_store)
         assert isinstance(provider, RuleProviderPort)

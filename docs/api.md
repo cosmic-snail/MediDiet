@@ -66,37 +66,23 @@ from medidiet import (
 ### 2.1 推荐引擎入口
 
 ```python
-RecommendationEngine(
-    rule_pack: RulePack | None = None,
-    rule_provider: RuleProviderPort | None = None,
-    knowledge: KnowledgePort | None = None,
-    now: datetime | None = None,
-)
+RecommendationEngine(rule_pack: RulePack, now: datetime | None = None)
 ```
 
 参数：
 
 | 参数 | 类型 | 说明 |
 | --- | --- | --- |
-| `rule_pack` | `RulePack` | 已加载的规则包。与 `rule_provider` 互斥。 |
-| `rule_provider` | `RuleProviderPort` | 端口方式加载规则包（如从知识库加载）。 |
-| `knowledge` | `KnowledgePort` | 可选知识库检索端口，注入后在线增强解释。 |
+| `rule_pack` | `RulePack` | 已加载的规则包。MVP 使用 `load_baseline_rule_pack()`。 |
 | `now` | `datetime | None` | 可选的当前时间。测试或 demo 可传固定时区时间；生产默认使用当前 UTC 时间。 |
 
-三种构造方式：
+> **Phase 3 规划：** `RecommendationEngine` 后续将支持 `rule_provider: RuleProviderPort` 和 `knowledge: KnowledgePort` 可选参数，实现端口方式加载规则和在线检索增强解释。当前可使用桥接适配器独立获取 `RulePack` 后传入引擎：
 
 ```python
-# A) 传统方式：直接传入 RulePack（已有测试不变）
-engine = RecommendationEngine(rule_pack=load_baseline_rule_pack())
-
-# B) 端口方式：从知识库加载规则
-engine = RecommendationEngine(rule_provider=KnowledgeRuleProvider(store=RuleStore()))
-
-# C) 端口 + 在线检索增强
-engine = RecommendationEngine(
-    rule_provider=KnowledgeRuleProvider(store=RuleStore()),
-    knowledge=KnowledgeRetriever(vectordb=KnowledgeVectorDB()),
-)
+# 当前可用：通过桥接适配器获取 RulePack，再传给引擎
+provider = KnowledgeRuleProvider(store=RuleStore())
+rule_pack = provider.load_rule_pack()
+engine = RecommendationEngine(rule_pack=rule_pack)
 ```
 
 ### 2.2 推荐调用

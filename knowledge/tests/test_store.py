@@ -204,6 +204,21 @@ class TestRuleStoreVersioning:
         versions = temp_store.list_versions()
         assert "1.0" in versions
 
+    def test_list_versions_sorted_by_published_at(self, temp_store):
+        """Versions are sorted by published_at, not string order.
+        v1.10 is published after v1.9 and should appear last (latest)."""
+        temp_store.create(
+            _make_rule("cand-001", "hypertension", status="approved")
+        )
+        temp_store.publish_version("v1.9", notes="Older")
+        import time
+        time.sleep(0.01)
+        temp_store.publish_version("v1.10", notes="Newer")
+        versions = temp_store.list_versions()
+        # Latest should be 1.10, not 1.9
+        assert versions[-1] == "1.10"
+        assert versions[0] == "1.9"
+
     def test_load_version(self, temp_store):
         temp_store.create(
             _make_rule("cand-001", "hypertension", status="approved")

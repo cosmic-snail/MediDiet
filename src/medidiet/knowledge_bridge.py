@@ -38,12 +38,21 @@ class KnowledgeRuleProvider:
         concepts = self._build_concept_registry(extracted_rules)
         rules_by_condition: dict[ConceptCode, ConditionRule] = {}
         for er in extracted_rules:
-            rules_by_condition[er.condition] = ConditionRule(
-                condition=er.condition,
-                hard_exclusions=er.hard_exclusions,
-                preferred_tags=er.preferred_tags,
-                nutrition_limits=er.nutrition_limits,
-            )
+            if er.condition in rules_by_condition:
+                existing = rules_by_condition[er.condition]
+                rules_by_condition[er.condition] = ConditionRule(
+                    condition=er.condition,
+                    hard_exclusions=existing.hard_exclusions | er.hard_exclusions,
+                    preferred_tags=existing.preferred_tags | er.preferred_tags,
+                    nutrition_limits=existing.nutrition_limits | er.nutrition_limits,
+                )
+            else:
+                rules_by_condition[er.condition] = ConditionRule(
+                    condition=er.condition,
+                    hard_exclusions=er.hard_exclusions,
+                    preferred_tags=er.preferred_tags,
+                    nutrition_limits=er.nutrition_limits,
+                )
 
         return RulePack(
             version=target,
