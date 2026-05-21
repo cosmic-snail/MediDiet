@@ -2,9 +2,10 @@
 
 LLM-friendly project map for the MediDiet hospital meal recommendation MVP.
 
-Last reviewed: 2026-05-19
-Python package version: `0.1.1`
-Rule pack version: `baseline-2026-05-15`
+Last reviewed: 2026-05-21
+Core package metadata version: `0.1.1`
+Current documentation/test milestone: `0.1.4`
+Baseline rule pack version: `baseline-2026-05-15`
 
 ## 1. What This Is
 
@@ -12,12 +13,14 @@ MediDiet is a hospital diet recommendation assistant prototype. It combines:
 
 - A deterministic Python recommendation engine for chronic-disease meal matching.
 - A local FastAPI HTTP server for frontend integration and demo flows.
-- An optional OpenAI-compatible LLM explanation layer with strict fallback behavior.
+- An optional OpenAI-compatible LLM explanation and question-answering layer with strict fallback behavior.
+- A nutrition knowledge base package for document ingestion, vector search, LLM rule extraction, human curation, and versioned rule publishing.
+- A bridge from the knowledge base into the recommendation engine for online knowledge snippets, knowledge-backed rule packs, nutrient gap compensation, and ingredient diversity scoring.
 - A React/Vite mobile web prototype that demonstrates patient, dietitian, and catering workflows.
 
 The core product idea is:
 
-> Given a patient profile, recent intake records, and today's hospital menu, recommend the next meal only when the rule engine can do so safely. Otherwise, refuse automatic recommendation or require human review, while preserving an auditable trace.
+> Given a patient profile, recent intake records, and today's hospital menu, recommend the next meal only when deterministic rules can do so safely. Otherwise, refuse automatic recommendation or require human review, while preserving an auditable trace and optional source-backed knowledge context.
 
 ## 2. What This Is Not
 
@@ -29,57 +32,76 @@ Current MVP boundaries:
 - No real HIS/EMR connector.
 - No real image recognition service.
 - No real canteen, delivery, payment, or fulfillment integration.
-- Baseline nutrition thresholds are demo rules and require clinical review before production use.
+- Baseline and knowledge-extracted nutrition thresholds are demo or pilot rules and require clinical review before production use.
+- LLM output is never authoritative. It can enrich explanations or propose candidate rules, but deterministic rules, human review, and trace remain the source of truth.
 
 ## 3. LLM Reading Guide
 
 If you are an LLM agent, read in this order:
 
-1. `README.md` for project orientation and boundaries.
-2. `docs/usage.md` for backend run commands and operational notes.
-3. `docs/api.md` for domain models, public API, trace, HTTP boundary, and LLM exports.
-4. `docs/demo-usage.md` for copy-paste HTTP demo commands.
-5. `apps/mini-program-prototype/README.zh.md` for frontend behavior and backend adapter notes.
-6. `docs/testing.md` for test intent, coverage, and known gaps.
+1. `README.md` for project orientation, boundaries, and run commands.
+2. `docs/api.md` for the current public API, Phase 3 engine parameters, ports, trace, and knowledge bridge notes.
+3. `docs/testing.md` for the current test command, coverage map, skipped real-LLM tests, and known gaps.
+4. `docs/nutrition-knowledge-base-test-cases.md` for knowledge-base behavior, QA matrix, and Phase 1/2/3 coverage.
+5. `docs/phase-3-knowledge-engine-e2e-testing.md` for online knowledge enhancement, nutrient gap compensation, and ingredient diversity E2E scenarios.
+6. `docs/demo-usage.md` for copy-paste HTTP demo commands.
+7. `apps/mini-program-prototype/README.zh.md` for frontend behavior and backend adapter notes.
+8. `reports/knowledge-extraction-real-llm-smoke-report.md` for the latest recorded real LLM smoke report.
 
 When editing:
 
-- Prefer preserving structured enums and integer codes over adding string matching.
-- Do not move clinical logic into the frontend.
-- Do not treat LLM output as source of truth; deterministic rules and trace remain authoritative.
-- Do not add production claims unless authentication, persistence, audit, and clinical review are actually implemented.
+- Preserve structured enums and integer codes. Do not replace them with free-text matching.
+- Keep clinical recommendation logic in the Python engine, not in the frontend.
+- Keep heavy knowledge dependencies out of top-level `medidiet` imports. Import bridge adapters from `medidiet.knowledge_bridge`.
+- Treat LLM rule extraction as a candidate-generation workflow. Published rules must pass validation and human curation.
+- Do not make production claims unless auth, persistence, audit, privacy, operations, and clinical review are actually implemented.
 
 ## 4. Repository Map
 
 ```text
 MediDiet/
   src/medidiet/
-    domain.py      # Core dataclasses, enums, ConceptCode, Nutrients, PatientProfile, MenuItem.
-    rules.py       # Baseline rule pack and nutrient limits.
-    safety.py      # Safety gate, SafetyCode, human-review triggers, warning logs.
-    nutrition.py   # Daily and rolling-window nutrient calculations.
-    planner.py     # Next-meal plan generation and patient instructions.
-    matcher.py     # Menu filtering and scoring.
-    explainer.py   # Deterministic patient and clinician explanations.
-    trace.py       # RecommendationTrace JSON/camelCase serialization.
-    engine.py      # RecommendationEngine orchestration.
-    service.py     # In-memory application service and HTTP DTO conversion.
-    server.py      # FastAPI app and endpoints.
-    llm.py         # Optional LLM enhancement, QA, sanitization, and fallback.
-    ports.py       # Future external-system Protocols and domain events.
-    fixtures.py    # Local demo data.
-    cli.py         # Minimal CLI trace demo.
+    domain.py           # Core dataclasses, enums, ConceptCode, Nutrients, PatientProfile, MenuItem.
+    rules.py            # Baseline rule pack, ConditionRule, NutrientLimit.
+    safety.py           # Safety gate, SafetyCode, human-review triggers, warning logs.
+    nutrition.py        # Daily/rolling calculations plus previous-meal nutrient gap compensation.
+    planner.py          # Next-meal plan generation and patient instructions.
+    matcher.py          # Menu filtering/scoring plus recent-ingredient diversity penalty.
+    explainer.py        # Deterministic patient and clinician explanations.
+    trace.py            # RecommendationTrace JSON/camelCase serialization.
+    engine.py           # RecommendationEngine orchestration and optional KnowledgePort enrichment.
+    ports.py            # External-system, rule-provider, and knowledge-provider Protocols.
+    knowledge_bridge.py # Adapters from knowledge/ RuleStore/VectorDB to medidiet ports.
+    llm.py              # Optional LLM explanation, QA, rule-extraction tasks, fallback safety.
+    service.py          # In-memory application service and HTTP DTO conversion.
+    server.py           # FastAPI app and endpoints.
+    fixtures.py         # Local demo data.
+    cli.py              # Minimal CLI trace demo.
+
+  knowledge/
+    src/knowledge/
+      schema.py         # KnowledgeDocument, ExtractedConditionRule, VerificationResult.
+      documents.py      # Text/file import and chunking.
+      loader.py         # Directory loading and optional vector indexing.
+      vectordb.py       # ChromaDB-backed semantic search.
+      store.py          # Candidate rule CRUD, JSON persistence, version publishing.
+      extractor.py      # Two-stage LLM rule extraction and cross-validation.
+      curator.py        # Human-in-the-loop review, rejection, publish API.
+    source_documents/   # Pilot guideline markdown inputs.
+    tests/              # Knowledge package pytest suite.
 
   apps/mini-program-prototype/
     src/App.tsx
     src/contracts.ts
     src/state.ts
     src/fixtures.ts
-    src/api/          # Frontend/backend DTO adapters and HTTP client.
-    src/features/     # Patient, dietitian, catering workspaces.
+    src/api/            # Frontend/backend DTO adapters and HTTP client.
+    src/features/       # Patient, dietitian, catering workspaces.
 
-  tests/              # Python unittest suite.
-  docs/               # Usage, API, testing, demo, and frontend E2E docs.
+  tests/                # Core medidiet pytest suite.
+  docs/                 # Usage, API, testing, demo, frontend E2E, knowledge E2E docs.
+  reports/              # Real LLM smoke test reports.
+  scripts/              # Utility scripts, including real LLM smoke report runner.
 ```
 
 ## 5. Architecture Snapshot
@@ -91,24 +113,32 @@ flowchart LR
   fastapi["FastAPI local server"]
   service["RecommendationService\nin-memory state"]
   engine["RecommendationEngine"]
-  llm["Optional LLM enhancer"]
+  baseline["Baseline RulePack"]
+  knowledgePkg["knowledge/ package\nDocs + VectorDB + RuleStore"]
+  bridge["medidiet.knowledge_bridge"]
+  llm["Optional LLM provider"]
   trace["RecommendationTrace"]
 
-  frontend --> apiClient --> fastapi --> service --> engine --> trace
+  frontend --> apiClient --> fastapi --> service --> engine
+  baseline --> engine
+  knowledgePkg --> bridge --> engine
   service --> llm
-  llm --> service
+  knowledgePkg --> llm
+  engine --> trace
 ```
 
 Important split:
 
-- The Python engine owns recommendation logic, safety checks, scoring, and trace.
+- The Python engine owns recommendation logic, safety checks, scoring, trace, gap compensation, diversity scoring, and optional knowledge enrichment.
+- The `knowledge/` package owns document ingestion, ChromaDB indexing, candidate rule extraction, validation, human curation, and versioned rule storage.
+- `medidiet.knowledge_bridge` adapts knowledge package objects to lightweight `medidiet.ports` interfaces.
 - The FastAPI service owns demo HTTP endpoints and in-memory state.
 - The frontend owns presentation, role switching, local review simulation, and HTTP adapter calls.
-- The LLM layer can rewrite explanations only after sanitization and validation; fallback keeps deterministic explanations.
+- The LLM layer can enrich explanations or propose candidate rules only after sanitization, schema validation, and fallback checks.
 
 ## 6. Quick Start
 
-### 6.1 Backend Setup
+### 6.1 Backend Core Setup
 
 ```bash
 python -m pip install -e .
@@ -144,7 +174,22 @@ OpenAPI docs:
 http://127.0.0.1:8000/docs
 ```
 
-### 6.2 Frontend Setup
+### 6.2 Knowledge Package Setup
+
+Install the knowledge package when you need document ingestion, ChromaDB vector search, rule extraction, or knowledge-backed RulePack loading:
+
+```bash
+python -m pip install -e .
+python -m pip install -e ./knowledge
+```
+
+For local test/dev commands without installing both packages, use:
+
+```bash
+PYTHONPATH=src:knowledge/src
+```
+
+### 6.3 Frontend Setup
 
 In a second terminal:
 
@@ -192,7 +237,7 @@ Use `docs/demo-usage.md` for complete curl commands.
 | `human_review_required` | Safety hard block or uncertainty was detected. | Returns no menu item and routes to review semantics. |
 | `downgraded` | Reserved enum. | Not actively emitted by the engine today. |
 
-Safety and rejection reasons use integer enums:
+Safety, planning, matching, and LLM fallback reasons use integer enums:
 
 - `SafetyCode`: `1001-2003`
 - `NutritionReason`: `3001-3003`
@@ -200,7 +245,75 @@ Safety and rejection reasons use integer enums:
 - `MatchRejectionCode`: `5001-5003`
 - `LLMFallbackReason`: `6001-6007`
 
-## 9. LLM Layer
+## 9. Phase 3 Engine Features
+
+The current engine has three important extensions beyond the original baseline flow:
+
+1. Online knowledge enrichment
+   - Pass a `KnowledgePort` implementation into `RecommendationEngine`.
+   - The engine calls `knowledge.retrieve_context(patient, meal_label)` after the recommendation result is known.
+   - Returned snippets are added to `clinician_explanation["knowledgeSnippets"]`.
+   - Retrieval failures silently degrade and must not change the safety outcome.
+
+2. Previous-meal nutrient gap compensation
+   - Lunch can compensate for breakfast; dinner can compensate for lunch.
+   - Low protein in the previous meal adds `lean_protein`.
+   - Low fiber in the previous meal adds `high_fiber`.
+   - Only same-day previous-meal records are considered.
+
+3. Ingredient diversity scoring
+   - Pass `recent_ingredients=frozenset({...})` into `RecommendationEngine`.
+   - Each repeated candidate ingredient loses 1 score point.
+   - This is a ranking adjustment, not a safety override.
+
+Knowledge-backed engine example:
+
+```python
+from medidiet import RecommendationEngine
+from medidiet.domain import CodeKind, ConceptCode
+from medidiet.knowledge_bridge import KnowledgeRetriever, KnowledgeRuleProvider
+from knowledge.store import RuleStore
+from knowledge.vectordb import KnowledgeVectorDB
+
+store = RuleStore(data_dir="data")
+rule_pack = KnowledgeRuleProvider(store=store, version="v1.0").load_rule_pack()
+retriever = KnowledgeRetriever(KnowledgeVectorDB(persist_dir="data/chroma"))
+
+engine = RecommendationEngine(
+    rule_pack=rule_pack,
+    knowledge=retriever,
+    recent_ingredients=frozenset({ConceptCode(CodeKind.INGREDIENT, "fish")}),
+)
+```
+
+## 10. Knowledge Base Workflow
+
+The `knowledge/` package supports this pilot workflow:
+
+1. Import documents with `DocumentImporter` or `KnowledgeLoader`.
+2. Chunk guideline/manual text into `DocumentChunk` objects.
+3. Index chunks in `KnowledgeVectorDB` for semantic search.
+4. Extract candidate rules with `RuleExtractor` using `LLMTask.RULE_EXTRACTION`.
+5. Cross-validate extracted rules with `LLMTask.RULE_VALIDATION`.
+6. Store candidates in `RuleStore`.
+7. Review, approve, or reject candidates with `KnowledgeCurator`.
+8. Publish approved rules as a versioned rule set.
+9. Load the published version through `KnowledgeRuleProvider`.
+10. Inject `KnowledgeRetriever` into the engine for source snippets.
+
+Current pilot source documents:
+
+- `knowledge/source_documents/guidelines/ckd.md`
+- `knowledge/source_documents/guidelines/gout.md`
+
+Current knowledge package boundaries:
+
+- JSON file storage and local ChromaDB are for local MVP use.
+- Rule extraction uses LLM output as draft candidate data, not approved clinical truth.
+- Human review is required before publishing extracted rules.
+- Production storage, migrations, reviewer identity, and audit controls are not implemented.
+
+## 11. LLM Layer
 
 The LLM layer is optional.
 
@@ -220,11 +333,14 @@ export MEDIDIET_LLM_MODEL=deepseek-v4
 export MEDIDIET_LLM_TIMEOUT_SECONDS=30
 ```
 
-Live LLM smoke tests are opt-in:
+Real LLM smoke tests are opt-in. For the full report-producing smoke flow:
 
 ```bash
 export MEDIDIET_LLM_SMOKE_TEST=1
-PYTHONPATH=src python -m unittest tests.test_llm_deepseek_smoke tests.test_http_llm_smoke -v
+export MEDIDIET_LLM_RULE_SMOKE_TEST=1
+export MEDIDIET_LLM_CONFLICT_SMOKE_TEST=1
+export MEDIDIET_LLM_NOISY_SMOKE_TEST=1
+PYTHONPATH=src:knowledge/src python scripts/run_real_llm_smoke_tests.py --report reports/knowledge-extraction-real-llm-smoke-report.md
 ```
 
 LLM safety rules:
@@ -232,13 +348,29 @@ LLM safety rules:
 - Patient id is stripped from LLM context by `LLMContextSanitizer`.
 - Provider errors, invalid JSON, empty fields, unsafe text, and out-of-scope questions trigger fallback.
 - LLM explanations must not convert refused or review-required outcomes into positive recommendations.
+- LLM rule extraction must emit schema-valid draft rules and evidence quotes.
+- Conflicting, prompt-injected, or noise-only source material must not auto-approve or publish unsafe rules.
 
-## 10. Test Commands
+## 12. Test Commands
 
-Backend:
+Backend + knowledge full offline suite:
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
+PYTHONPATH=src:knowledge/src pytest tests/ knowledge/tests/ --rootdir=. -q
+```
+
+Focused Phase 3 suite:
+
+```bash
+PYTHONPATH=src:knowledge/src pytest \
+  tests/test_knowledge_integration.py \
+  tests/test_knowledge_bridge.py \
+  tests/test_engine.py \
+  tests/test_nutrition.py \
+  tests/test_matcher.py \
+  tests/test_llm.py \
+  knowledge/tests/ \
+  --rootdir=. -q
 ```
 
 Frontend:
@@ -249,14 +381,22 @@ npm run test
 npm run build
 ```
 
-Recommended pre-commit check:
+Recommended pre-PR check:
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
+PYTHONPATH=src:knowledge/src pytest tests/ knowledge/tests/ --rootdir=. -q
 cd apps/mini-program-prototype && npm run test && npm run build
 ```
 
-## 11. Frontend Behavior Summary
+Expected current offline baseline:
+
+```text
+254 passed, 12 skipped
+```
+
+The skipped tests are real LLM smoke tests unless the relevant env vars are explicitly enabled.
+
+## 13. Frontend Behavior Summary
 
 The frontend has three role workspaces:
 
@@ -271,7 +411,7 @@ Current frontend/backend split:
 - Dietitian review actions and catering fulfillment remain local prototype state.
 - The frontend filters out unavailable or low-confidence menu items before sending recommendation candidates to the backend.
 
-## 12. Important Domain Conventions
+## 14. Important Domain Conventions
 
 Use these conventions consistently:
 
@@ -279,30 +419,36 @@ Use these conventions consistently:
 - Python internal fields use `snake_case`.
 - HTTP and frontend DTO fields use `camelCase`.
 - Medical concepts use `ConceptCode(kind, value)` rather than raw strings.
+- `KnowledgeRuleProvider` and `KnowledgeRetriever` live in `medidiet.knowledge_bridge`, not top-level `medidiet`.
 - Trace output is camelCase and must remain audit-friendly.
 - Patient-facing explanations must avoid diagnosis, medication changes, or unsupported medical promises.
+- Knowledge snippets are source context for clinicians; they do not override safety checks.
 - The frontend should display recommendation state and explanations, not recompute clinical rules.
 
-## 13. Production Gaps
+## 15. Production Gaps
 
 Before production use, add:
 
-- Persistent storage for patients, intake records, menu data, trace, reviews, and audit logs.
+- Persistent storage for patients, intake records, menu data, trace, reviews, rule candidates, published rule versions, and audit logs.
 - Authentication, authorization, patient binding, institution scoping, and role permissions.
 - HIS/EMR, image recognition, canteen/menu, and event-system adapters.
-- Clinical review of rule pack thresholds, source citations, versioning, rollout, and rollback.
-- Privacy controls for patient identifiers, logs, trace retention, and LLM provider boundaries.
+- Clinical review of baseline and knowledge-extracted rule thresholds, source citations, versioning, rollout, and rollback.
+- Reviewer workflow with identity, approval logs, rejection rationale, and immutable version history.
+- Privacy controls for patient identifiers, logs, trace retention, vector-store contents, and LLM provider boundaries.
 - Observability, rate limiting, error budgets, backup, disaster recovery, and operational runbooks.
 
-## 14. Source Documents
+## 16. Source Documents
 
 | Document | Purpose |
 | --- | --- |
+| `docs/api.md` | Current public API, data models, trace, ports, knowledge bridge, LLM exports. |
+| `docs/testing.md` | Current pytest coverage, skipped smoke tests, boundaries, and regression advice. |
+| `docs/nutrition-knowledge-base-test-cases.md` | Knowledge-base QA matrix and new feature test cases. |
+| `docs/phase-3-knowledge-engine-e2e-testing.md` | Phase 3 online knowledge/gap/diversity E2E scenarios. |
 | `docs/usage.md` | Backend usage and local HTTP server notes. |
-| `docs/api.md` | Python public API, data models, trace, ports, LLM exports. |
-| `docs/testing.md` | Test coverage, boundaries, and regression advice. |
 | `docs/demo-usage.md` | End-to-end HTTP demo script. |
 | `docs/frontend-backend-usage-boundary.zh.md` | Frontend/backend capability and boundary overview. |
 | `apps/mini-program-prototype/README.zh.md` | Frontend prototype usage and role flows. |
 | `docs/frontend-e2e-llm-verification.zh.md` | Frontend E2E verification method with LLM-assisted checks. |
-| `docs/frontend-e2e-test-results-2026-05-19.zh.md` | Latest recorded frontend E2E result evidence. |
+| `docs/frontend-e2e-test-results-2026-05-19.zh.md` | Recorded frontend E2E result evidence. |
+| `reports/knowledge-extraction-real-llm-smoke-report.md` | Latest recorded real LLM smoke report. |
