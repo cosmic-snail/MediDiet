@@ -142,7 +142,7 @@ export function requestRecommendation(state: PrototypeState, mode: 'recommended'
   const patientId = selectActivePatient(state).patientId;
 
   if (mode === 'review') {
-    const reviewCase = state.reviewCases.find((item) => item.trace.patientId === patientId) ?? state.reviewCases[0];
+    const reviewCase = state.reviewCases.find((item) => item.trace.patientId === patientId);
     if (!reviewCase) {
       return applyBackendRecommendation(state, patientId, null);
     }

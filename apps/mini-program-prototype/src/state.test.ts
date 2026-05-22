@@ -108,6 +108,15 @@ describe('prototype state machine', () => {
     );
   });
 
+  it('does not leak review cases across patients in review mode', () => {
+    const state = setActivePatient(createInitialPrototypeState(), 'demo-patient-ckd');
+    const next = requestRecommendation(state, 'review');
+
+    expect(selectActivePatientRecommendation(next)).toBeNull();
+    expect(next.recommendationsByPatientId['demo-patient']?.traceId).toBe('trace-7c4e3608');
+    expect(next.recommendationsByPatientId['demo-patient-ckd']).toBeNull();
+  });
+
   it('writes review decisions back to queue and recommendation', () => {
     const state = createInitialPrototypeState();
     const reviewState = requestRecommendation(state, 'review');
