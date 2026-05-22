@@ -120,6 +120,84 @@ describe('App role workbench', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/recommendations', expect.objectContaining({ method: 'POST' }));
   });
 
+  it('requests backend recommendation for the active patient', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okJson({ patients: [], intakeRecordCounts: {}, todayMenuCount: 0, nutritionistReviewCounts: {} }))
+      .mockResolvedValueOnce(okJson({ stored: true }))
+      .mockResolvedValueOnce(okJson({ patientId: 'demo-patient-ckd', intakeRecordCount: 1 }))
+      .mockResolvedValueOnce(okJson({ menuItemCount: 1 }))
+      .mockResolvedValueOnce(
+        okJson({
+          outcome: 'recommended',
+          recommendedItems: [
+            {
+              itemId: 'steamed-fish-set',
+              merchantId: 'hospital-canteen',
+              name: '清蒸鱼套餐',
+              nutrients: {
+                energyKcal: 560,
+                carbsG: 55,
+                proteinG: 35,
+                fatG: 16,
+                sodiumMg: 430,
+                sugarG: 5,
+                fiberG: 7
+              },
+              nutritionTags: [{ kind: 'nutrition_tag', value: 'low_sodium' }],
+              tasteTags: [{ kind: 'taste_tag', value: 'light' }],
+              available: true
+            }
+          ],
+          explanation: {
+            patient: '李先生的后端推荐解释',
+            clinician: 'clinician',
+            llm: { usedFallback: false, fallbackReason: null }
+          },
+          nutritionistReviews: [],
+          traceId: 'trace-http-ckd',
+          trace: {
+            traceId: 'trace-http-ckd',
+            patientId: 'demo-patient-ckd',
+            ruleVersion: 'baseline-2026-05-15',
+            outcome: 'recommended',
+            riskLevel: 'low',
+            createdAt: '2026-05-19T08:00:00+00:00',
+            safetyEvents: [],
+            exclusions: {},
+            scores: { 'steamed-fish-set': 42 },
+            patientExplanation: '李先生的后端推荐解释',
+            clinicianExplanation: {
+              ruleVersion: 'baseline-2026-05-15',
+              matchedTags: [{ kind: 'nutrition_tag', value: 'low_sodium' }],
+              llmBoundary: 'backend'
+            }
+          }
+        })
+      );
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(screen.getByLabelText('当前患者'), 'demo-patient-ckd');
+    await user.click(screen.getByRole('button', { name: '获取下一餐推荐' }));
+
+    expect(await screen.findByText('李先生的后端推荐解释')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/patients/demo-patient-ckd',
+      expect.objectContaining({ method: 'PUT' })
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/patients/demo-patient-ckd/intake-records',
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/recommendations',
+      expect.objectContaining({
+        body: expect.stringContaining('"patientId":"demo-patient-ckd"'),
+        method: 'POST'
+      })
+    );
+  });
+
   it('shows backend errors without clearing the current recommendation', async () => {
     fetchMock
       .mockResolvedValueOnce(okJson({ patients: [], intakeRecordCounts: {}, todayMenuCount: 0, nutritionistReviewCounts: {} }))

@@ -7,8 +7,14 @@ import type { Role } from './contracts';
 import { CateringWorkspace } from './features/catering/CateringWorkspace';
 import { PatientWorkspace } from './features/patient/PatientWorkspace';
 import { DietitianWorkspace } from './features/review/DietitianWorkspace';
-import { intakeRecords, menuItems, patientProfile } from './fixtures';
-import { createInitialPrototypeState, selectWorkbenchSummary, setActiveRole } from './state';
+import {
+  applyBackendRecommendation,
+  createInitialPrototypeState,
+  selectActivePatient,
+  selectActivePatientIntakeRecords,
+  selectWorkbenchSummary,
+  setActiveRole
+} from './state';
 
 const medidietApi = createMediDietApiClient();
 
@@ -27,12 +33,18 @@ export default function App() {
     setServiceError(null);
 
     try {
-      await medidietApi.seedDemoData({ patientProfile, intakeRecords: state.intakeRecords, menuItems: state.menuItems });
+      const activePatient = selectActivePatient(state);
+      const activePatientIntakeRecords = selectActivePatientIntakeRecords(state);
+      await medidietApi.seedDemoData({
+        patientProfile: activePatient,
+        intakeRecords: activePatientIntakeRecords,
+        menuItems: state.menuItems
+      });
       const recommendation = await medidietApi.requestRecommendation({
-        patientId: patientProfile.patientId,
+        patientId: activePatient.patientId,
         mealLabel: 3
       });
-      setState((current) => ({ ...current, recommendation }));
+      setState((current) => applyBackendRecommendation(current, activePatient.patientId, recommendation));
     } catch (error) {
       setServiceError(formatServiceError(error));
     } finally {
