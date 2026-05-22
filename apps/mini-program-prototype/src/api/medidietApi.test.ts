@@ -63,6 +63,37 @@ describe('MediDiet HTTP API client', () => {
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/intake-records'))).toBe(false);
   });
 
+  it('posts only intake records missing from the backend state', async () => {
+    const extraRecord = { ...intakeRecords[0], intakeId: 'manual-extra', foodLabel: '低糖酸奶' };
+    fetchMock
+      .mockResolvedValueOnce(
+        okJson({
+          patients: ['demo-patient'],
+          intakeRecordCounts: { 'demo-patient': 1 },
+          todayMenuCount: 1,
+          nutritionistReviewCounts: {}
+        })
+      )
+      .mockResolvedValue(okJson({ stored: true }));
+    const client = createMediDietApiClient('/api');
+
+    await client.seedDemoData({ patientProfile, intakeRecords: [...intakeRecords, extraRecord], menuItems });
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/debug/state', expect.objectContaining({ method: 'GET' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/patients/demo-patient', expect.objectContaining({ method: 'PUT' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/patients/demo-patient/intake-records',
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/menus/today', expect.objectContaining({ method: 'PUT' }));
+    const intakeRequest = fetchMock.mock.calls[2][1] as RequestInit;
+    expect(JSON.parse(String(intakeRequest.body))).toMatchObject({
+      foodLabel: '低糖酸奶'
+    });
+  });
+
   it('requests a debug recommendation and maps the response', async () => {
     fetchMock.mockResolvedValue(
       okJson({

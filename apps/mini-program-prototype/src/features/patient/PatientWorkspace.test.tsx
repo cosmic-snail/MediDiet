@@ -38,9 +38,26 @@ describe('PatientWorkspace', () => {
     const healthRegion = screen.getByRole('region', { name: '健康资料' });
 
     expect(within(healthRegion).getByRole('heading', { name: '王女士' })).toBeInTheDocument();
+    expect(screen.getByText('52岁 · 关键风险字段已确认')).toBeInTheDocument();
     expect(
       within(healthRegion).getByText('高血压、糖尿病、虾过敏 · 偏好清淡 · 预算 ¥40.00')
     ).toBeInTheDocument();
+  });
+
+  it('renders pending key risk confirmation as a danger health status', () => {
+    const state: PrototypeState = {
+      ...createInitialPrototypeState(),
+      patients: createInitialPrototypeState().patients.map((patient) =>
+        patient.patientId === 'demo-patient' ? { ...patient, keyRiskFieldsConfirmed: false } : patient
+      )
+    };
+
+    render(<PatientWorkspace state={state} onStateChange={vi.fn()} />);
+
+    const healthRegion = screen.getByRole('region', { name: '健康资料' });
+    const status = within(healthRegion).getByText('关键风险字段待确认');
+    expect(screen.getByText('52岁 · 关键风险字段待确认')).toBeInTheDocument();
+    expect(status).toHaveClass('danger');
   });
 
   it('emits a functional updater when selecting the CKD patient', async () => {
@@ -72,6 +89,20 @@ describe('PatientWorkspace', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('白粥配咸菜')).toBeInTheDocument();
     expect(screen.queryByText('推荐结果')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state when the active patient has no intake records', () => {
+    const state: PrototypeState = {
+      ...createInitialPrototypeState(),
+      intakeRecordsByPatientId: {
+        ...createInitialPrototypeState().intakeRecordsByPatientId,
+        'demo-patient': []
+      }
+    };
+
+    render(<PatientWorkspace state={state} onStateChange={vi.fn()} />);
+
+    expect(screen.getByText('暂无今日摄入记录。')).toBeInTheDocument();
   });
 
   it('appends manual intake only to the active CKD patient records', async () => {

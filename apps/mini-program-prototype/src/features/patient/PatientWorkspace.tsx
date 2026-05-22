@@ -56,6 +56,10 @@ export function PatientWorkspace({
   const recommendation = selectActivePatientRecommendation(state);
   const patientState = recommendation ? outcomeToPatientState(recommendation.outcome) : null;
   const recommendedItem = recommendation?.recommendedItems[0];
+  const riskConfirmationLabel = activePatient.keyRiskFieldsConfirmed
+    ? '关键风险字段已确认'
+    : '关键风险字段待确认';
+  const riskConfirmationStatus = activePatient.keyRiskFieldsConfirmed ? 'good' : 'danger';
   const patientStatusLabel =
     patientState === 'showRefusal'
       ? '拒绝推荐'
@@ -106,6 +110,9 @@ export function PatientWorkspace({
               </option>
             ))}
           </select>
+          <p className="muted">
+            {activePatient.age}岁 · {riskConfirmationLabel}
+          </p>
         </div>
       </section>
 
@@ -123,7 +130,7 @@ export function PatientWorkspace({
             <p className="eyebrow">健康资料</p>
             <h2>{activePatient.displayName}</h2>
           </div>
-          <span className="status good">关键风险字段已确认</span>
+          <span className={`status ${riskConfirmationStatus}`}>{riskConfirmationLabel}</span>
         </div>
         <p className="muted">{formatPatientSummary(activePatient)}</p>
       </section>
@@ -150,6 +157,7 @@ export function PatientWorkspace({
             </div>
           ))}
         </div>
+        {intakeRecords.length === 0 && <p className="muted">暂无今日摄入记录。</p>}
         <button
           className="secondary-button"
           type="button"
