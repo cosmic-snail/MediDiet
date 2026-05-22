@@ -118,6 +118,7 @@ def test_manifest_records_have_required_fields_and_existing_markdown_paths():
         seen_doc_ids.add(row["doc_id"])
         assert row["language"] in ALLOWED_LANGUAGES
         assert row["source_type"] in ALLOWED_SOURCE_TYPES
+        assert isinstance(row["year"], str)
         assert row["annotation_method"] == "llm_generated"
         assert row["review_status"] == "unreviewed"
         assert row["failure_is_valid_observation"] is True
@@ -130,6 +131,17 @@ def test_manifest_records_have_required_fields_and_existing_markdown_paths():
         assert path.suffix == ".md"
         text = path.read_text(encoding="utf-8")
         assert f"doc_id: {row['doc_id']}" in text
+        assert f"title: \"{row['title']}\"" in text
+        assert f"language: {row['language']}" in text
+        assert f"source_type: {row['source_type']}" in text
         assert f"source_url: \"{row['source_url']}\"" in text
+        assert f"publisher: \"{row['publisher']}\"" in text
+        assert f"year: \"{row['year']}\"" in text
+        assert f"annotation_method: {row['annotation_method']}" in text
+        assert f"label_model: \"{row['label_model']}\"" in text
+        assert f"label_prompt_version: \"{row['label_prompt_version']}\"" in text
+        assert f"review_status: {row['review_status']}" in text
+        assert f"label_confidence: {row['label_confidence']:.2f}" in text
+        assert f"failure_is_valid_observation: {str(row['failure_is_valid_observation']).lower()}" in text
         assert f"copyright_mode: {row['copyright_mode']}" in text
         assert f"notes: \"{row['notes']}\"" in text
