@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.80
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "Official NHC notice for adult diabetes food therapy; card emphasizes individualized balanced meals and carbohydrate quality."
 ---
 
 # 成人糖尿病食养指南（2023年版）

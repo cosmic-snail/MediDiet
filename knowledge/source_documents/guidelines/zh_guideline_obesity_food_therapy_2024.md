@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.81
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "Official NHC 2024 food therapy notice; card summarizes energy-control and meal-planning advice for adult obesity."
 ---
 
 # 成人肥胖食养指南（2024年版）

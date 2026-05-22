@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.78
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "Official NHC 2024 food therapy notice; purine and hydration concepts are expected to expose extraction schema gaps."
 ---
 
 # 成人高尿酸血症与痛风食养指南（2024年版）

@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.80
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "National Kidney Foundation KDOQI nutrition-in-CKD guideline page; card targets protein and electrolyte nutrition concepts."
 ---
 
 # KDOQI Clinical Practice Guideline for Nutrition in CKD: 2020 Update

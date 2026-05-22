@@ -7,7 +7,7 @@ source_url: "https://www.nhc.gov.cn/sps/c100088/202402/9ba512ba8e314a47a181db11d
 publisher: "国家卫生健康委办公厅"
 year: "2024"
 disease_focus: ["chronic_kidney_disease"]
-nutrition_focus: ["protein", "sodium", "potassium", "phosphorus"]
+nutrition_focus: ["protein", "sodium_mg", "potassium", "phosphorus"]
 evaluation_labels: ["concept_gap", "contextual"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.78
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "Official NHC 2024 food therapy notice; CKD protein, potassium, and phosphorus topics may expose schema gaps."
 ---
 
 # 成人慢性肾脏病食养指南（2024年版）

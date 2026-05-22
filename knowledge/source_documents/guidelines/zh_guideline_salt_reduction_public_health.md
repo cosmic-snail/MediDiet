@@ -7,7 +7,7 @@ source_url: "https://www.nhc.gov.cn/guihuaxxs/c100133/201907/2a6ed52f1c264203b53
 publisher: "健康中国行动推进委员会"
 year: "2019"
 disease_focus: ["hypertension", "cardiovascular_risk", "general_population"]
-nutrition_focus: ["sodium", "salt_reduction"]
+nutrition_focus: ["sodium_mg", "salt_reduction"]
 evaluation_labels: ["should_extract", "patient_education"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.84
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "NHC-hosted Healthy China Action document; card isolates the public-health salt reduction target."
 ---
 
 # 健康中国行动（2019—2030年）合理膳食行动：减盐目标

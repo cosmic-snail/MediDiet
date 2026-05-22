@@ -80,6 +80,7 @@ REQUIRED_MANIFEST_FIELDS = {
     "review_status",
     "failure_is_valid_observation",
     "copyright_mode",
+    "notes",
 }
 
 ALLOWED_SOURCE_TYPES = {"guideline", "paper", "manual"}
@@ -130,3 +131,5 @@ def test_manifest_records_have_required_fields_and_existing_markdown_paths():
         text = path.read_text(encoding="utf-8")
         assert f"doc_id: {row['doc_id']}" in text
         assert f"source_url: \"{row['source_url']}\"" in text
+        assert f"copyright_mode: {row['copyright_mode']}" in text
+        assert f"notes: \"{row['notes']}\"" in text

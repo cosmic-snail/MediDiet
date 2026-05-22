@@ -7,7 +7,7 @@ source_url: "https://www.nhc.gov.cn/ylyjs/gzdt/202407/256b4eb8398440a8811344c7be
 publisher: "国家卫生健康委办公厅"
 year: "2024"
 disease_focus: ["hypertension", "hyperglycemia", "hyperlipidemia", "hyperuricemia"]
-nutrition_focus: ["dietary_pattern", "physical_activity", "sodium", "energy_balance"]
+nutrition_focus: ["dietary_pattern", "physical_activity", "sodium_mg", "energy_balance"]
 evaluation_labels: ["contextual", "should_extract"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.79
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "Official NHC guidance integrates nutrition and exercise principles across four chronic-disease risk groups."
 ---
 
 # 高血压等慢性病营养和运动指导原则（2024年版）

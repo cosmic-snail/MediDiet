@@ -7,7 +7,7 @@ source_url: "https://professional.heart.org/en/guidelines-statements/2021-dietar
 publisher: "American Heart Association"
 year: "2021"
 disease_focus: ["cardiovascular_risk", "hypertension", "hyperlipidemia"]
-nutrition_focus: ["dietary_pattern", "sodium", "added_sugar", "fat_quality"]
+nutrition_focus: ["dietary_pattern", "sodium_mg", "sugar_g", "fat_g"]
 evaluation_labels: ["should_extract"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.83
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "AHA scientific statement hub; card summarizes food-based cardiovascular dietary pattern components."
 ---
 
 # AHA 2021 Dietary Guidance to Improve Cardiovascular Health

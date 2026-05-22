@@ -7,7 +7,7 @@ source_url: "https://www.nhc.gov.cn/sps/c100088/202301/f01895a06c5349ef999f25da8
 publisher: "国家卫生健康委办公厅"
 year: "2023"
 disease_focus: ["hyperlipidemia", "cardiovascular_risk"]
-nutrition_focus: ["fat_quality", "dietary_pattern", "energy_balance"]
+nutrition_focus: ["fat_g", "dietary_pattern", "energy_balance"]
 evaluation_labels: ["should_extract"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.80
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "Official NHC notice for adult hyperlipidemia food therapy; card focuses on fat quantity and balanced dietary pattern signals."
 ---
 
 # 成人高脂血症食养指南（2023年版）

@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.78
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "ACR gout guideline page; lifestyle guidance is contextual and may expose purine/fructose schema gaps."
 ---
 
 # 2020 American College of Rheumatology Guideline for the Management of Gout

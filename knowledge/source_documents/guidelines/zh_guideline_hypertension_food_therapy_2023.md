@@ -7,7 +7,7 @@ source_url: "https://www.nhc.gov.cn/sps/c100088/202301/f01895a06c5349ef999f25da8
 publisher: "国家卫生健康委办公厅"
 year: "2023"
 disease_focus: ["hypertension"]
-nutrition_focus: ["sodium", "potassium", "alcohol", "dietary_pattern"]
+nutrition_focus: ["sodium_mg", "potassium", "alcohol", "dietary_pattern"]
 evaluation_labels: ["should_extract"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.82
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "Official NHC food therapy guideline notice; card summarizes sodium reduction, balanced diet, and alcohol-related advice."
 ---
 
 # 成人高血压食养指南（2023年版）

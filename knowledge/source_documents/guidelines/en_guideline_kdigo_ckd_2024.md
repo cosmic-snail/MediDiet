@@ -7,7 +7,7 @@ source_url: "https://kdigo.org/guidelines/ckd-evaluation-and-management/kdigo-20
 publisher: "Kidney Disease: Improving Global Outcomes"
 year: "2024"
 disease_focus: ["chronic_kidney_disease"]
-nutrition_focus: ["protein", "sodium", "potassium"]
+nutrition_focus: ["protein", "sodium_mg", "potassium"]
 evaluation_labels: ["concept_gap", "contextual"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.79
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "KDIGO CKD guideline page; card isolates nutrition-related practice points likely to test CKD concept coverage."
 ---
 
 # KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of CKD

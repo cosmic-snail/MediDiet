@@ -7,7 +7,7 @@ source_url: "https://www.who.int/publications/i/item/9789241549028"
 publisher: "World Health Organization"
 year: "2015"
 disease_focus: ["obesity", "diabetes", "dental_caries"]
-nutrition_focus: ["free_sugars", "added_sugar"]
+nutrition_focus: ["sugar_g", "free_sugars"]
 evaluation_labels: ["should_extract", "cross_language"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.85
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "WHO sugars guideline; card focuses on free-sugar percentage thresholds."
 ---
 
 # WHO Guideline: Sugars Intake for Adults and Children

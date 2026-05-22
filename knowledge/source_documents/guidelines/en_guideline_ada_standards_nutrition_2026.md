@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.82
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "ADA Standards section on health behaviors and nutrition therapy; current as of the 2026 standards release."
 ---
 
 # ADA Standards of Care in Diabetes—2026: Nutrition Therapy

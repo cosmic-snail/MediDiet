@@ -7,7 +7,7 @@ source_url: "https://www.nhc.gov.cn/xcs/c100123/202405/73a4927142f34152abed87563
 publisher: "国家卫生健康委办公厅"
 year: "2024"
 disease_focus: ["general_population", "chronic_disease_prevention"]
-nutrition_focus: ["dietary_balance", "sodium", "sugar", "hydration"]
+nutrition_focus: ["dietary_balance", "sodium_mg", "sugar_g", "hydration"]
 evaluation_labels: ["patient_education", "should_extract"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.82
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "NHC health literacy guidance; card focuses on general adult balanced-diet and hydration messages."
 ---
 
 # 中国公民健康素养——基本知识与技能（2024年版）：平衡膳食

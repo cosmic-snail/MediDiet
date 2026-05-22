@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.81
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "NICE NG246 diet and physical-activity chapter; card targets multicomponent weight-management recommendations."
 ---
 
 # NICE NG246 Overweight and Obesity Management: Physical Activity and Diet

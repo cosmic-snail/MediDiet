@@ -15,6 +15,8 @@ label_prompt_version: "metadata-labeling-v1"
 review_status: unreviewed
 label_confidence: 0.83
 failure_is_valid_observation: true
+copyright_mode: short_excerpt_or_summary
+notes: "WHO carbohydrate-quality guideline; card focuses on fiber, fruits, vegetables, and carbohydrate source quality."
 ---
 
 # WHO Guideline: Carbohydrate Intake for Adults and Children
