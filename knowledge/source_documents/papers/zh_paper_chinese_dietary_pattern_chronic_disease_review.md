@@ -1,13 +1,13 @@
 ---
 doc_id: zh_paper_chinese_dietary_pattern_chronic_disease_review
-title: "中式膳食模式及其健康结局关系的系统综述和荟萃分析"
+title: "[Relationship Between Dietary Nutrition and Chronic Disease of Jinuo Minority Residents Aged 20-80 in Jinghong District in 2020]"
 language: zh
 source_type: paper
-source_url: "https://www.cambridge.org/core/journals/public-health-nutrition/article/identification-of-chinese-dietary-patterns-and-their-relationships-with-health-outcomes-a-systematic-review-and-metaanalysis/7BD37CA41D547A0183918FF04EF80C9E"
-publisher: "Public Health Nutrition"
+source_url: "https://pubmed.ncbi.nlm.nih.gov/38443170/"
+publisher: "Wei Sheng Yan Jiu"
 year: "2024"
 disease_focus: ["cardiovascular_risk", "diabetes", "obesity", "chronic_disease_prevention"]
-nutrition_focus: ["dietary_pattern", "vegetables", "whole_grains", "fat_g"]
+nutrition_focus: ["dietary_pattern", "energy_kcal", "fat_g", "chronic_disease"]
 evaluation_labels: ["contextual", "should_extract"]
 annotation_method: llm_generated
 label_model: "deepseek-v4-flash"
@@ -16,21 +16,21 @@ review_status: unreviewed
 label_confidence: 0.79
 failure_is_valid_observation: true
 copyright_mode: short_excerpt_or_summary
-notes: "Cambridge Core page for systematic review of Chinese dietary patterns and health outcomes; card emphasizes pattern-level chronic disease signals."
+notes: "PubMed record marked Article in Chinese; Chinese-language study of dietary nutrition and chronic disease among Jinuo residents."
 ---
 
-# 中式膳食模式及其健康结局关系的系统综述和荟萃分析
+# [Relationship Between Dietary Nutrition and Chronic Disease of Jinuo Minority Residents Aged 20-80 in Jinghong District in 2020]
 
 ## Source Notes
 
-This Chinese source card tests extraction from a broad dietary-pattern review rather than a single nutrient threshold.
+Article in Chinese; 中文论文来源. This source card tests extraction from a Chinese-language dietary nutrition and chronic disease study.
 
 ## Extractable Source Content
 
-- 该综述识别中式膳食模式，并总结其与心血管疾病、糖尿病、肥胖等慢病结局的关系。
-- 动物性食物模式、传统膳食模式和植物性食物摄入等信息更适合作为 dietary_pattern 上下文。
-- 抽取器应避免把膳食模式关联直接转换成未经支持的单一营养素限制。
+- 论文分析特定中国人群的膳食营养状况与慢性病之间的关系。
+- 抽取信号偏向 dietary_pattern、energy_kcal、fat_g 和 chronic_disease_prevention 上下文。
+- 由于该文献是人群观察性资料，抽取器应避免把关联直接转成治疗处方。
 
 ## Copyright Handling
 
-This card uses faithful Chinese summary only and links to the publisher page instead of reproducing article text.
+This card uses faithful Chinese summary only and links to the PubMed record instead of reproducing article text.

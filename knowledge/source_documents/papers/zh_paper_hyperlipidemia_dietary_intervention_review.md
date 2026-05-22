@@ -1,10 +1,10 @@
 ---
 doc_id: zh_paper_hyperlipidemia_dietary_intervention_review
-title: "北京社区高脂血症膳食干预研究"
+title: "[Effects of Dietary Intervention on Hyperlipidemia in Eight Communities in Beijing]"
 language: zh
 source_type: paper
 source_url: "https://pubmed.ncbi.nlm.nih.gov/12600040/"
-publisher: "Zhonghua Yu Fang Yi Xue Za Zhi"
+publisher: "Wei Sheng Yan Jiu"
 year: "2002"
 disease_focus: ["hyperlipidemia", "cardiovascular_risk"]
 nutrition_focus: ["fat_g", "dietary_pattern", "energy_kcal"]
@@ -16,14 +16,14 @@ review_status: unreviewed
 label_confidence: 0.76
 failure_is_valid_observation: true
 copyright_mode: short_excerpt_or_summary
-notes: "PubMed record for a Chinese community dietary intervention study; card focuses on lipid control through diet-pattern and weight signals."
+notes: "PubMed record marked Article in Chinese; Chinese-language community dietary intervention study for hyperlipidemia."
 ---
 
-# 北京社区高脂血症膳食干预研究
+# [Effects of Dietary Intervention on Hyperlipidemia in Eight Communities in Beijing]
 
 ## Source Notes
 
-This Chinese source card tests extraction from a Chinese-language community dietary intervention paper.
+Article in Chinese; 中文论文来源. This source card tests extraction from a Chinese-language community dietary intervention paper.
 
 ## Extractable Source Content
 

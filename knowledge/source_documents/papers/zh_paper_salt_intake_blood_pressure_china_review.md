@@ -1,10 +1,10 @@
 ---
 doc_id: zh_paper_salt_intake_blood_pressure_china_review
-title: "中国人群减盐干预降低血压的系统综述和荟萃分析"
+title: "[Study on the Salt Intake of Jiaodong Residents After the Salt Reduction Intervention Program and Its Correlation with Blood Pressure]"
 language: zh
 source_type: paper
-source_url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7044858/"
-publisher: "BMJ Open"
+source_url: "https://pubmed.ncbi.nlm.nih.gov/33115202/"
+publisher: "Zhonghua Yu Fang Yi Xue Za Zhi"
 year: "2020"
 disease_focus: ["hypertension"]
 nutrition_focus: ["sodium_mg", "salt_reduction", "potassium"]
@@ -16,21 +16,21 @@ review_status: unreviewed
 label_confidence: 0.82
 failure_is_valid_observation: true
 copyright_mode: short_excerpt_or_summary
-notes: "PMC systematic review and meta-analysis of salt-reduction interventions in Chinese populations; potassium-containing salt substitutes are a concept-gap signal."
+notes: "PubMed record marked Article in Chinese; Chinese-language study of salt intake after intervention and correlation with blood pressure."
 ---
 
-# 中国人群减盐干预降低血压的系统综述和荟萃分析
+# [Study on the Salt Intake of Jiaodong Residents After the Salt Reduction Intervention Program and Its Correlation with Blood Pressure]
 
 ## Source Notes
 
-This Chinese source card tests salt-reduction evidence in Chinese populations and distinguishes sodium from salt-substitute context.
+Article in Chinese; 中文论文来源. This source card tests salt-intake and blood-pressure extraction from a Chinese-language population study.
 
 ## Extractable Source Content
 
-- 该系统综述评估中国人群减盐策略对血压的影响。
+- 论文研究胶东地区居民在减盐干预后的盐摄入情况及其与血压的相关性。
 - sodium_mg 或 salt_reduction 是明确可抽取信号。
-- 部分干预涉及含钾盐替代品，potassium 应作为 concept gap 保留，而不是被误写为 sodium_mg。
+- 若涉及钠钾摄入背景，potassium 应作为 concept gap 保留，而不是被误写为 sodium_mg。
 
 ## Copyright Handling
 
-This card uses faithful Chinese summary only and links to the open-access source instead of reproducing article text.
+This card uses faithful Chinese summary only and links to the PubMed record instead of reproducing article text.

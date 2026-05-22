@@ -116,6 +116,22 @@ def test_paper_manifest_subset_has_required_distribution():
     assert sum(1 for row in paper_rows if row["language"] == "en") == 9
 
 
+def test_zh_pubmed_paper_cards_mark_chinese_language_source():
+    rows = _manifest_rows()
+    zh_pubmed_paper_rows = [
+        row
+        for row in rows
+        if row.get("source_type") == "paper"
+        and row.get("language") == "zh"
+        and "pubmed.ncbi.nlm.nih.gov" in row.get("source_url", "")
+    ]
+    assert len(zh_pubmed_paper_rows) == 9
+    assert len({row["source_url"] for row in zh_pubmed_paper_rows}) == 9
+    for row in zh_pubmed_paper_rows:
+        text = (REPO_ROOT / row["path"]).read_text(encoding="utf-8")
+        assert "Article in Chinese" in text or "中文论文来源" in text
+
+
 def test_manifest_records_have_required_fields_and_existing_markdown_paths():
     rows = _manifest_rows()
     seen_doc_ids: set[str] = set()
