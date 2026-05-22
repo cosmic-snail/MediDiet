@@ -59,3 +59,74 @@ def test_knowledge_loader_can_load_all_dataset_source_directories():
             source_type=source_type,
         )
         assert isinstance(docs, list)
+
+
+REQUIRED_MANIFEST_FIELDS = {
+    "doc_id",
+    "path",
+    "title",
+    "language",
+    "source_type",
+    "source_url",
+    "publisher",
+    "year",
+    "disease_focus",
+    "nutrition_focus",
+    "evaluation_labels",
+    "annotation_method",
+    "label_model",
+    "label_prompt_version",
+    "label_confidence",
+    "review_status",
+    "failure_is_valid_observation",
+    "copyright_mode",
+}
+
+ALLOWED_SOURCE_TYPES = {"guideline", "paper", "manual"}
+ALLOWED_LANGUAGES = {"zh", "en"}
+ALLOWED_EVALUATION_LABELS = {
+    "should_extract",
+    "concept_gap",
+    "negative",
+    "contextual",
+    "conflict",
+    "cross_language",
+    "patient_education",
+}
+
+
+def _manifest_rows() -> list[dict]:
+    return _read_jsonl(DATASET_DIR / "manifest.jsonl")
+
+
+def test_guideline_manifest_subset_has_required_distribution():
+    rows = _manifest_rows()
+    guideline_rows = [row for row in rows if row.get("source_type") == "guideline"]
+    assert len(guideline_rows) == 24
+    assert sum(1 for row in guideline_rows if row["language"] == "zh") == 12
+    assert sum(1 for row in guideline_rows if row["language"] == "en") == 12
+
+
+def test_manifest_records_have_required_fields_and_existing_markdown_paths():
+    rows = _manifest_rows()
+    seen_doc_ids: set[str] = set()
+    for row in rows:
+        missing = REQUIRED_MANIFEST_FIELDS - set(row)
+        assert not missing, f"{row.get('doc_id', 'unknown_doc')} missing fields: {sorted(missing)}"
+        assert row["doc_id"] not in seen_doc_ids
+        seen_doc_ids.add(row["doc_id"])
+        assert row["language"] in ALLOWED_LANGUAGES
+        assert row["source_type"] in ALLOWED_SOURCE_TYPES
+        assert row["annotation_method"] == "llm_generated"
+        assert row["review_status"] == "unreviewed"
+        assert row["failure_is_valid_observation"] is True
+        assert isinstance(row["label_confidence"], int | float)
+        assert 0 <= row["label_confidence"] <= 1
+        assert row["copyright_mode"] == "short_excerpt_or_summary"
+        assert set(row["evaluation_labels"]).issubset(ALLOWED_EVALUATION_LABELS)
+        path = REPO_ROOT / row["path"]
+        assert path.exists(), f"source card path does not exist: {path}"
+        assert path.suffix == ".md"
+        text = path.read_text(encoding="utf-8")
+        assert f"doc_id: {row['doc_id']}" in text
+        assert f"source_url: \"{row['source_url']}\"" in text
