@@ -1,6 +1,6 @@
 # Nutrition Rule Extraction Dataset Design
 
-Version: 0.2.0
+Version: 0.3.0
 Date: 2026-05-22
 Target: Build a 60-source bilingual nutrition and disease knowledge corpus for no-human-in-loop rule extraction research.
 
@@ -52,7 +52,9 @@ knowledge/
         ├── README.zh.md
         ├── manifest.jsonl
         ├── expected_rules.jsonl
-        └── extraction_observations.jsonl
+        ├── extraction_observations.jsonl
+        ├── gold_evaluation_set.jsonl
+        └── challenge_set.jsonl
 ```
 
 `manual/` is used for web articles, blog-like explainers, and patient education pages because the current `KnowledgeDocument.source_type` enum only allows `guideline`, `paper`, `food_db`, and `manual`.
@@ -244,7 +246,74 @@ Supported `failure_type` values:
 - `no_relevant_rule`
 - `other`
 
-## 9. Evaluation Labels
+## 9. Offline Ground Truth Policy
+
+The dataset separates automated rule generation from offline measurement:
+
+- The rule extraction system remains no-human-in-loop. It uses source cards, weak metadata, generated expected rules, extraction outputs, and automated verification.
+- A small frozen `gold_evaluation_set.jsonl` exists only for offline metric calculation.
+- Gold records must not be used to update prompts, regenerate labels, repair extraction outputs, or publish rule candidates during the same experiment.
+- Reporting should distinguish no-human-in-loop system outputs from offline evaluation against gold records.
+
+Recommended paper wording:
+
+```text
+Rule generation was fully automated without human-in-the-loop intervention. A small frozen evaluation subset was used only for offline measurement and did not update prompts, labels, or generated rules.
+```
+
+## 10. Gold Evaluation Set Format
+
+`gold_evaluation_set.jsonl` contains a deliberately small set of frozen ground-truth records for effect measurement. It should cover clear, low-ambiguity cases and a few explicit negatives.
+
+Target size for `rule_extraction_v1`: 12-15 records selected from the 60 source cards.
+
+```json
+{
+  "gold_id": "gold_en_guideline_who_sodium_2012_001",
+  "doc_id": "en_guideline_who_sodium_2012",
+  "gold_behavior": "rule",
+  "condition": {"kind": "condition", "value": "hypertension"},
+  "hard_exclusions": [{"kind": "contraindication", "value": "high_sodium"}],
+  "preferred_tags": [{"kind": "nutrition_tag", "value": "low_sodium"}],
+  "nutrition_limits": [
+    {"metric": "sodium_mg", "scope": "daily", "max_value": 2000, "window_hours": null}
+  ],
+  "evidence_requirement": "The output must cite source text supporting a daily sodium limit.",
+  "created_for": "offline_evaluation_only",
+  "frozen": true
+}
+```
+
+Supported `gold_behavior` values:
+
+- `rule`: a structured rule should be extracted.
+- `suggested_concept`: the source should surface an unsupported but relevant concept.
+- `negative`: no rule should be extracted.
+
+Gold subset selection rules:
+
+- Prefer explicit sodium, sugar, fat, carbohydrate, or energy claims compatible with current `NutrientMetric` values.
+- Include at least two explicit negative examples where the source text is background or evidence is too vague.
+- Avoid highly contextual CKD, gout, dialysis, acute flare, pregnancy, pediatric, or medication-dependent recommendations unless the gold behavior is `suggested_concept` or `negative`.
+- Freeze the file before experiments begin and record any later change as a new dataset version.
+
+## 11. Challenge Set Format
+
+`challenge_set.jsonl` tracks difficult records that are useful for failure analysis but should not be forced into precision/recall metrics.
+
+```json
+{
+  "challenge_id": "challenge_zh_guideline_gout_food_therapy_2024_001",
+  "doc_id": "zh_guideline_gout_food_therapy_2024",
+  "challenge_type": "unsupported_nutrient_metric",
+  "reason": "Purine and alcohol recommendations are clinically relevant but not directly represented by the current nutrient metric schema.",
+  "recommended_analysis": "Record suggested concepts and verifier behavior; do not count as false negative in rule F1."
+}
+```
+
+Supported `challenge_type` values use the same failure taxonomy as `failure_type`, plus `multi_condition_context` for sources that mix several disease stages or care settings.
+
+## 12. Evaluation Labels
 
 Every source card gets at least one label:
 
@@ -257,7 +326,7 @@ Every source card gets at least one label:
 
 These labels are generated weak labels. Their purpose is to stratify analysis, not to assert final truth.
 
-## 10. Current Extractor Alignment
+## 13. Current Extractor Alignment
 
 The dataset must explicitly test the current boundaries of the extraction code:
 
@@ -267,7 +336,7 @@ The dataset must explicitly test the current boundaries of the extraction code:
 - The baseline concept registry contains `hypertension`, `diabetes`, `hyperlipidemia`, and `weight_control`; CKD and gout can be tested either with a custom registry or as `suggested_concept` outputs.
 - Sources with potassium, phosphorus, protein, purine, alcohol, and hydration recommendations are valuable because they reveal concept and metric gaps instead of being forced into wrong rule fields.
 
-## 11. Seed Source Families
+## 14. Seed Source Families
 
 Use authoritative and traceable sources first:
 
@@ -309,7 +378,7 @@ Web/manual sources:
 - Cleveland Clinic renal diet pages.
 - Chinese NHC interviews, Q&A pages, and public nutrition explainers.
 
-## 12. Research Metrics
+## 15. Research Metrics
 
 The dataset should support no-human-in-loop analysis of:
 
@@ -324,7 +393,17 @@ The dataset should support no-human-in-loop analysis of:
 
 None of these metrics claim clinical correctness. They measure system behavior and failure modes under reproducible conditions.
 
-## 13. Quality Gates
+Offline gold subset metrics:
+
+- `gold_precision`: extracted rule fields supported by frozen gold records.
+- `gold_recall`: frozen gold rule fields recovered by the extractor.
+- `gold_f1`: harmonic mean of gold precision and recall on supported fields.
+- `gold_negative_specificity`: share of gold negative records that do not produce unsupported rules.
+- `gold_hallucination_rate`: share of extracted fields that lack source support under gold evidence requirements.
+
+Gold metrics must be reported separately from weak-label metrics and challenge-set observations.
+
+## 16. Quality Gates
 
 The dataset is acceptable when:
 
@@ -340,21 +419,24 @@ The dataset is acceptable when:
 - `KnowledgeLoader` can load the guideline, paper, and manual directories.
 - A dataset validation test checks manifest integrity and expected rule schema.
 - The dataset README states clearly that weak labels and expected rules are machine-generated and unreviewed.
+- `gold_evaluation_set.jsonl` contains 12-15 frozen offline evaluation records and is clearly marked as not used by the no-human-in-loop generation pipeline.
+- `challenge_set.jsonl` contains contextual or unsupported-schema records that should be analyzed without forcing precision/recall scoring.
 
-## 14. Implementation Plan Preview
+## 17. Implementation Plan Preview
 
 After this design is approved, implementation should proceed in three batches:
 
 1. Create `manual/`, `datasets/rule_extraction_v1/`, README, manifest schema expectations, expected rule schema expectations, observation schema expectations, and a validation test.
 2. Add the 60 Markdown source cards and `manifest.jsonl`.
-3. Add `expected_rules.jsonl`, initialize `extraction_observations.jsonl`, run loader and validation tests, then run a focused extractor smoke test on representative records.
+3. Add `expected_rules.jsonl`, initialize `extraction_observations.jsonl`, add the frozen `gold_evaluation_set.jsonl` and `challenge_set.jsonl`, run loader and validation tests, then run a focused extractor smoke test on representative records.
 
 The implementation should not change extraction logic unless validation reveals that the dataset cannot be loaded with the current interfaces.
 
-## 15. Risks
+## 18. Risks
 
 - Copyright risk: avoid storing full guideline PDFs or full article text; use links, metadata, short excerpts, and summaries.
 - Medical accuracy risk: expected rules are machine-generated weak labels, not approved clinical rules.
 - Scope drift: do not add new disease logic during dataset construction unless separately approved.
 - Concept mismatch: CKD and gout are expected to expose registry gaps; this is useful and should be labelled rather than hidden.
 - Automation risk: the metadata generator can mislabel disease or nutrition focus; that mislabeling should be recorded and analyzed as part of the no-human-in-loop system behavior.
+- Evaluation leakage risk: the frozen gold subset must not be used to tune prompts, select outputs, or repair extracted rules in the same experiment.
