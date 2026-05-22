@@ -51,6 +51,7 @@ describe('App role workbench', () => {
     await user.click(screen.getByRole('button', { name: '驳回推荐' }));
     await user.click(screen.getByRole('button', { name: '患者' }));
 
+    expect(screen.getByLabelText('当前患者')).toHaveValue('demo-patient');
     expect(screen.getByRole('heading', { name: '需要处理' })).toBeInTheDocument();
     expect(screen.getByText(/营养师未通过/)).toBeInTheDocument();
     expect(screen.getByText('推荐状态：拒绝推荐')).toBeInTheDocument();
@@ -192,8 +193,8 @@ describe('App role workbench', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/recommendations',
       expect.objectContaining({
-        body: expect.stringContaining('"patientId":"demo-patient-ckd"'),
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({ patientId: 'demo-patient-ckd', mealLabel: 3, temporaryTasteTags: [], debug: true })
       })
     );
   });
