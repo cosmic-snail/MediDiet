@@ -398,7 +398,7 @@ export function requestRecommendation(state: PrototypeState, mode: 'recommended'
   const patientId = selectActivePatient(state).patientId;
 
   if (mode === 'review') {
-    const reviewCase = state.reviewCases.find((item) => item.trace.patientId === patientId) ?? state.reviewCases[0];
+    const reviewCase = state.reviewCases.find((item) => item.trace.patientId === patientId);
     if (!reviewCase) {
       return {
         ...state,
@@ -1168,3 +1168,7 @@ Type consistency:
 - State fields are consistently named `patients`, `activePatientId`, `intakeRecordsByPatientId`, and `recommendationsByPatientId`.
 - The write helper is consistently named `applyBackendRecommendation(state, patientId, recommendation)`.
 - Selectors are consistently named `selectActivePatient`, `selectActivePatientIntakeRecords`, and `selectActivePatientRecommendation`.
+
+Implementation note:
+
+- The review-mode recommendation lookup intentionally does not fall back to another patient's review case. If no review case matches the active patient, the active patient's recommendation remains `null`; this avoids cross-patient trace leakage.

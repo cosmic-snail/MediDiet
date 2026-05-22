@@ -19,29 +19,27 @@ interface PatientWorkspaceProps {
   serviceError?: string | null;
 }
 
-const conditionLabels: Record<string, string> = {
+const conceptLabels: Record<string, string> = {
   ckd: '慢性肾病',
   diabetes: '糖尿病',
-  hypertension: '高血压'
-};
-
-const allergenLabels: Record<string, string> = {
-  peanut: '花生过敏',
-  shrimp: '虾过敏'
-};
-
-const tasteLabels: Record<string, string> = {
+  hypertension: '高血压',
+  peanut: '花生',
+  shrimp: '虾',
   light: '清淡'
 };
 
 function formatPatientSummary(patient: PatientProfileDto) {
   const risks = [
-    ...patient.conditions.map((item) => conditionLabels[item] ?? item),
-    ...patient.allergens.map((item) => allergenLabels[item] ?? item)
+    ...patient.conditions.map(displayConcept),
+    ...patient.allergens.map((item) => `${displayConcept(item)}过敏`)
   ];
-  const tastes = patient.tasteTags.map((item) => tasteLabels[item] ?? item).join('、');
+  const tastes = patient.tasteTags.map(displayConcept).join('、');
 
   return `${risks.join('、')} · 偏好${tastes} · 预算 ${formatPrice(patient.maxPriceCents)}`;
+}
+
+function displayConcept(value: string): string {
+  return conceptLabels[value] ?? value.split('_').join(' ');
 }
 
 export function PatientWorkspace({

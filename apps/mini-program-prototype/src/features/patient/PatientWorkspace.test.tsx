@@ -91,6 +91,32 @@ describe('PatientWorkspace', () => {
     expect(screen.queryByText('推荐结果')).not.toBeInTheDocument();
   });
 
+  it('formats unknown concept codes visibly for patient summaries', () => {
+    const baseState = createInitialPrototypeState();
+    const state: PrototypeState = {
+      ...baseState,
+      patients: baseState.patients.map((patient) =>
+        patient.patientId === 'demo-patient'
+          ? {
+              ...patient,
+              conditions: ['rare_condition'],
+              allergens: ['mystery_allergen'],
+              tasteTags: ['low_salt_preference']
+            }
+          : patient
+      )
+    };
+
+    render(<PatientWorkspace state={state} onStateChange={vi.fn()} />);
+
+    const healthRegion = screen.getByRole('region', { name: '健康资料' });
+    expect(
+      within(healthRegion).getByText(
+        'rare condition、mystery allergen过敏 · 偏好low salt preference · 预算 ¥40.00'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('shows an empty state when the active patient has no intake records', () => {
     const state: PrototypeState = {
       ...createInitialPrototypeState(),
