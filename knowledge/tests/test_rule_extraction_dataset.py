@@ -108,6 +108,14 @@ def test_guideline_manifest_subset_has_required_distribution():
     assert sum(1 for row in guideline_rows if row["language"] == "en") == 12
 
 
+def test_paper_manifest_subset_has_required_distribution():
+    rows = _manifest_rows()
+    paper_rows = [row for row in rows if row.get("source_type") == "paper"]
+    assert len(paper_rows) == 18
+    assert sum(1 for row in paper_rows if row["language"] == "zh") == 9
+    assert sum(1 for row in paper_rows if row["language"] == "en") == 9
+
+
 def test_manifest_records_have_required_fields_and_existing_markdown_paths():
     rows = _manifest_rows()
     seen_doc_ids: set[str] = set()
