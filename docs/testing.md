@@ -26,7 +26,7 @@
 
 ## 2. 测试运行方式
 
-运行全量测试：
+运行后端与知识库全量测试：
 
 ```bash
 PYTHONPATH=src:knowledge/src pytest tests/ knowledge/tests/ --rootdir=. -q
@@ -46,7 +46,17 @@ PYTHONPATH=src:knowledge/src pytest tests/test_engine.py::RecommendationEngineTe
 PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_store.py::TestRuleStoreVersioning::test_publish_version -v --rootdir=.
 ```
 
-当前全量测试数量：254 个（含 2 个默认跳过的真实 LLM smoke test）。普通全量测试默认离线运行。
+运行前端原型测试与构建检查：
+
+```bash
+cd apps/mini-program-prototype
+npm run test
+npm run build
+```
+
+当前后端与知识库全量测试数量：254 个（含 2 个默认跳过的真实 LLM smoke test）。普通全量测试默认离线运行。
+
+当前前端原型测试数量：60 个。前端测试默认离线运行，通过 mocked `fetch` 覆盖 HTTP adapter 行为。
 
 ## 3. 测试文件总览
 
@@ -81,6 +91,21 @@ PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_store.py::TestRuleStore
 | `knowledge/tests/test_loader.py` | `loader.py` | 目录批量导入、文件过滤、可选索引。 |
 | `knowledge/tests/test_extractor.py` | `extractor.py` | LLM 两阶段规则提取、交叉验证、MockLLMProvider 适配。 |
 | `knowledge/tests/test_curator.py` | `curator.py` | 规则审核、发布、人工归因。 |
+
+### 前端原型测试文件
+
+| 测试文件 | 覆盖模块 | 主要风险 |
+| --- | --- | --- |
+| `apps/mini-program-prototype/src/state.test.ts` | `state.ts` | 多患者状态隔离、当前患者切换、摄入和推荐串台、营养师审核结果回写。 |
+| `apps/mini-program-prototype/src/features/patient/PatientWorkspace.test.tsx` | `PatientWorkspace.tsx` | 患者身份选择器、健康资料摘要、关键风险确认状态、空摄入状态、患者侧推荐/拒绝/待审核展示。 |
+| `apps/mini-program-prototype/src/App.test.tsx` | `App.tsx` | 角色切换、营养师审核结果回到患者端、当前患者后端推荐请求。 |
+| `apps/mini-program-prototype/src/api/medidietApi.test.ts` | `api/medidietApi.ts` | 患者资料 seed、摄入记录增量补写、跨患者摄入隔离、推荐请求 payload、结构化错误。 |
+| `apps/mini-program-prototype/src/api/adapters.test.ts` | `api/adapters.ts` | 前后端 DTO 转换、概念编码、推荐响应映射。 |
+| `apps/mini-program-prototype/src/features/review/DietitianWorkspace.test.tsx` | `DietitianWorkspace.tsx` | 审核队列、Trace 展示、审核动作。 |
+| `apps/mini-program-prototype/src/features/catering/CateringWorkspace.test.tsx` | `CateringWorkspace.tsx` | 菜单可售状态、营养信息展示、履约状态。 |
+| `apps/mini-program-prototype/src/fixtures.test.ts` | `fixtures.ts` | 演示数据完整性、患者/菜单/推荐 fixture 结构。 |
+| `apps/mini-program-prototype/src/contracts.test.ts` | `contracts.ts` | 前端枚举、餐次名称、推荐结果状态映射。 |
+| `apps/mini-program-prototype/src/components/RoleSwitcher.test.tsx` | `RoleSwitcher.tsx` | 三角色切换入口和可访问状态。 |
 
 ## 4. 功能覆盖矩阵
 
@@ -156,6 +181,14 @@ PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_store.py::TestRuleStore
 | LLM fallback 保留 knowledge snippets | 已覆盖 | `test_fallback_preserves_knowledge_snippets_from_deterministic_clinician_payload` |
 | KnowledgeSnippet / KnowledgeContext | 已覆盖 | `test_valid_snippet`, `test_valid_context` |
 | RuleProviderPort / KnowledgePort 协议 | 已覆盖 | `test_protocol_is_usable_for_type_checking` |
+| 前端多患者初始状态和当前患者切换 | 已覆盖 | `state.test.ts` 中 `initializes multiple patients...`, `switches the active patient...` |
+| 前端摄入和推荐按患者隔离 | 已覆盖 | `state.test.ts` 中 `adds manually corrected intake records only to the active patient`, `creates simulated recommendation states only for the active patient` |
+| 前端审核等待不泄漏其它患者 trace | 已覆盖 | `state.test.ts` 中 CKD review mode regression |
+| 患者端身份选择器与健康资料摘要 | 已覆盖 | `PatientWorkspace.test.tsx` 中 active patient selector、CKD patient details、unknown concept fallback |
+| 患者端空摄入状态 | 已覆盖 | `PatientWorkspace.test.tsx` 中 `shows an empty state...` |
+| 前端推荐请求使用当前患者 | 已覆盖 | `App.test.tsx` 中 switched-patient backend request |
+| HTTP adapter 摄入记录增量补写 | 已覆盖 | `medidietApi.test.ts` 中 missing intake records test |
+| HTTP adapter 跨患者 seed 隔离 | 已覆盖 | `medidietApi.test.ts` 中 selected patient intake records test |
 
 ## 5. 关键业务路径测试
 
