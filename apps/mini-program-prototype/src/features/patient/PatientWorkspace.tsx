@@ -1,8 +1,15 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { AlertTriangle, Camera, CheckCircle, Clock3, PlusCircle } from 'lucide-react';
-import { formatPrice, mealLabelName, outcomeToPatientState } from '../../contracts';
-import { patientProfile } from '../../fixtures';
-import { addCorrectedIntake, requestRecommendation, type PrototypeState } from '../../state';
+import { formatPrice, mealLabelName, outcomeToPatientState, type PatientProfileDto } from '../../contracts';
+import {
+  addCorrectedIntake,
+  requestRecommendation,
+  selectActivePatient,
+  selectActivePatientIntakeRecords,
+  selectActivePatientRecommendation,
+  setActivePatient,
+  type PrototypeState
+} from '../../state';
 
 interface PatientWorkspaceProps {
   state: PrototypeState;
@@ -12,6 +19,31 @@ interface PatientWorkspaceProps {
   serviceError?: string | null;
 }
 
+const conditionLabels: Record<string, string> = {
+  ckd: '慢性肾病',
+  diabetes: '糖尿病',
+  hypertension: '高血压'
+};
+
+const allergenLabels: Record<string, string> = {
+  peanut: '花生过敏',
+  shrimp: '虾过敏'
+};
+
+const tasteLabels: Record<string, string> = {
+  light: '清淡'
+};
+
+function formatPatientSummary(patient: PatientProfileDto) {
+  const risks = [
+    ...patient.conditions.map((item) => conditionLabels[item] ?? item),
+    ...patient.allergens.map((item) => allergenLabels[item] ?? item)
+  ];
+  const tastes = patient.tasteTags.map((item) => tasteLabels[item] ?? item).join('、');
+
+  return `${risks.join('、')} · 偏好${tastes} · 预算 ${formatPrice(patient.maxPriceCents)}`;
+}
+
 export function PatientWorkspace({
   state,
   onStateChange,
@@ -19,7 +51,9 @@ export function PatientWorkspace({
   recommendationPending = false,
   serviceError
 }: PatientWorkspaceProps) {
-  const recommendation = state.recommendation;
+  const activePatient = selectActivePatient(state);
+  const intakeRecords = selectActivePatientIntakeRecords(state);
+  const recommendation = selectActivePatientRecommendation(state);
   const patientState = recommendation ? outcomeToPatientState(recommendation.outcome) : null;
   const recommendedItem = recommendation?.recommendedItems[0];
   const patientStatusLabel =
@@ -52,6 +86,29 @@ export function PatientWorkspace({
         </button>
       </section>
 
+      <section className="card patient-identity-card">
+        <div>
+          <label className="select-label" htmlFor="active-patient">
+            当前患者
+          </label>
+          <select
+            id="active-patient"
+            className="patient-select"
+            value={state.activePatientId}
+            onChange={(event) => {
+              const nextPatientId = event.currentTarget.value;
+              onStateChange((current) => setActivePatient(current, nextPatientId));
+            }}
+          >
+            {state.patients.map((patient) => (
+              <option key={patient.patientId} value={patient.patientId}>
+                {patient.displayName}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
+
       {serviceError && (
         <section className="card service-error" role="status">
           <p className="eyebrow">后端服务</p>
@@ -60,17 +117,15 @@ export function PatientWorkspace({
         </section>
       )}
 
-      <section className="card">
+      <section className="card" role="region" aria-label="健康资料">
         <div className="card-head">
           <div>
             <p className="eyebrow">健康资料</p>
-            <h2>{patientProfile.displayName}</h2>
+            <h2>{activePatient.displayName}</h2>
           </div>
           <span className="status good">关键风险字段已确认</span>
         </div>
-        <p className="muted">
-          高血压、糖尿病、虾过敏 · 偏好清淡 · 预算 {formatPrice(patientProfile.maxPriceCents)}
-        </p>
+        <p className="muted">{formatPatientSummary(activePatient)}</p>
       </section>
 
       <section className="card">
@@ -82,7 +137,7 @@ export function PatientWorkspace({
           <Camera size={20} aria-hidden="true" />
         </div>
         <div className="list">
-          {state.intakeRecords.map((record) => (
+          {intakeRecords.map((record) => (
             <div className="list-row" key={record.intakeId}>
               <div>
                 <strong>{record.foodLabel}</strong>
