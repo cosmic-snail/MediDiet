@@ -4,18 +4,29 @@ import type {
   IntakeRecordDto,
   MealLabel,
   MenuItemDto,
+  PatientProfileDto,
   RecommendationResponseDto,
   ReviewCaseDto,
   ReviewDecision,
   Role
 } from './contracts';
-import { fulfillments, intakeRecords, menuItems, recommendedResponse, reviewCases } from './fixtures';
+import {
+  fulfillments,
+  intakeRecordsByPatientId,
+  menuItems,
+  patientProfiles,
+  recommendationsByPatientId,
+  recommendedResponse,
+  reviewCases
+} from './fixtures';
 
 export interface PrototypeState {
   activeRole: Role;
-  intakeRecords: IntakeRecordDto[];
+  patients: PatientProfileDto[];
+  activePatientId: string;
+  intakeRecordsByPatientId: Record<string, IntakeRecordDto[]>;
   menuItems: MenuItemDto[];
-  recommendation: RecommendationResponseDto | null;
+  recommendationsByPatientId: Record<string, RecommendationResponseDto | null>;
   reviewCases: ReviewCaseDto[];
   fulfillments: FulfillmentDto[];
 }
@@ -31,9 +42,11 @@ export interface WorkbenchSummary {
 export function createInitialPrototypeState(): PrototypeState {
   return {
     activeRole: 'patient',
-    intakeRecords: [...intakeRecords],
+    patients: [...patientProfiles],
+    activePatientId: patientProfiles[0].patientId,
+    intakeRecordsByPatientId: cloneIntakeRecordsByPatientId(intakeRecordsByPatientId),
     menuItems: [...menuItems],
-    recommendation: recommendedResponse,
+    recommendationsByPatientId: { ...recommendationsByPatientId },
     reviewCases: [...reviewCases],
     fulfillments: [...fulfillments]
   };
@@ -43,14 +56,34 @@ export function setActiveRole(state: PrototypeState, activeRole: Role): Prototyp
   return { ...state, activeRole };
 }
 
+export function selectActivePatient(state: PrototypeState): PatientProfileDto {
+  return state.patients.find((patient) => patient.patientId === state.activePatientId) ?? state.patients[0];
+}
+
+export function selectActivePatientIntakeRecords(state: PrototypeState): IntakeRecordDto[] {
+  return state.intakeRecordsByPatientId[selectActivePatient(state).patientId] ?? [];
+}
+
+export function selectActivePatientRecommendation(state: PrototypeState): RecommendationResponseDto | null {
+  return state.recommendationsByPatientId[selectActivePatient(state).patientId] ?? null;
+}
+
+export function setActivePatient(state: PrototypeState, patientId: string): PrototypeState {
+  if (!state.patients.some((patient) => patient.patientId === patientId)) {
+    return state;
+  }
+
+  return { ...state, activePatientId: patientId };
+}
+
 export function selectWorkbenchSummary(state: PrototypeState, role: Role): WorkbenchSummary {
   if (role === 'patient') {
     return {
       title: '患者工作台',
       primaryLabel: '今日摄入',
-      primaryCount: state.intakeRecords.length,
+      primaryCount: selectActivePatientIntakeRecords(state).length,
       secondaryLabel: '推荐状态',
-      secondaryCount: state.recommendation ? 1 : 0
+      secondaryCount: selectActivePatientRecommendation(state) ? 1 : 0
     };
   }
 
@@ -74,8 +107,10 @@ export function selectWorkbenchSummary(state: PrototypeState, role: Role): Workb
 }
 
 export function addCorrectedIntake(state: PrototypeState, foodLabel: string, mealLabel: MealLabel): PrototypeState {
+  const patientId = selectActivePatient(state).patientId;
+  const currentRecords = state.intakeRecordsByPatientId[patientId] ?? [];
   const nextRecord: IntakeRecordDto = {
-    intakeId: `manual-${state.intakeRecords.length + 1}`,
+    intakeId: `manual-${patientId}-${currentRecords.length + 1}`,
     foodLabel,
     occurredAt: '2026-05-17T18:10:00+08:00',
     mealLabel,
@@ -94,51 +129,74 @@ export function addCorrectedIntake(state: PrototypeState, foodLabel: string, mea
     manuallyCorrected: true
   };
 
-  return { ...state, intakeRecords: [...state.intakeRecords, nextRecord] };
+  return {
+    ...state,
+    intakeRecordsByPatientId: {
+      ...state.intakeRecordsByPatientId,
+      [patientId]: [...currentRecords, nextRecord]
+    }
+  };
 }
 
 export function requestRecommendation(state: PrototypeState, mode: 'recommended' | 'refused' | 'review'): PrototypeState {
+  const patientId = selectActivePatient(state).patientId;
+
   if (mode === 'review') {
-    const reviewCase = state.reviewCases[0];
+    const reviewCase = state.reviewCases.find((item) => item.trace.patientId === patientId);
     if (!reviewCase) {
-      return { ...state, recommendation: null };
+      return applyBackendRecommendation(state, patientId, null);
     }
 
-    return {
-      ...state,
-      recommendation: {
-        outcome: 'human_review_required',
-        riskLevel: reviewCase.riskLevel,
-        traceId: reviewCase.traceId,
-        recommendedItems: [],
-        patientExplanation: reviewCase.trace.patientExplanation,
-        reviewStatus: 'pending',
-        trace: reviewCase.trace
-      }
-    };
+    return applyBackendRecommendation(state, patientId, {
+      outcome: 'human_review_required',
+      riskLevel: reviewCase.riskLevel,
+      traceId: reviewCase.traceId,
+      recommendedItems: [],
+      patientExplanation: reviewCase.trace.patientExplanation,
+      reviewStatus: 'pending',
+      trace: reviewCase.trace
+    });
   }
 
   if (mode === 'refused') {
-    return {
-      ...state,
-      recommendation: {
-        ...recommendedResponse,
+    return applyBackendRecommendation(state, patientId, {
+      ...recommendedResponse,
+      outcome: 'refused',
+      riskLevel: 'high',
+      recommendedItems: [],
+      patientExplanation: '当前候选餐食不满足安全和营养要求，暂不建议自动推荐。',
+      reviewStatus: null,
+      trace: {
+        ...recommendedResponse.trace,
+        patientId,
         outcome: 'refused',
         riskLevel: 'high',
-        recommendedItems: [],
-        patientExplanation: '当前候选餐食不满足安全和营养要求，暂不建议自动推荐。',
-        reviewStatus: null,
-        trace: {
-          ...recommendedResponse.trace,
-          outcome: 'refused',
-          riskLevel: 'high',
-          patientExplanation: '当前候选餐食不满足安全和营养要求，暂不建议自动推荐。'
-        }
+        patientExplanation: '当前候选餐食不满足安全和营养要求，暂不建议自动推荐。'
       }
-    };
+    });
   }
 
-  return { ...state, recommendation: recommendedResponse };
+  return applyBackendRecommendation(state, patientId, {
+    ...recommendedResponse,
+    trace: {
+      ...recommendedResponse.trace,
+      patientId
+    }
+  });
+}
+
+export function applyBackendRecommendation(
+  state: PrototypeState,
+  patientId: string,
+  recommendation: RecommendationResponseDto | null
+): PrototypeState {
+  return {
+    ...state,
+    recommendationsByPatientId: {
+      ...state.recommendationsByPatientId,
+      [patientId]: recommendation
+    }
+  };
 }
 
 function selectReviewedRecommendationItem(state: PrototypeState): MenuItemDto | undefined {
@@ -160,7 +218,9 @@ export function submitReviewDecision(
 
   const status: ReviewCaseDto['status'] =
     decision === 'approve' ? 'approved' : decision === 'modify' ? 'modified' : 'rejected';
-  const matchingRecommendation = state.recommendation?.traceId === traceId ? state.recommendation : null;
+  const patientId = reviewCase.trace.patientId;
+  const existingRecommendation = state.recommendationsByPatientId[patientId] ?? null;
+  const matchingRecommendation = existingRecommendation?.traceId === traceId ? existingRecommendation : null;
   const baseRecommendation: RecommendationResponseDto = matchingRecommendation ?? {
     outcome: reviewCase.trace.outcome,
     riskLevel: reviewCase.riskLevel,
@@ -181,26 +241,29 @@ export function submitReviewDecision(
 
   return {
     ...state,
-    recommendation: {
-      ...baseRecommendation,
-      traceId: reviewCase.traceId,
-      reviewStatus: 'completed',
-      outcome: nextOutcome,
-      riskLevel: nextOutcome === 'recommended' ? 'medium' : 'high',
-      recommendedItems: nextOutcome === 'recommended' && reviewedItem ? [reviewedItem] : [],
-      patientExplanation: nextExplanation,
-      trace: {
-        ...reviewCase.trace,
+    recommendationsByPatientId: {
+      ...state.recommendationsByPatientId,
+      [patientId]: {
+        ...baseRecommendation,
+        traceId: reviewCase.traceId,
+        reviewStatus: 'completed',
         outcome: nextOutcome,
         riskLevel: nextOutcome === 'recommended' ? 'medium' : 'high',
-        scores: nextOutcome === 'recommended' && reviewedItem ? { [reviewedItem.itemId]: 38.4 } : {},
+        recommendedItems: nextOutcome === 'recommended' && reviewedItem ? [reviewedItem] : [],
         patientExplanation: nextExplanation,
-        clinicianExplanation: {
-          ...reviewCase.trace.clinicianExplanation,
-          matchedTags:
-            nextOutcome === 'recommended' && reviewedItem
-              ? reviewedItem.nutritionTags.map((value) => ({ kind: 'nutrition_tag', value }))
-              : []
+        trace: {
+          ...reviewCase.trace,
+          outcome: nextOutcome,
+          riskLevel: nextOutcome === 'recommended' ? 'medium' : 'high',
+          scores: nextOutcome === 'recommended' && reviewedItem ? { [reviewedItem.itemId]: 38.4 } : {},
+          patientExplanation: nextExplanation,
+          clinicianExplanation: {
+            ...reviewCase.trace.clinicianExplanation,
+            matchedTags:
+              nextOutcome === 'recommended' && reviewedItem
+                ? reviewedItem.nutritionTags.map((value) => ({ kind: 'nutrition_tag', value }))
+                : []
+          }
         }
       }
     },
@@ -224,4 +287,12 @@ export function updateFulfillmentStatus(
     ...state,
     fulfillments: state.fulfillments.map((item) => (item.fulfillmentId === fulfillmentId ? { ...item, status } : item))
   };
+}
+
+function cloneIntakeRecordsByPatientId(
+  recordsByPatientId: Record<string, IntakeRecordDto[]>
+): Record<string, IntakeRecordDto[]> {
+  return Object.fromEntries(
+    Object.entries(recordsByPatientId).map(([patientId, records]) => [patientId, [...records]])
+  );
 }

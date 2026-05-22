@@ -58,13 +58,13 @@ export function createMediDietApiClient(baseUrl = defaultBaseUrl()): MediDietApi
         body: toBackendPatientPayload(input.patientProfile)
       });
 
-      if ((state.intakeRecordCounts[input.patientProfile.patientId] ?? 0) === 0) {
-        for (const record of input.intakeRecords) {
-          await request(`${normalizedBaseUrl}/patients/${input.patientProfile.patientId}/intake-records`, {
-            method: 'POST',
-            body: toBackendIntakeRecordPayload(record)
-          });
-        }
+      const seededCount = state.intakeRecordCounts[input.patientProfile.patientId] ?? 0;
+      const recordsToSeed = input.intakeRecords.slice(seededCount);
+      for (const record of recordsToSeed) {
+        await request(`${normalizedBaseUrl}/patients/${input.patientProfile.patientId}/intake-records`, {
+          method: 'POST',
+          body: toBackendIntakeRecordPayload(record)
+        });
       }
 
       await request(`${normalizedBaseUrl}/menus/today`, {

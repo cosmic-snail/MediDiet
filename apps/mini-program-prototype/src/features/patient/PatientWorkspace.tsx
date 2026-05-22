@@ -1,8 +1,15 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { AlertTriangle, Camera, CheckCircle, Clock3, PlusCircle } from 'lucide-react';
-import { formatPrice, mealLabelName, outcomeToPatientState } from '../../contracts';
-import { patientProfile } from '../../fixtures';
-import { addCorrectedIntake, requestRecommendation, type PrototypeState } from '../../state';
+import { formatPrice, mealLabelName, outcomeToPatientState, type PatientProfileDto } from '../../contracts';
+import {
+  addCorrectedIntake,
+  requestRecommendation,
+  selectActivePatient,
+  selectActivePatientIntakeRecords,
+  selectActivePatientRecommendation,
+  setActivePatient,
+  type PrototypeState
+} from '../../state';
 
 interface PatientWorkspaceProps {
   state: PrototypeState;
@@ -12,6 +19,29 @@ interface PatientWorkspaceProps {
   serviceError?: string | null;
 }
 
+const conceptLabels: Record<string, string> = {
+  ckd: '慢性肾病',
+  diabetes: '糖尿病',
+  hypertension: '高血压',
+  peanut: '花生',
+  shrimp: '虾',
+  light: '清淡'
+};
+
+function formatPatientSummary(patient: PatientProfileDto) {
+  const risks = [
+    ...patient.conditions.map(displayConcept),
+    ...patient.allergens.map((item) => `${displayConcept(item)}过敏`)
+  ];
+  const tastes = patient.tasteTags.map(displayConcept).join('、');
+
+  return `${risks.join('、')} · 偏好${tastes} · 预算 ${formatPrice(patient.maxPriceCents)}`;
+}
+
+function displayConcept(value: string): string {
+  return conceptLabels[value] ?? value.split('_').join(' ');
+}
+
 export function PatientWorkspace({
   state,
   onStateChange,
@@ -19,9 +49,15 @@ export function PatientWorkspace({
   recommendationPending = false,
   serviceError
 }: PatientWorkspaceProps) {
-  const recommendation = state.recommendation;
+  const activePatient = selectActivePatient(state);
+  const intakeRecords = selectActivePatientIntakeRecords(state);
+  const recommendation = selectActivePatientRecommendation(state);
   const patientState = recommendation ? outcomeToPatientState(recommendation.outcome) : null;
   const recommendedItem = recommendation?.recommendedItems[0];
+  const riskConfirmationLabel = activePatient.keyRiskFieldsConfirmed
+    ? '关键风险字段已确认'
+    : '关键风险字段待确认';
+  const riskConfirmationStatus = activePatient.keyRiskFieldsConfirmed ? 'good' : 'danger';
   const patientStatusLabel =
     patientState === 'showRefusal'
       ? '拒绝推荐'
@@ -52,6 +88,32 @@ export function PatientWorkspace({
         </button>
       </section>
 
+      <section className="card patient-identity-card">
+        <div>
+          <label className="select-label" htmlFor="active-patient">
+            当前患者
+          </label>
+          <select
+            id="active-patient"
+            className="patient-select"
+            value={state.activePatientId}
+            onChange={(event) => {
+              const nextPatientId = event.currentTarget.value;
+              onStateChange((current) => setActivePatient(current, nextPatientId));
+            }}
+          >
+            {state.patients.map((patient) => (
+              <option key={patient.patientId} value={patient.patientId}>
+                {patient.displayName}
+              </option>
+            ))}
+          </select>
+          <p className="muted">
+            {activePatient.age}岁 · {riskConfirmationLabel}
+          </p>
+        </div>
+      </section>
+
       {serviceError && (
         <section className="card service-error" role="status">
           <p className="eyebrow">后端服务</p>
@@ -60,17 +122,15 @@ export function PatientWorkspace({
         </section>
       )}
 
-      <section className="card">
+      <section className="card" role="region" aria-label="健康资料">
         <div className="card-head">
           <div>
             <p className="eyebrow">健康资料</p>
-            <h2>{patientProfile.displayName}</h2>
+            <h2>{activePatient.displayName}</h2>
           </div>
-          <span className="status good">关键风险字段已确认</span>
+          <span className={`status ${riskConfirmationStatus}`}>{riskConfirmationLabel}</span>
         </div>
-        <p className="muted">
-          高血压、糖尿病、虾过敏 · 偏好清淡 · 预算 {formatPrice(patientProfile.maxPriceCents)}
-        </p>
+        <p className="muted">{formatPatientSummary(activePatient)}</p>
       </section>
 
       <section className="card">
@@ -82,7 +142,7 @@ export function PatientWorkspace({
           <Camera size={20} aria-hidden="true" />
         </div>
         <div className="list">
-          {state.intakeRecords.map((record) => (
+          {intakeRecords.map((record) => (
             <div className="list-row" key={record.intakeId}>
               <div>
                 <strong>{record.foodLabel}</strong>
@@ -95,6 +155,7 @@ export function PatientWorkspace({
             </div>
           ))}
         </div>
+        {intakeRecords.length === 0 && <p className="muted">暂无今日摄入记录。</p>}
         <button
           className="secondary-button"
           type="button"

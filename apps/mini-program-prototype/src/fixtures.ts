@@ -8,44 +8,89 @@ import type {
   ReviewCaseDto
 } from './contracts';
 
-export const patientProfile: PatientProfileDto = {
-  patientId: 'demo-patient',
-  displayName: '王女士',
-  age: 52,
-  heightCm: 170,
-  weightKg: 80,
-  conditions: ['hypertension', 'diabetes'],
-  allergens: ['shrimp'],
-  contraindications: [],
-  tasteTags: ['light'],
-  dislikedIngredients: ['cilantro'],
-  maxPriceCents: 4000,
-  maxDistanceMeters: 2000,
-  keyRiskFieldsConfirmed: true,
-  source: 'patient_reported'
-};
-
-export const intakeRecords: IntakeRecordDto[] = [
+export const patientProfiles: PatientProfileDto[] = [
   {
-    intakeId: 'intake-lunch-001',
-    foodLabel: '咸汤面',
-    occurredAt: '2026-05-17T12:10:00+08:00',
-    mealLabel: 2,
-    portion: '一碗',
-    nutrients: {
-      energyKcal: 620,
-      carbsG: 80,
-      proteinG: 20,
-      fatG: 18,
-      sodiumMg: 600,
-      sugarG: 6,
-      fiberG: 4
-    },
-    confidence: 0.86,
-    source: 'system_estimated',
-    manuallyCorrected: false
+    patientId: 'demo-patient',
+    displayName: '王女士',
+    age: 52,
+    heightCm: 170,
+    weightKg: 80,
+    conditions: ['hypertension', 'diabetes'],
+    allergens: ['shrimp'],
+    contraindications: [],
+    tasteTags: ['light'],
+    dislikedIngredients: ['cilantro'],
+    maxPriceCents: 4000,
+    maxDistanceMeters: 2000,
+    keyRiskFieldsConfirmed: true,
+    source: 'patient_reported'
+  },
+  {
+    patientId: 'demo-patient-ckd',
+    displayName: '李先生',
+    age: 66,
+    heightCm: 168,
+    weightKg: 70,
+    conditions: ['ckd', 'hypertension'],
+    allergens: ['peanut'],
+    contraindications: ['high_sodium'],
+    tasteTags: ['light'],
+    dislikedIngredients: ['organ_meat'],
+    maxPriceCents: 3500,
+    maxDistanceMeters: 1200,
+    keyRiskFieldsConfirmed: true,
+    source: 'clinician_entered'
   }
 ];
+
+export const patientProfile: PatientProfileDto = patientProfiles[0];
+
+export const intakeRecordsByPatientId: Record<string, IntakeRecordDto[]> = {
+  'demo-patient': [
+    {
+      intakeId: 'intake-lunch-001',
+      foodLabel: '咸汤面',
+      occurredAt: '2026-05-17T12:10:00+08:00',
+      mealLabel: 2,
+      portion: '一碗',
+      nutrients: {
+        energyKcal: 620,
+        carbsG: 80,
+        proteinG: 20,
+        fatG: 18,
+        sodiumMg: 600,
+        sugarG: 6,
+        fiberG: 4
+      },
+      confidence: 0.86,
+      source: 'system_estimated',
+      manuallyCorrected: false
+    }
+  ],
+  'demo-patient-ckd': [
+    {
+      intakeId: 'intake-breakfast-ckd-001',
+      foodLabel: '白粥配咸菜',
+      occurredAt: '2026-05-17T07:40:00+08:00',
+      mealLabel: 1,
+      portion: '一碗',
+      nutrients: {
+        energyKcal: 310,
+        carbsG: 58,
+        proteinG: 7,
+        fatG: 4,
+        sodiumMg: 520,
+        sugarG: 2,
+        fiberG: 1
+      },
+      confidence: 0.78,
+      source: 'patient_reported',
+      manuallyCorrected: true
+    }
+  ]
+};
+
+export const intakeRecords: IntakeRecordDto[] = intakeRecordsByPatientId['demo-patient'];
 
 export const menuItems: MenuItemDto[] = [
   {
@@ -169,6 +214,11 @@ export const recommendedResponse: RecommendationResponseDto = {
   patientExplanation: recommendedTrace.patientExplanation,
   reviewStatus: null,
   trace: recommendedTrace
+};
+
+export const recommendationsByPatientId: Record<string, RecommendationResponseDto | null> = {
+  'demo-patient': recommendedResponse,
+  'demo-patient-ckd': null
 };
 
 export const reviewRequiredTrace: RecommendationTraceDto = {
