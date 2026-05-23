@@ -13,3 +13,37 @@
 ## 评测边界
 
 本数据集用于研究系统行为、可追溯性、稳定性和失败类型。任何规则候选都不是已审核临床建议。
+
+## 本地校验
+
+```bash
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_rule_extraction_dataset.py -q --rootdir=.
+```
+
+## 默认回归
+
+```bash
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_loader.py knowledge/tests/test_documents.py knowledge/tests/test_rule_extraction_dataset.py -q --rootdir=.
+```
+
+## 数据集计数
+
+以 `manifest.jsonl` 为准：
+
+- guideline: 24
+- paper: 18
+- manual: 18
+- zh: 30
+- en: 30
+
+`knowledge/source_documents/guidelines/` 目录中还包含项目既有的 legacy 卡片，目录文件数可能大于本数据集的 guideline 数。
+
+## 真实 LLM smoke
+
+真实 LLM smoke 需要显式环境变量。该测试只用于观察无人闭环抽取行为，不会修改 `gold_evaluation_set.jsonl`。
+
+```bash
+MEDIDIET_LLM_SMOKE_TEST=1 \
+MEDIDIET_LLM_RULE_SMOKE_TEST=1 \
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_real_llm_extraction_smoke.py -q --rootdir=.
+```
