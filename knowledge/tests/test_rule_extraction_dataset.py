@@ -196,3 +196,84 @@ def test_manifest_records_have_required_fields_and_existing_markdown_paths():
         assert f"failure_is_valid_observation: {str(row['failure_is_valid_observation']).lower()}" in text
         assert f"copyright_mode: {row['copyright_mode']}" in text
         assert f"notes: \"{row['notes']}\"" in text
+
+
+ALLOWED_EXPECTED_BEHAVIORS = {"rule", "suggested_concept", "negative", "contextual", "conflict"}
+ALLOWED_GOLD_BEHAVIORS = {"rule", "suggested_concept", "negative"}
+ALLOWED_FAILURE_TYPES = {
+    "unsupported_nutrient_metric",
+    "unknown_condition",
+    "unknown_contraindication",
+    "unknown_nutrition_tag",
+    "contextual_ambiguity",
+    "insufficient_evidence",
+    "malformed_output",
+    "contradictory_source",
+    "cross_language_instability",
+    "no_relevant_rule",
+    "other",
+}
+ALLOWED_CHALLENGE_TYPES = ALLOWED_FAILURE_TYPES | {"multi_condition_context"}
+
+
+def _doc_ids_from_manifest() -> set[str]:
+    return {row["doc_id"] for row in _manifest_rows()}
+
+
+def test_expected_rules_are_machine_generated_and_reference_manifest_docs():
+    expected_rows = _read_jsonl(DATASET_DIR / "expected_rules.jsonl")
+    doc_ids = _doc_ids_from_manifest()
+    assert len(expected_rows) >= 20
+    for row in expected_rows:
+        assert row["expected_id"].startswith("expected_")
+        assert row["doc_id"] in doc_ids
+        assert row["expected_behavior"] in ALLOWED_EXPECTED_BEHAVIORS
+        assert row["annotation_method"] == "llm_generated"
+        assert row["review_status"] == "unreviewed"
+        assert "label_model" in row
+        assert "label_prompt_version" in row
+        if row["expected_behavior"] == "rule":
+            assert "condition" in row
+            assert "nutrition_limits" in row or "hard_exclusions" in row or "preferred_tags" in row
+
+
+def test_gold_evaluation_set_is_small_frozen_and_offline_only():
+    gold_rows = _read_jsonl(DATASET_DIR / "gold_evaluation_set.jsonl")
+    doc_ids = _doc_ids_from_manifest()
+    assert 12 <= len(gold_rows) <= 15
+    assert sum(1 for row in gold_rows if row["gold_behavior"] == "negative") >= 2
+    for row in gold_rows:
+        assert row["gold_id"].startswith("gold_")
+        assert row["doc_id"] in doc_ids
+        assert row["gold_behavior"] in ALLOWED_GOLD_BEHAVIORS
+        assert row["created_for"] == "offline_evaluation_only"
+        assert row["frozen"] is True
+        assert "evidence_requirement" in row
+
+
+def test_challenge_set_references_manifest_docs_and_uses_known_failure_taxonomy():
+    challenge_rows = _read_jsonl(DATASET_DIR / "challenge_set.jsonl")
+    doc_ids = _doc_ids_from_manifest()
+    assert len(challenge_rows) >= 8
+    for row in challenge_rows:
+        assert row["challenge_id"].startswith("challenge_")
+        assert row["doc_id"] in doc_ids
+        assert row["challenge_type"] in ALLOWED_CHALLENGE_TYPES
+        assert row["reason"]
+        assert row["recommended_analysis"]
+
+
+def test_extraction_observations_file_is_parseable_and_references_known_records_when_populated():
+    observation_rows = _read_jsonl(DATASET_DIR / "extraction_observations.jsonl")
+    doc_ids = _doc_ids_from_manifest()
+    expected_ids = {
+        row["expected_id"]
+        for row in _read_jsonl(DATASET_DIR / "expected_rules.jsonl")
+    }
+    for row in observation_rows:
+        assert row["run_id"]
+        assert row["doc_id"] in doc_ids
+        if row.get("expected_id") is not None:
+            assert row["expected_id"] in expected_ids
+        if row.get("failure_type") is not None:
+            assert row["failure_type"] in ALLOWED_FAILURE_TYPES
