@@ -132,6 +132,33 @@ def test_zh_pubmed_paper_cards_mark_chinese_language_source():
         assert "Article in Chinese" in text or "中文论文来源" in text
 
 
+def test_manual_manifest_subset_has_required_distribution():
+    rows = _manifest_rows()
+    manual_rows = [row for row in rows if row.get("source_type") == "manual"]
+    assert len(manual_rows) == 18
+    assert sum(1 for row in manual_rows if row["language"] == "zh") == 9
+    assert sum(1 for row in manual_rows if row["language"] == "en") == 9
+    for row in manual_rows:
+        assert "patient_education" in row["evaluation_labels"] or "contextual" in row["evaluation_labels"]
+
+
+def test_manifest_has_exact_rule_extraction_v1_distribution():
+    rows = _manifest_rows()
+    assert len(rows) == 60
+    assert sum(1 for row in rows if row["language"] == "zh") == 30
+    assert sum(1 for row in rows if row["language"] == "en") == 30
+    assert sum(1 for row in rows if row["source_type"] == "guideline") == 24
+    assert sum(1 for row in rows if row["source_type"] == "paper") == 18
+    assert sum(1 for row in rows if row["source_type"] == "manual") == 18
+    assert sum(1 for row in rows if "should_extract" in row["evaluation_labels"]) >= 20
+    assert sum(1 for row in rows if "concept_gap" in row["evaluation_labels"]) >= 12
+    hard_cases = [
+        row for row in rows
+        if {"negative", "contextual", "conflict"} & set(row["evaluation_labels"])
+    ]
+    assert len(hard_cases) >= 8
+
+
 def test_manifest_records_have_required_fields_and_existing_markdown_paths():
     rows = _manifest_rows()
     seen_doc_ids: set[str] = set()
