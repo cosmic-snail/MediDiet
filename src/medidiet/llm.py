@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
@@ -36,11 +37,17 @@ class LLMConfig:
     api_key: str | None = field(default=None, repr=False)
     model: str | None = None
     timeout_seconds: int = 10
+    retry_attempts: int = 3
+    retry_backoff_seconds: float = 0.25
     send_patient_id: bool = False
 
     def __post_init__(self) -> None:
         if self.timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
+        if self.retry_attempts <= 0:
+            raise ValueError("retry_attempts must be positive")
+        if self.retry_backoff_seconds < 0:
+            raise ValueError("retry_backoff_seconds must be non-negative")
 
     @classmethod
     def from_env(cls) -> "LLMConfig":
@@ -49,12 +56,24 @@ class LLMConfig:
             timeout_seconds = int(timeout_raw)
         except ValueError as exc:
             raise ValueError("MEDIDIET_LLM_TIMEOUT_SECONDS must be an integer") from exc
+        retry_attempts_raw = os.getenv("MEDIDIET_LLM_RETRY_ATTEMPTS", "3")
+        try:
+            retry_attempts = int(retry_attempts_raw)
+        except ValueError as exc:
+            raise ValueError("MEDIDIET_LLM_RETRY_ATTEMPTS must be an integer") from exc
+        retry_backoff_raw = os.getenv("MEDIDIET_LLM_RETRY_BACKOFF_SECONDS", "0.25")
+        try:
+            retry_backoff_seconds = float(retry_backoff_raw)
+        except ValueError as exc:
+            raise ValueError("MEDIDIET_LLM_RETRY_BACKOFF_SECONDS must be a number") from exc
         return cls(
             provider=os.getenv("MEDIDIET_LLM_PROVIDER", "mock"),
             base_url=os.getenv("MEDIDIET_LLM_BASE_URL"),
             api_key=os.getenv("MEDIDIET_LLM_API_KEY"),
             model=os.getenv("MEDIDIET_LLM_MODEL"),
             timeout_seconds=timeout_seconds,
+            retry_attempts=retry_attempts,
+            retry_backoff_seconds=retry_backoff_seconds,
             send_patient_id=False,
         )
 
@@ -96,6 +115,10 @@ class LLMAnswer:
 class LLMProviderPort(Protocol):
     def complete(self, request: LLMRequest) -> LLMResponse:
         ...
+
+
+class _RetryableProviderResponseError(RuntimeError):
+    pass
 
 
 @dataclass
@@ -152,23 +175,46 @@ class OpenAICompatibleLLMProvider:
             },
             method="POST",
         )
-        try:
-            with urllib.request.urlopen(http_request, timeout=self.config.timeout_seconds) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-            raise RuntimeError("LLM provider request failed") from exc
+        for attempt in range(self.config.retry_attempts):
+            try:
+                with urllib.request.urlopen(http_request, timeout=self.config.timeout_seconds) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+                content = payload["choices"][0]["message"]["content"]
+                if not isinstance(content, str):
+                    raise _RetryableProviderResponseError("LLM provider message content must be a string")
+                if not content.strip():
+                    raise _RetryableProviderResponseError("LLM provider message content was empty")
+                return LLMResponse(
+                    content=content,
+                    provider_name="openai_compatible",
+                    model=self.config.model,
+                )
+            except urllib.error.HTTPError as exc:
+                if not _is_retryable_http_error(exc) or attempt == self.config.retry_attempts - 1:
+                    raise RuntimeError("LLM provider request failed") from exc
+                _sleep_before_retry(self.config.retry_backoff_seconds, attempt)
+            except (
+                urllib.error.URLError,
+                TimeoutError,
+                json.JSONDecodeError,
+                KeyError,
+                IndexError,
+                TypeError,
+                _RetryableProviderResponseError,
+            ) as exc:
+                if attempt == self.config.retry_attempts - 1:
+                    raise RuntimeError("LLM provider request failed") from exc
+                _sleep_before_retry(self.config.retry_backoff_seconds, attempt)
+        raise RuntimeError("LLM provider request failed")
 
-        try:
-            content = payload["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as exc:
-            raise RuntimeError("LLM provider response missing message content") from exc
-        if not isinstance(content, str):
-            raise RuntimeError("LLM provider message content must be a string")
-        return LLMResponse(
-            content=content,
-            provider_name="openai_compatible",
-            model=self.config.model,
-        )
+
+def _is_retryable_http_error(exc: urllib.error.HTTPError) -> bool:
+    return exc.code in {408, 409, 425, 429, 500, 502, 503, 504}
+
+
+def _sleep_before_retry(backoff_seconds: float, attempt: int) -> None:
+    if backoff_seconds:
+        time.sleep(backoff_seconds * (2**attempt))
 
 
 @dataclass(frozen=True)
