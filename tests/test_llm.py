@@ -642,6 +642,62 @@ class OpenAICompatibleLLMProviderTest(unittest.TestCase):
         self.assertEqual(len(responses), 0)
         self.assertEqual(response.content, '{"answer": "ok"}')
 
+    def test_openai_provider_retries_incomplete_read(self):
+        import http.client
+        import json
+        from unittest.mock import patch
+
+        from medidiet.llm import (
+            LLMConfig,
+            LLMRequest,
+            LLMTask,
+            OpenAICompatibleLLMProvider,
+        )
+
+        class FakeHTTPResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {"choices": [{"message": {"content": "{\"answer\": \"ok\"}"}}]},
+                    ensure_ascii=False,
+                ).encode("utf-8")
+
+        calls = 0
+
+        def fake_urlopen(request, timeout):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise http.client.IncompleteRead(b"")
+            return FakeHTTPResponse()
+
+        provider = OpenAICompatibleLLMProvider(
+            LLMConfig(
+                provider="openai_compatible",
+                base_url="https://api.deepseek.com",
+                api_key="secret-token",
+                model="deepseek-v4",
+                timeout_seconds=3,
+            )
+        )
+
+        with patch("urllib.request.urlopen", fake_urlopen):
+            response = provider.complete(
+                LLMRequest(
+                    task=LLMTask.QUESTION_ANSWERING,
+                    system_prompt="system",
+                    user_prompt="user",
+                )
+            )
+
+        self.assertEqual(calls, 2)
+        self.assertEqual(response.content, '{"answer": "ok"}')
+
     def test_openai_provider_rejects_missing_required_config(self):
         from medidiet.llm import LLMConfig, OpenAICompatibleLLMProvider
 

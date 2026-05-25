@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import http.client
 import os
 import time
 import urllib.error
@@ -196,6 +197,7 @@ class OpenAICompatibleLLMProvider:
             except (
                 urllib.error.URLError,
                 TimeoutError,
+                http.client.IncompleteRead,
                 json.JSONDecodeError,
                 KeyError,
                 IndexError,
