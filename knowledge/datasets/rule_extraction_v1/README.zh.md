@@ -47,3 +47,26 @@ MEDIDIET_LLM_SMOKE_TEST=1 \
 MEDIDIET_LLM_RULE_SMOKE_TEST=1 \
 PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_real_llm_extraction_smoke.py -q --rootdir=.
 ```
+
+## 真实材料观测 smoke
+
+该测试使用 `rule_extraction_v1` 的真实 source cards，而不是手写 `DocumentChunk`。默认测试会输出切块报告：
+
+```bash
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_rule_extraction_dataset_smoke_reports.py -q --rootdir=.
+```
+
+报告位置：
+
+- `reports/rule-extraction-v1-chunking-report.json`
+
+如需调用真实 LLM 跑 gold 子集，需显式开启：
+
+```bash
+MEDIDIET_LLM_DATASET_SMOKE_TEST=1 \
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_rule_extraction_dataset_smoke_reports.py -q --rootdir=.
+```
+
+真实 LLM 报告位置：
+
+- `reports/rule-extraction-v1-real-llm-report.json`
