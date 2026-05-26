@@ -67,6 +67,23 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
     assert (tmp_path / "rule-extraction-v1-real-llm-report.json").exists()
 
 
+def test_real_run_maps_c3_to_source_notes_plus_extractable(tmp_path: Path):
+    provider = RecordingRuleLLMProvider()
+    run_research_real_run(
+        "rule_extraction_v1",
+        tmp_path,
+        llm_provider=provider,
+        arms=["C3"],
+        experiments=["E1"],
+        max_docs=1,
+    )
+    report = __import__("json").loads(
+        (tmp_path / "rule-extraction-v1-real-llm-report.json").read_text(encoding="utf-8")
+    )
+    assert report["observations"][0]["input_variant"] == "source_notes_plus_extractable"
+    assert report["observations"][0]["observation_points"]["O5"]["input_variant"] == "source_notes_plus_extractable"
+
+
 def test_real_run_excludes_api_failures_from_research_observations(tmp_path: Path):
     provider = FailingExtractionLLMProvider()
     observation_path = REPO_ROOT / "knowledge" / "datasets" / "rule_extraction_v1" / "extraction_observations.jsonl"

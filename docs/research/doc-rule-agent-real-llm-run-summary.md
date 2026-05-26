@@ -66,3 +66,5 @@ PYTHONPATH=src:knowledge/src python -m knowledge.rule_extraction_dataset_smoke \
   --append-observations \
   --write-reports
 ```
+
+For the focused E1 chunking/input-selection runbook and latest C1/C2/C3 results, see `docs/research/doc-rule-agent-e1-experiment-runbook.md`.

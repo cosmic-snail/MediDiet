@@ -4,7 +4,7 @@
 - dataset id: rule_extraction_v1
 - model: fake
 - prompt version: dry-run-v1
-- timestamp: 2026-05-26T07:27:21.730605+00:00
+- timestamp: 2026-05-26T12:21:52.634066+00:00
 
 ## Categories
 

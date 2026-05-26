@@ -3,8 +3,79 @@
   "run_type": "real_llm",
   "model": "deepseek-v4-flash",
   "provider": "openai_compatible",
-  "observation_count": 5,
+  "observation_count": 6,
+  "operational_failure_count": 0,
   "observations": [
+    {
+      "run_id": "sha256:bce6fd2d0f8c81a6632b1042ae4004e8c5600104db9320d3bc8785c6785cd763",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 13177,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:76996334690e713db1791a9890699e46aadea111543e336e20f18ca0bb0d0142",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000.0,
+              "window_hours": null
+            }
+          ],
+          "confidence": 0.9,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 13177,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
     {
       "run_id": "sha256:50f876d355a88d5c4e58c7775caa6bb1f68cb55a03d774aed0f907d9eed1b3dc",
       "experiment_id": "E1",
@@ -25,10 +96,10 @@
       "chunk_hashes": [
         "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
       ],
-      "latency_ms": 22588,
+      "latency_ms": 45918,
       "retry_count": 0,
       "finish_reason": "stop",
-      "raw_output_hash": "sha256:b4860bd6d20ca074378ddfb8142b30e13c89bd5a58c835757eddcd82a13e7d7e",
+      "raw_output_hash": "sha256:34bb0f3c86a37362ca0cb27ad8d93747e016dde4105ec276537968ec980855e0",
       "raw_output_path": "",
       "parse_status": "parsed",
       "parsed_rules": [
@@ -36,27 +107,13 @@
           "condition": "diabetes",
           "hard_exclusions": [],
           "preferred_tags": [],
-          "nutrition_limits": [
-            {
-              "metric": "sugar_g",
-              "scope": "daily",
-              "max_value": 25.0,
-              "window_hours": null
-            }
-          ],
-          "confidence": 1.0,
-          "status": "draft",
-          "verification_verdict": "pass"
+          "nutrition_limits": [],
+          "confidence": 0.8,
+          "status": "rejected",
+          "verification_verdict": "rejected"
         }
       ],
-      "suggested_concepts": [
-        {
-          "suggested_code": "low_sugar",
-          "kind": "nutrition_tag",
-          "definition": "Dietary pattern with limited added sugars.",
-          "display_name": "Low Sugar"
-        }
-      ],
+      "suggested_concepts": [],
       "observation_points": {
         "O5": {
           "arm_id": "C1",
@@ -66,13 +123,13 @@
         },
         "O6": {
           "provider": "real_llm",
-          "latency_ms": 22588,
+          "latency_ms": 45918,
           "retry_count": 0,
           "empty_output": false
         },
         "O8": {
           "parsed_rule_count": 1,
-          "suggested_concept_count": 1
+          "suggested_concept_count": 0
         }
       },
       "evaluator": {},
@@ -98,17 +155,19 @@
       "chunk_hashes": [
         "sha256:9875b3af06c692d1607d03f8a85afda6dc0621f4882d93041f9b7bf2444151b0"
       ],
-      "latency_ms": 12038,
+      "latency_ms": 30432,
       "retry_count": 0,
       "finish_reason": "stop",
-      "raw_output_hash": "sha256:05d701c70993efc3d2ffb0b361790f7a96dcfd327f0baee3850f8faae52b1ad9",
+      "raw_output_hash": "sha256:fba48d45e185f63c901c716b622def978e4219d5457e52c1894ba1175b34c8d8",
       "raw_output_path": "",
       "parse_status": "parsed",
       "parsed_rules": [
         {
           "condition": "hypertension",
           "hard_exclusions": [],
-          "preferred_tags": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
           "nutrition_limits": [
             {
               "metric": "sodium_mg",
@@ -132,7 +191,7 @@
         },
         "O6": {
           "provider": "real_llm",
-          "latency_ms": 12038,
+          "latency_ms": 30432,
           "retry_count": 0,
           "empty_output": false
         },
@@ -164,10 +223,139 @@
       "chunk_hashes": [
         "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7"
       ],
-      "latency_ms": 14599,
+      "latency_ms": 8146,
       "retry_count": 0,
       "finish_reason": "stop",
-      "raw_output_hash": "sha256:867b703937c406d809215409368d9ec3b5fb33f94e57a1e89c1dd0117f02addd",
+      "raw_output_hash": "sha256:92403fb76d2ed86bcf473aeec5faa94334d763393d0fda6d736d7c932099fae4",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [],
+          "nutrition_limits": [],
+          "confidence": 1.0,
+          "status": "rejected",
+          "verification_verdict": "rejected"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 8146,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:b7d75c18af7c0a7eb9d312d5cba4365055eb2f8df436798afa8c5a1680a72394",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:031b97a563fa8bd56a9f0972c36117f9e97716ecf456f1a8601a1edd540b8f6e",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:031b97a563fa8bd56a9f0972c36117f9e97716ecf456f1a8601a1edd540b8f6e"
+      ],
+      "latency_ms": 19159,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:76996334690e713db1791a9890699e46aadea111543e336e20f18ca0bb0d0142",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000.0,
+              "window_hours": null
+            }
+          ],
+          "confidence": 0.9,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:031b97a563fa8bd56a9f0972c36117f9e97716ecf456f1a8601a1edd540b8f6e",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 19159,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:50dfa83ed4d2c494c29be10d36c09cd5b707b7aba217c310d820724eedb422eb",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:08def3a5a9d27f8bf3779919d0117959c5e1a254db523ef2126385981a2ecd85",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:08def3a5a9d27f8bf3779919d0117959c5e1a254db523ef2126385981a2ecd85"
+      ],
+      "latency_ms": 26148,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:cc98c015c3b3e9a9054f09a26f707bba117c5b934f41d8615eed517ed7df1885",
       "raw_output_path": "",
       "parse_status": "parsed",
       "parsed_rules": [
@@ -192,20 +380,20 @@
         {
           "suggested_code": "low_sugar",
           "kind": "nutrition_tag",
-          "definition": "Diet pattern with reduced added sugar content",
+          "definition": "Diet pattern with limited added sugar",
           "display_name": "Low Sugar"
         }
       ],
       "observation_points": {
         "O5": {
-          "arm_id": "C2",
-          "input_variant": "extractable_content",
-          "input_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
-          "strategy": "extractable_content_current_two_stage"
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:08def3a5a9d27f8bf3779919d0117959c5e1a254db523ef2126385981a2ecd85",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
         },
         "O6": {
           "provider": "real_llm",
-          "latency_ms": 14599,
+          "latency_ms": 26148,
           "retry_count": 0,
           "empty_output": false
         },
@@ -216,161 +404,104 @@
       },
       "evaluator": {},
       "failures": []
-    },
-    {
-      "run_id": "sha256:95bff05df8531d6974882cd5134dfc4d565d55acc3e9eb7bf8a3c8d3e7bd203f",
-      "experiment_id": "E2",
-      "arm_id": "C1",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_manual_diabetes_sugar_case",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "raw_card",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c1-dry-run-v1",
-      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
-      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
-      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
-      "chunk_hashes": [
-        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
-      ],
-      "latency_ms": 13581,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:7d7ba8fc7402ab53b62a8828b8906309085f2b751046811c682cdc1ea18c90be",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [
-        {
-          "condition": "diabetes",
-          "hard_exclusions": [],
-          "preferred_tags": [],
-          "nutrition_limits": [
-            {
-              "metric": "sugar_g",
-              "scope": "daily",
-              "max_value": 25.0,
-              "window_hours": null
-            }
-          ],
-          "confidence": 0.95,
-          "status": "draft",
-          "verification_verdict": "pass"
-        }
-      ],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C1",
-          "input_variant": "raw_card",
-          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
-          "strategy": "raw_card_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 13581,
-          "retry_count": 0,
-          "empty_output": false
-        },
-        "O8": {
-          "parsed_rule_count": 1,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": []
-    },
-    {
-      "run_id": "sha256:bc1f1cc88593fbf23477bd5ad3d4b970f427257b87d379875ee011c5920a6910",
-      "experiment_id": "E2",
-      "arm_id": "C2",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_manual_diabetes_sugar_case",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "extractable_content",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c2-dry-run-v1",
-      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
-      "input_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
-      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
-      "chunk_hashes": [
-        "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7"
-      ],
-      "latency_ms": 44998,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:17b15756d7f3bb05521ca1ede6e614ba30c8f2c45f3612ebb4d1269776d1d305",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [
-        {
-          "condition": "diabetes",
-          "hard_exclusions": [],
-          "preferred_tags": [],
-          "nutrition_limits": [
-            {
-              "metric": "sugar_g",
-              "scope": "daily",
-              "max_value": 25.0,
-              "window_hours": null
-            }
-          ],
-          "confidence": 1.0,
-          "status": "pending_review",
-          "verification_verdict": "revision_needed"
-        }
-      ],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C2",
-          "input_variant": "extractable_content",
-          "input_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
-          "strategy": "extractable_content_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 44998,
-          "retry_count": 0,
-          "empty_output": false
-        },
-        "O8": {
-          "parsed_rule_count": 1,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": []
     }
   ],
+  "operational_failures": [],
   "stability": {
-    "run_count": 5,
+    "run_count": 6,
     "condition_presence": {
-      "diabetes": 0.8,
-      "hypertension": 0.2
+      "diabetes": 0.5,
+      "hypertension": 0.5
     },
-    "hard_exclusion_presence": {},
-    "preferred_tag_presence": {},
+    "hard_exclusion_presence": {
+      "high_sodium": 0.3333333333333333
+    },
+    "preferred_tag_presence": {
+      "low_sodium": 0.5
+    },
     "nutrition_limit_presence": {
-      "sodium_mg|daily|2000.0|None": 0.2,
-      "sugar_g|daily|25.0|None": 0.8
+      "sodium_mg|daily|2000.0|None": 0.5,
+      "sugar_g|daily|25.0|None": 0.16666666666666666
     },
     "parse_failure_rate": 0.0,
     "empty_output_rate": 0.0,
     "retry_count_distribution": {
-      "0": 5
+      "0": 6
     },
-    "pairwise_canonical_rule_set_similarity": 0.6,
+    "pairwise_canonical_rule_set_similarity": 0.3,
     "failure_counts": {}
   },
   "rows": [
+    {
+      "run_id": "sha256:bce6fd2d0f8c81a6632b1042ae4004e8c5600104db9320d3bc8785c6785cd763",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 13177,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:76996334690e713db1791a9890699e46aadea111543e336e20f18ca0bb0d0142",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000.0,
+              "window_hours": null
+            }
+          ],
+          "confidence": 0.9,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 13177,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
     {
       "run_id": "sha256:50f876d355a88d5c4e58c7775caa6bb1f68cb55a03d774aed0f907d9eed1b3dc",
       "experiment_id": "E1",
@@ -391,10 +522,10 @@
       "chunk_hashes": [
         "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
       ],
-      "latency_ms": 22588,
+      "latency_ms": 45918,
       "retry_count": 0,
       "finish_reason": "stop",
-      "raw_output_hash": "sha256:b4860bd6d20ca074378ddfb8142b30e13c89bd5a58c835757eddcd82a13e7d7e",
+      "raw_output_hash": "sha256:34bb0f3c86a37362ca0cb27ad8d93747e016dde4105ec276537968ec980855e0",
       "raw_output_path": "",
       "parse_status": "parsed",
       "parsed_rules": [
@@ -402,27 +533,13 @@
           "condition": "diabetes",
           "hard_exclusions": [],
           "preferred_tags": [],
-          "nutrition_limits": [
-            {
-              "metric": "sugar_g",
-              "scope": "daily",
-              "max_value": 25.0,
-              "window_hours": null
-            }
-          ],
-          "confidence": 1.0,
-          "status": "draft",
-          "verification_verdict": "pass"
+          "nutrition_limits": [],
+          "confidence": 0.8,
+          "status": "rejected",
+          "verification_verdict": "rejected"
         }
       ],
-      "suggested_concepts": [
-        {
-          "suggested_code": "low_sugar",
-          "kind": "nutrition_tag",
-          "definition": "Dietary pattern with limited added sugars.",
-          "display_name": "Low Sugar"
-        }
-      ],
+      "suggested_concepts": [],
       "observation_points": {
         "O5": {
           "arm_id": "C1",
@@ -432,13 +549,13 @@
         },
         "O6": {
           "provider": "real_llm",
-          "latency_ms": 22588,
+          "latency_ms": 45918,
           "retry_count": 0,
           "empty_output": false
         },
         "O8": {
           "parsed_rule_count": 1,
-          "suggested_concept_count": 1
+          "suggested_concept_count": 0
         }
       },
       "evaluator": {},
@@ -464,17 +581,19 @@
       "chunk_hashes": [
         "sha256:9875b3af06c692d1607d03f8a85afda6dc0621f4882d93041f9b7bf2444151b0"
       ],
-      "latency_ms": 12038,
+      "latency_ms": 30432,
       "retry_count": 0,
       "finish_reason": "stop",
-      "raw_output_hash": "sha256:05d701c70993efc3d2ffb0b361790f7a96dcfd327f0baee3850f8faae52b1ad9",
+      "raw_output_hash": "sha256:fba48d45e185f63c901c716b622def978e4219d5457e52c1894ba1175b34c8d8",
       "raw_output_path": "",
       "parse_status": "parsed",
       "parsed_rules": [
         {
           "condition": "hypertension",
           "hard_exclusions": [],
-          "preferred_tags": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
           "nutrition_limits": [
             {
               "metric": "sodium_mg",
@@ -498,7 +617,7 @@
         },
         "O6": {
           "provider": "real_llm",
-          "latency_ms": 12038,
+          "latency_ms": 30432,
           "retry_count": 0,
           "empty_output": false
         },
@@ -530,10 +649,139 @@
       "chunk_hashes": [
         "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7"
       ],
-      "latency_ms": 14599,
+      "latency_ms": 8146,
       "retry_count": 0,
       "finish_reason": "stop",
-      "raw_output_hash": "sha256:867b703937c406d809215409368d9ec3b5fb33f94e57a1e89c1dd0117f02addd",
+      "raw_output_hash": "sha256:92403fb76d2ed86bcf473aeec5faa94334d763393d0fda6d736d7c932099fae4",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [],
+          "nutrition_limits": [],
+          "confidence": 1.0,
+          "status": "rejected",
+          "verification_verdict": "rejected"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 8146,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:b7d75c18af7c0a7eb9d312d5cba4365055eb2f8df436798afa8c5a1680a72394",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:031b97a563fa8bd56a9f0972c36117f9e97716ecf456f1a8601a1edd540b8f6e",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:031b97a563fa8bd56a9f0972c36117f9e97716ecf456f1a8601a1edd540b8f6e"
+      ],
+      "latency_ms": 19159,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:76996334690e713db1791a9890699e46aadea111543e336e20f18ca0bb0d0142",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000.0,
+              "window_hours": null
+            }
+          ],
+          "confidence": 0.9,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:031b97a563fa8bd56a9f0972c36117f9e97716ecf456f1a8601a1edd540b8f6e",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 19159,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:50dfa83ed4d2c494c29be10d36c09cd5b707b7aba217c310d820724eedb422eb",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:08def3a5a9d27f8bf3779919d0117959c5e1a254db523ef2126385981a2ecd85",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:08def3a5a9d27f8bf3779919d0117959c5e1a254db523ef2126385981a2ecd85"
+      ],
+      "latency_ms": 26148,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:cc98c015c3b3e9a9054f09a26f707bba117c5b934f41d8615eed517ed7df1885",
       "raw_output_path": "",
       "parse_status": "parsed",
       "parsed_rules": [
@@ -558,20 +806,20 @@
         {
           "suggested_code": "low_sugar",
           "kind": "nutrition_tag",
-          "definition": "Diet pattern with reduced added sugar content",
+          "definition": "Diet pattern with limited added sugar",
           "display_name": "Low Sugar"
         }
       ],
       "observation_points": {
         "O5": {
-          "arm_id": "C2",
-          "input_variant": "extractable_content",
-          "input_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
-          "strategy": "extractable_content_current_two_stage"
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:08def3a5a9d27f8bf3779919d0117959c5e1a254db523ef2126385981a2ecd85",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
         },
         "O6": {
           "provider": "real_llm",
-          "latency_ms": 14599,
+          "latency_ms": 26148,
           "retry_count": 0,
           "empty_output": false
         },
@@ -582,186 +830,6 @@
       },
       "evaluator": {},
       "failures": []
-    },
-    {
-      "run_id": "sha256:95bff05df8531d6974882cd5134dfc4d565d55acc3e9eb7bf8a3c8d3e7bd203f",
-      "experiment_id": "E2",
-      "arm_id": "C1",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_manual_diabetes_sugar_case",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "raw_card",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c1-dry-run-v1",
-      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
-      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
-      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
-      "chunk_hashes": [
-        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
-      ],
-      "latency_ms": 13581,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:7d7ba8fc7402ab53b62a8828b8906309085f2b751046811c682cdc1ea18c90be",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [
-        {
-          "condition": "diabetes",
-          "hard_exclusions": [],
-          "preferred_tags": [],
-          "nutrition_limits": [
-            {
-              "metric": "sugar_g",
-              "scope": "daily",
-              "max_value": 25.0,
-              "window_hours": null
-            }
-          ],
-          "confidence": 0.95,
-          "status": "draft",
-          "verification_verdict": "pass"
-        }
-      ],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C1",
-          "input_variant": "raw_card",
-          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
-          "strategy": "raw_card_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 13581,
-          "retry_count": 0,
-          "empty_output": false
-        },
-        "O8": {
-          "parsed_rule_count": 1,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": []
-    },
-    {
-      "run_id": "sha256:bc1f1cc88593fbf23477bd5ad3d4b970f427257b87d379875ee011c5920a6910",
-      "experiment_id": "E2",
-      "arm_id": "C2",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_manual_diabetes_sugar_case",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "extractable_content",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c2-dry-run-v1",
-      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
-      "input_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
-      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
-      "chunk_hashes": [
-        "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7"
-      ],
-      "latency_ms": 44998,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:17b15756d7f3bb05521ca1ede6e614ba30c8f2c45f3612ebb4d1269776d1d305",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [
-        {
-          "condition": "diabetes",
-          "hard_exclusions": [],
-          "preferred_tags": [],
-          "nutrition_limits": [
-            {
-              "metric": "sugar_g",
-              "scope": "daily",
-              "max_value": 25.0,
-              "window_hours": null
-            }
-          ],
-          "confidence": 1.0,
-          "status": "pending_review",
-          "verification_verdict": "revision_needed"
-        }
-      ],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C2",
-          "input_variant": "extractable_content",
-          "input_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
-          "strategy": "extractable_content_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 44998,
-          "retry_count": 0,
-          "empty_output": false
-        },
-        "O8": {
-          "parsed_rule_count": 1,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": []
     }
-  ],
-  "operational_failures": [
-    {
-      "experiment_id": "E1",
-      "arm_id": "C1",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_guideline_who_sodium_2012",
-      "input_variant": "raw_card",
-      "latency_ms": 22477,
-      "failures": [
-        "LLM extraction call failed: IncompleteRead(0 bytes read)"
-      ],
-      "parse_status": "parsed",
-      "finish_reason": "stop",
-      "excluded_from_research": true,
-      "exclusion_reason": "llm_api_operational_failure"
-    },
-    {
-      "experiment_id": "E2",
-      "arm_id": "C1",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_guideline_who_sodium_2012",
-      "input_variant": "raw_card",
-      "latency_ms": 25133,
-      "failures": [
-        "Verification failed for E2-C1-en_guideline_who_sodium_2012-3fc7b438: LLM verification call failed: LLM provider request failed"
-      ],
-      "parse_status": "parsed",
-      "finish_reason": "stop",
-      "excluded_from_research": true,
-      "exclusion_reason": "llm_api_operational_failure"
-    },
-    {
-      "experiment_id": "E2",
-      "arm_id": "C2",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_guideline_who_sodium_2012",
-      "input_variant": "extractable_content",
-      "latency_ms": 39969,
-      "failures": [
-        "Verification failed for E2-C2-en_guideline_who_sodium_2012-24bb8adf: LLM verification call failed: Remote end closed connection without response"
-      ],
-      "parse_status": "parsed",
-      "finish_reason": "stop",
-      "excluded_from_research": true,
-      "exclusion_reason": "llm_api_operational_failure"
-    }
-  ],
-  "operational_failure_count": 3
+  ]
 }

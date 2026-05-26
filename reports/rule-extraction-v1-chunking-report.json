@@ -48,6 +48,30 @@
           "preview": "For adults with diabetes, limit added sugar to 25 g per day when designing a low-sugar diet pattern."
         }
       ]
+    },
+    "source_notes_plus_extractable": {
+      "summary": {
+        "total_chunks": 2,
+        "chunks_with_frontmatter": 0,
+        "chunks_with_copyright_handling": 0,
+        "chunks_starting_mid_word": 0
+      },
+      "per_doc_chunk_counts": {
+        "en_guideline_who_sodium_2012": 1,
+        "en_manual_diabetes_sugar_case": 1
+      },
+      "representative_chunk_previews": [
+        {
+          "doc_id": "en_guideline_who_sodium_2012",
+          "chunk_id": "en_guideline_who_sodium_2012-chunk-0000",
+          "preview": "## Source Notes\n\nShort research source card derived from a public guideline record. The source card stores only summary and short excerpt content.\n\n## Extractab"
+        },
+        {
+          "doc_id": "en_manual_diabetes_sugar_case",
+          "chunk_id": "en_manual_diabetes_sugar_case-chunk-0000",
+          "preview": "## Source Notes\n\nFixture used to make repeated-run instability visible in reports.\n\n## Extractable Source Content\n\nFor adults with diabetes, limit added sugar t"
+        }
+      ]
     }
   },
   "rows": [
@@ -92,6 +116,30 @@
       "strategy": "extractable_content",
       "chunk_id": "en_manual_diabetes_sugar_case-chunk-0000",
       "chunk_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "en_guideline_who_sodium_2012",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "en_guideline_who_sodium_2012-chunk-0000",
+      "chunk_hash": "sha256:031b97a563fa8bd56a9f0972c36117f9e97716ecf456f1a8601a1edd540b8f6e",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "en_manual_diabetes_sugar_case-chunk-0000",
+      "chunk_hash": "sha256:08def3a5a9d27f8bf3779919d0117959c5e1a254db523ef2126385981a2ecd85",
       "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
       "flags": {
         "frontmatter": false,

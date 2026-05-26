@@ -25,6 +25,12 @@ from knowledge.source_governance import detect_conflicts
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
+ARM_INPUT_VARIANTS = {
+    "C1": "raw_card",
+    "C2": "extractable_content",
+    "C3": "source_notes_plus_extractable",
+}
+
 
 def _dataset_dir(dataset: str) -> Path:
     return REPO_ROOT / "knowledge" / "datasets" / dataset
@@ -230,7 +236,7 @@ def run_research_real_run(
     observation_path = dataset_dir / "extraction_observations.jsonl"
     for experiment_id in experiments:
         for arm_id in arms:
-            input_variant = "raw_card" if arm_id == "C1" else "extractable_content"
+            input_variant = ARM_INPUT_VARIANTS.get(arm_id, "extractable_content")
             importer = DocumentImporter()
             for doc in docs:
                 raw_text = Path(doc.source).read_text(encoding="utf-8")
