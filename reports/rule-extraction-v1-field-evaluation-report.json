@@ -1,0 +1,60 @@
+{
+  "dataset_id": "rule_extraction_v1",
+  "evaluations": [
+    {
+      "gold_id": "gold-en-guideline-who-sodium-2012",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "match",
+        "nutrition_limits": "match",
+        "evidence_quote": "partial"
+      },
+      "overall": "match",
+      "failures": []
+    },
+    {
+      "gold_id": "gold-en-manual-diabetes-sugar-case",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "match",
+        "nutrition_limits": "match",
+        "evidence_quote": "partial"
+      },
+      "overall": "match",
+      "failures": []
+    }
+  ],
+  "summary": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "rows": [
+    {
+      "gold_id": "gold-en-guideline-who-sodium-2012",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "match",
+        "nutrition_limits": "match",
+        "evidence_quote": "partial"
+      },
+      "overall": "match",
+      "failures": []
+    },
+    {
+      "gold_id": "gold-en-manual-diabetes-sugar-case",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "match",
+        "nutrition_limits": "match",
+        "evidence_quote": "partial"
+      },
+      "overall": "match",
+      "failures": []
+    }
+  ]
+}

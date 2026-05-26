@@ -1,0 +1,1350 @@
+{
+  "dataset_id": "rule_extraction_v1",
+  "summary": {
+    "run_count": 10,
+    "condition_presence": {
+      "diabetes": 0.5,
+      "hypertension": 0.5
+    },
+    "hard_exclusion_presence": {},
+    "preferred_tag_presence": {
+      "low_sodium": 0.5,
+      "low_sugar": 0.5
+    },
+    "nutrition_limit_presence": {
+      "sodium_mg|daily|2000|24": 0.5,
+      "sugar_g|daily|25|24": 0.5
+    },
+    "parse_failure_rate": 0.0,
+    "empty_output_rate": 0.0,
+    "retry_count_distribution": {
+      "0": 10
+    },
+    "pairwise_canonical_rule_set_similarity": 0.4444444444444444,
+    "failure_counts": {}
+  },
+  "runs": [
+    {
+      "run_id": "sha256:c25b16398f7e5221a2f50b07490d303e2556a5643e9ca5f4c053f6387bbfe764",
+      "experiment_id": "E1",
+      "arm_id": "C0",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c0-dry-run-v1",
+      "prompt_hash": "sha256:c899b3d71c1f520db816563ec9d7d0c4f15a47776d1e52e83bddfec13a440e7b",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C0",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "clean_synthetic_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:a3fb4ce3de07e822eb8aaf1bb341f9499f03044aff74c8493b8b4ec2a5a89256",
+      "experiment_id": "E1",
+      "arm_id": "C0",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c0-dry-run-v1",
+      "prompt_hash": "sha256:c899b3d71c1f520db816563ec9d7d0c4f15a47776d1e52e83bddfec13a440e7b",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C0",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "clean_synthetic_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:bce6fd2d0f8c81a6632b1042ae4004e8c5600104db9320d3bc8785c6785cd763",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:50f876d355a88d5c4e58c7775caa6bb1f68cb55a03d774aed0f907d9eed1b3dc",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:23b5bb90789f5a5d23842c39da357a43623a3321d4c9a52fa9f8634a6a8b18f7",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:f4d39e84c67762456a30594199ddbc9338b9f599d41650183a177a60baf33da1",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:505bf82550d2cad57ae34b8ef20a2c005e2c080c6529b6a2d03cc2107e174f86",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:b553edbc44cf9db8f7fe93517c2ec2d5f2d0b4dec5657e71afa387e8171348c0",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:21b2f6616e36ee428ce649a3961e402bd2f2874fe7f177cbed50667126b16729",
+      "experiment_id": "E1",
+      "arm_id": "C4",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c4-dry-run-v1",
+      "prompt_hash": "sha256:08d1623c441b55a6989fce1086354967eb9f522e4cab47da49e9e1e640afbde6",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C4",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "one_shot_json"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:b446c7e25ba2549fc6c3b9fc21cdcfba2d9d65e2818e36259a2a8704b162a092",
+      "experiment_id": "E1",
+      "arm_id": "C4",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c4-dry-run-v1",
+      "prompt_hash": "sha256:08d1623c441b55a6989fce1086354967eb9f522e4cab47da49e9e1e640afbde6",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C4",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "one_shot_json"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    }
+  ],
+  "rows": [
+    {
+      "run_id": "sha256:c25b16398f7e5221a2f50b07490d303e2556a5643e9ca5f4c053f6387bbfe764",
+      "experiment_id": "E1",
+      "arm_id": "C0",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c0-dry-run-v1",
+      "prompt_hash": "sha256:c899b3d71c1f520db816563ec9d7d0c4f15a47776d1e52e83bddfec13a440e7b",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C0",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "clean_synthetic_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:a3fb4ce3de07e822eb8aaf1bb341f9499f03044aff74c8493b8b4ec2a5a89256",
+      "experiment_id": "E1",
+      "arm_id": "C0",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c0-dry-run-v1",
+      "prompt_hash": "sha256:c899b3d71c1f520db816563ec9d7d0c4f15a47776d1e52e83bddfec13a440e7b",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C0",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "clean_synthetic_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:bce6fd2d0f8c81a6632b1042ae4004e8c5600104db9320d3bc8785c6785cd763",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:50f876d355a88d5c4e58c7775caa6bb1f68cb55a03d774aed0f907d9eed1b3dc",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:23b5bb90789f5a5d23842c39da357a43623a3321d4c9a52fa9f8634a6a8b18f7",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:f4d39e84c67762456a30594199ddbc9338b9f599d41650183a177a60baf33da1",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:505bf82550d2cad57ae34b8ef20a2c005e2c080c6529b6a2d03cc2107e174f86",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:b553edbc44cf9db8f7fe93517c2ec2d5f2d0b4dec5657e71afa387e8171348c0",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:21b2f6616e36ee428ce649a3961e402bd2f2874fe7f177cbed50667126b16729",
+      "experiment_id": "E1",
+      "arm_id": "C4",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c4-dry-run-v1",
+      "prompt_hash": "sha256:08d1623c441b55a6989fce1086354967eb9f522e4cab47da49e9e1e640afbde6",
+      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "chunk_hashes": [
+        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:c24de1774545731ee090d9ce56e45679d97ff91906e2854efa4cbe7002db4a36",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2000,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Adults should reduce sodium intake to less than 2 g/day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C4",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+          "strategy": "one_shot_json"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    },
+    {
+      "run_id": "sha256:b446c7e25ba2549fc6c3b9fc21cdcfba2d9d65e2818e36259a2a8704b162a092",
+      "experiment_id": "E1",
+      "arm_id": "C4",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c4-dry-run-v1",
+      "prompt_hash": "sha256:08d1623c441b55a6989fce1086354967eb9f522e4cab47da49e9e1e640afbde6",
+      "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "chunk_hashes": [
+        "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:d057fa6fdf4c68ec5371b43832d1e2ae0342c74aff76a40a7c72cd12a664015c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "low_sugar"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sugar_g",
+              "scope": "daily",
+              "max_value": 25,
+              "window_hours": 24
+            }
+          ],
+          "evidence_quote": "Limit added sugar to 25 g per day."
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C4",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+          "strategy": "one_shot_json"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": []
+    }
+  ]
+}
