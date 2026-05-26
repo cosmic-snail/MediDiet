@@ -277,11 +277,18 @@ def _set_match(expected: set[Any], found: set[Any]) -> dict[str, Any]:
 
 
 def _limit_key(item: dict[str, Any]) -> str:
-    return f"{item.get('metric')}|{item.get('scope')}|{float(item.get('max_value', 0))}|{item.get('window_hours')}"
+    return f"{item.get('metric')}|{item.get('scope')}|{_format_limit_value(item.get('max_value', 0))}|{item.get('window_hours')}"
 
 
 def _rule_limit_key(limit) -> str:
-    return f"{limit.metric.value}|{limit.scope.value}|{float(limit.max_value)}|{limit.window_hours}"
+    return f"{limit.metric.value}|{limit.scope.value}|{_format_limit_value(limit.max_value)}|{limit.window_hours}"
+
+
+def _format_limit_value(value: Any) -> str:
+    numeric = float(value)
+    if numeric.is_integer():
+        return str(int(numeric))
+    return str(numeric)
 
 
 def _registry_for_gold_rows(gold_rows: list[dict[str, Any]]) -> ConceptRegistry:

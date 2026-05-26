@@ -467,6 +467,15 @@ class OpenAICompatibleLLMProviderTest(unittest.TestCase):
         self.assertEqual(config.retry_backoff_seconds, 0.75)
         self.assertFalse(config.send_patient_id)
 
+    def test_config_rejects_invalid_retry_values(self):
+        from medidiet.llm import LLMConfig
+
+        with self.assertRaisesRegex(ValueError, "retry_attempts must be positive"):
+            LLMConfig(retry_attempts=0)
+
+        with self.assertRaisesRegex(ValueError, "retry_backoff_seconds must be non-negative"):
+            LLMConfig(retry_backoff_seconds=-0.1)
+
     def test_openai_provider_builds_request_and_does_not_leak_api_key(self):
         import json
         from unittest.mock import patch
