@@ -10,4 +10,6 @@
 
 `extraction_observations.jsonl` 是 append-only 观察日志。普通单元测试不得默认写入该文件；真实 LLM 运行只有在显式 `--append-observations` 时才可追加。
 
+LLM API 层面的运行失败不进入研究观察范围，包括超时、HTTP/provider 错误、transport 异常和异常空响应。这类问题只作为 `operational_failures` 记录运行卫生状态，不参与字段评分、稳定性分析或架构对比。
+
 实验词汇固定为 comparator arms C0-C8 和 observation points O1-O13。任何报告必须保留 `experiment_id`、`arm_id`、`dataset_id`、`doc_id` 和 source hash。

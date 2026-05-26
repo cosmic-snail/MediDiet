@@ -3,59 +3,8 @@
   "run_type": "real_llm",
   "model": "deepseek-v4-flash",
   "provider": "openai_compatible",
-  "observation_count": 8,
+  "observation_count": 5,
   "observations": [
-    {
-      "run_id": "sha256:bce6fd2d0f8c81a6632b1042ae4004e8c5600104db9320d3bc8785c6785cd763",
-      "experiment_id": "E1",
-      "arm_id": "C1",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_guideline_who_sodium_2012",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "raw_card",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c1-dry-run-v1",
-      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
-      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "chunk_hashes": [
-        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
-      ],
-      "latency_ms": 22477,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:1385e288359b1a0460d161e11bc7a5708a4b00db0d8f12458d579b4a5f4cddd3",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C1",
-          "input_variant": "raw_card",
-          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-          "strategy": "raw_card_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 22477,
-          "retry_count": 0,
-          "empty_output": true
-        },
-        "O8": {
-          "parsed_rule_count": 0,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": [
-        "LLM extraction call failed: IncompleteRead(0 bytes read)"
-      ]
-    },
     {
       "run_id": "sha256:50f876d355a88d5c4e58c7775caa6bb1f68cb55a03d774aed0f907d9eed1b3dc",
       "experiment_id": "E1",
@@ -269,69 +218,6 @@
       "failures": []
     },
     {
-      "run_id": "sha256:82383d502692a38d162e19399fa603a018169f6eb810ac5bbc54870fc37c480d",
-      "experiment_id": "E2",
-      "arm_id": "C1",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_guideline_who_sodium_2012",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "raw_card",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c1-dry-run-v1",
-      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
-      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "chunk_hashes": [
-        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
-      ],
-      "latency_ms": 25133,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:47a59578b814a6a76b6a29d0ce0cb9a1f8fdb383a76d62e02e88d24972525e71",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [
-        {
-          "condition": "hypertension",
-          "hard_exclusions": [
-            "high_sodium"
-          ],
-          "preferred_tags": [],
-          "nutrition_limits": [],
-          "confidence": 1.0,
-          "status": "pending_review",
-          "verification_verdict": "pass"
-        }
-      ],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C1",
-          "input_variant": "raw_card",
-          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-          "strategy": "raw_card_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 25133,
-          "retry_count": 0,
-          "empty_output": false
-        },
-        "O8": {
-          "parsed_rule_count": 1,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": [
-        "Verification failed for E2-C1-en_guideline_who_sodium_2012-3fc7b438: LLM verification call failed: LLM provider request failed"
-      ]
-    },
-    {
       "run_id": "sha256:95bff05df8531d6974882cd5134dfc4d565d55acc3e9eb7bf8a3c8d3e7bd203f",
       "experiment_id": "E2",
       "arm_id": "C1",
@@ -396,76 +282,6 @@
       },
       "evaluator": {},
       "failures": []
-    },
-    {
-      "run_id": "sha256:84c21bf15bd7f96a4de8266f4aab838d0eb52281cc33549da81a90909371f8bf",
-      "experiment_id": "E2",
-      "arm_id": "C2",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_guideline_who_sodium_2012",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "extractable_content",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c2-dry-run-v1",
-      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
-      "input_hash": "sha256:9875b3af06c692d1607d03f8a85afda6dc0621f4882d93041f9b7bf2444151b0",
-      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "chunk_hashes": [
-        "sha256:9875b3af06c692d1607d03f8a85afda6dc0621f4882d93041f9b7bf2444151b0"
-      ],
-      "latency_ms": 39969,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:a0566621a3576e059d87c4e9f6125909a117b5212d1650246b2dc9a2070d3a5b",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [
-        {
-          "condition": "hypertension",
-          "hard_exclusions": [],
-          "preferred_tags": [
-            "low_sodium"
-          ],
-          "nutrition_limits": [
-            {
-              "metric": "sodium_mg",
-              "scope": "daily",
-              "max_value": 2000.0,
-              "window_hours": null
-            }
-          ],
-          "confidence": 0.95,
-          "status": "pending_review",
-          "verification_verdict": "pass"
-        }
-      ],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C2",
-          "input_variant": "extractable_content",
-          "input_hash": "sha256:9875b3af06c692d1607d03f8a85afda6dc0621f4882d93041f9b7bf2444151b0",
-          "strategy": "extractable_content_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 39969,
-          "retry_count": 0,
-          "empty_output": false
-        },
-        "O8": {
-          "parsed_rule_count": 1,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": [
-        "Verification failed for E2-C2-en_guideline_who_sodium_2012-24bb8adf: LLM verification call failed: Remote end closed connection without response"
-      ]
     },
     {
       "run_id": "sha256:bc1f1cc88593fbf23477bd5ad3d4b970f427257b87d379875ee011c5920a6910",
@@ -535,85 +351,26 @@
     }
   ],
   "stability": {
-    "run_count": 8,
+    "run_count": 5,
     "condition_presence": {
-      "diabetes": 0.5,
-      "hypertension": 0.375
+      "diabetes": 0.8,
+      "hypertension": 0.2
     },
-    "hard_exclusion_presence": {
-      "high_sodium": 0.125
-    },
-    "preferred_tag_presence": {
-      "low_sodium": 0.125
-    },
+    "hard_exclusion_presence": {},
+    "preferred_tag_presence": {},
     "nutrition_limit_presence": {
-      "sodium_mg|daily|2000.0|None": 0.25,
-      "sugar_g|daily|25.0|None": 0.5
+      "sodium_mg|daily|2000.0|None": 0.2,
+      "sugar_g|daily|25.0|None": 0.8
     },
     "parse_failure_rate": 0.0,
-    "empty_output_rate": 0.125,
+    "empty_output_rate": 0.0,
     "retry_count_distribution": {
-      "0": 8
+      "0": 5
     },
-    "pairwise_canonical_rule_set_similarity": 0.25892857142857145,
-    "failure_counts": {
-      "LLM extraction call failed: IncompleteRead(0 bytes read)": 1,
-      "Verification failed for E2-C1-en_guideline_who_sodium_2012-3fc7b438: LLM verification call failed: LLM provider request failed": 1,
-      "Verification failed for E2-C2-en_guideline_who_sodium_2012-24bb8adf: LLM verification call failed: Remote end closed connection without response": 1
-    }
+    "pairwise_canonical_rule_set_similarity": 0.6,
+    "failure_counts": {}
   },
   "rows": [
-    {
-      "run_id": "sha256:bce6fd2d0f8c81a6632b1042ae4004e8c5600104db9320d3bc8785c6785cd763",
-      "experiment_id": "E1",
-      "arm_id": "C1",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_guideline_who_sodium_2012",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "raw_card",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c1-dry-run-v1",
-      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
-      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "chunk_hashes": [
-        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
-      ],
-      "latency_ms": 22477,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:1385e288359b1a0460d161e11bc7a5708a4b00db0d8f12458d579b4a5f4cddd3",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C1",
-          "input_variant": "raw_card",
-          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-          "strategy": "raw_card_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 22477,
-          "retry_count": 0,
-          "empty_output": true
-        },
-        "O8": {
-          "parsed_rule_count": 0,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": [
-        "LLM extraction call failed: IncompleteRead(0 bytes read)"
-      ]
-    },
     {
       "run_id": "sha256:50f876d355a88d5c4e58c7775caa6bb1f68cb55a03d774aed0f907d9eed1b3dc",
       "experiment_id": "E1",
@@ -827,69 +584,6 @@
       "failures": []
     },
     {
-      "run_id": "sha256:82383d502692a38d162e19399fa603a018169f6eb810ac5bbc54870fc37c480d",
-      "experiment_id": "E2",
-      "arm_id": "C1",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_guideline_who_sodium_2012",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "raw_card",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c1-dry-run-v1",
-      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
-      "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "chunk_hashes": [
-        "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7"
-      ],
-      "latency_ms": 25133,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:47a59578b814a6a76b6a29d0ce0cb9a1f8fdb383a76d62e02e88d24972525e71",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [
-        {
-          "condition": "hypertension",
-          "hard_exclusions": [
-            "high_sodium"
-          ],
-          "preferred_tags": [],
-          "nutrition_limits": [],
-          "confidence": 1.0,
-          "status": "pending_review",
-          "verification_verdict": "pass"
-        }
-      ],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C1",
-          "input_variant": "raw_card",
-          "input_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-          "strategy": "raw_card_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 25133,
-          "retry_count": 0,
-          "empty_output": false
-        },
-        "O8": {
-          "parsed_rule_count": 1,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": [
-        "Verification failed for E2-C1-en_guideline_who_sodium_2012-3fc7b438: LLM verification call failed: LLM provider request failed"
-      ]
-    },
-    {
       "run_id": "sha256:95bff05df8531d6974882cd5134dfc4d565d55acc3e9eb7bf8a3c8d3e7bd203f",
       "experiment_id": "E2",
       "arm_id": "C1",
@@ -954,76 +648,6 @@
       },
       "evaluator": {},
       "failures": []
-    },
-    {
-      "run_id": "sha256:84c21bf15bd7f96a4de8266f4aab838d0eb52281cc33549da81a90909371f8bf",
-      "experiment_id": "E2",
-      "arm_id": "C2",
-      "dataset_id": "rule_extraction_v1",
-      "doc_id": "en_guideline_who_sodium_2012",
-      "expected_id": null,
-      "gold_id": null,
-      "input_variant": "extractable_content",
-      "extractor_name": "real_two_stage_rule_extractor",
-      "model": "deepseek-v4-flash",
-      "provider": "openai_compatible",
-      "temperature": 0.0,
-      "prompt_version": "c2-dry-run-v1",
-      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
-      "input_hash": "sha256:9875b3af06c692d1607d03f8a85afda6dc0621f4882d93041f9b7bf2444151b0",
-      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
-      "chunk_hashes": [
-        "sha256:9875b3af06c692d1607d03f8a85afda6dc0621f4882d93041f9b7bf2444151b0"
-      ],
-      "latency_ms": 39969,
-      "retry_count": 0,
-      "finish_reason": "stop",
-      "raw_output_hash": "sha256:a0566621a3576e059d87c4e9f6125909a117b5212d1650246b2dc9a2070d3a5b",
-      "raw_output_path": "",
-      "parse_status": "parsed",
-      "parsed_rules": [
-        {
-          "condition": "hypertension",
-          "hard_exclusions": [],
-          "preferred_tags": [
-            "low_sodium"
-          ],
-          "nutrition_limits": [
-            {
-              "metric": "sodium_mg",
-              "scope": "daily",
-              "max_value": 2000.0,
-              "window_hours": null
-            }
-          ],
-          "confidence": 0.95,
-          "status": "pending_review",
-          "verification_verdict": "pass"
-        }
-      ],
-      "suggested_concepts": [],
-      "observation_points": {
-        "O5": {
-          "arm_id": "C2",
-          "input_variant": "extractable_content",
-          "input_hash": "sha256:9875b3af06c692d1607d03f8a85afda6dc0621f4882d93041f9b7bf2444151b0",
-          "strategy": "extractable_content_current_two_stage"
-        },
-        "O6": {
-          "provider": "real_llm",
-          "latency_ms": 39969,
-          "retry_count": 0,
-          "empty_output": false
-        },
-        "O8": {
-          "parsed_rule_count": 1,
-          "suggested_concept_count": 0
-        }
-      },
-      "evaluator": {},
-      "failures": [
-        "Verification failed for E2-C2-en_guideline_who_sodium_2012-24bb8adf: LLM verification call failed: Remote end closed connection without response"
-      ]
     },
     {
       "run_id": "sha256:bc1f1cc88593fbf23477bd5ad3d4b970f427257b87d379875ee011c5920a6910",
@@ -1091,5 +715,53 @@
       "evaluator": {},
       "failures": []
     }
-  ]
+  ],
+  "operational_failures": [
+    {
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "input_variant": "raw_card",
+      "latency_ms": 22477,
+      "failures": [
+        "LLM extraction call failed: IncompleteRead(0 bytes read)"
+      ],
+      "parse_status": "parsed",
+      "finish_reason": "stop",
+      "excluded_from_research": true,
+      "exclusion_reason": "llm_api_operational_failure"
+    },
+    {
+      "experiment_id": "E2",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "input_variant": "raw_card",
+      "latency_ms": 25133,
+      "failures": [
+        "Verification failed for E2-C1-en_guideline_who_sodium_2012-3fc7b438: LLM verification call failed: LLM provider request failed"
+      ],
+      "parse_status": "parsed",
+      "finish_reason": "stop",
+      "excluded_from_research": true,
+      "exclusion_reason": "llm_api_operational_failure"
+    },
+    {
+      "experiment_id": "E2",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "en_guideline_who_sodium_2012",
+      "input_variant": "extractable_content",
+      "latency_ms": 39969,
+      "failures": [
+        "Verification failed for E2-C2-en_guideline_who_sodium_2012-24bb8adf: LLM verification call failed: Remote end closed connection without response"
+      ],
+      "parse_status": "parsed",
+      "finish_reason": "stop",
+      "excluded_from_research": true,
+      "exclusion_reason": "llm_api_operational_failure"
+    }
+  ],
+  "operational_failure_count": 3
 }

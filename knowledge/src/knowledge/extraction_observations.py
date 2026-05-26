@@ -23,8 +23,6 @@ REQUIRED_FIELDS = {
 }
 
 FAILURE_LABELS = {
-    "provider_error",
-    "empty_output",
     "json_parse_error",
     "no_rule_extracted",
     "missing_numeric_limit",

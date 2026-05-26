@@ -93,6 +93,32 @@ def _suggestion_to_dict(suggestion) -> dict[str, Any]:
     }
 
 
+def _is_operational_llm_failure(
+    failures: list[str],
+    parsed_rules: list[dict[str, Any]],
+    suggested_concepts: list[dict[str, Any]],
+) -> bool:
+    if not failures:
+        return False
+    markers = (
+        "provider_error",
+        "LLM extraction call failed",
+        "LLM verification call failed",
+        "LLM retry call failed",
+        "IncompleteRead",
+        "Remote end closed connection",
+        "request failed",
+        "timeout",
+        "timed out",
+        "empty provider response",
+    )
+    if any(any(marker in failure for marker in markers) for failure in failures):
+        return True
+    return not parsed_rules and not suggested_concepts and any(
+        "empty_output" in failure for failure in failures
+    )
+
+
 def build_chunking_report(dataset_dir: Path, source_root: Path, strategies: list[str] | None = None) -> dict[str, Any]:
     strategies = strategies or ["raw_card", "extractable_content"]
     docs = load_dataset_documents(dataset_dir, source_root)
@@ -200,6 +226,7 @@ def run_research_real_run(
     extractor = RuleExtractor(llm_provider, load_baseline_rule_pack().concepts)
 
     observations: list[dict[str, Any]] = []
+    operational_failures: list[dict[str, Any]] = []
     observation_path = dataset_dir / "extraction_observations.jsonl"
     for experiment_id in experiments:
         for arm_id in arms:
@@ -248,6 +275,23 @@ def run_research_real_run(
                     source_card_hash=doc.metadata.get("source_card_hash", ""),
                     chunk_hashes=tuple(chunk.metadata.get("chunk_hash", "") for chunk in selected_doc.chunks),
                 )
+                if _is_operational_llm_failure(failures, parsed_rules, suggested):
+                    operational_failures.append(
+                        {
+                            "experiment_id": experiment_id,
+                            "arm_id": arm_id,
+                            "dataset_id": dataset,
+                            "doc_id": doc.doc_id,
+                            "input_variant": input_variant,
+                            "latency_ms": latency_ms,
+                            "failures": failures,
+                            "parse_status": parse_status,
+                            "finish_reason": finish_reason,
+                            "excluded_from_research": True,
+                            "exclusion_reason": "llm_api_operational_failure",
+                        }
+                    )
+                    continue
                 base = run_comparator_arm(comparator_input)
                 observation = {
                     **base,
@@ -279,7 +323,9 @@ def run_research_real_run(
         "model": observations[0]["model"] if observations else "",
         "provider": observations[0]["provider"] if observations else "",
         "observation_count": len(observations),
+        "operational_failure_count": len(operational_failures),
         "observations": observations,
+        "operational_failures": operational_failures,
         "stability": stability,
         "rows": observations,
     }
@@ -287,13 +333,18 @@ def run_research_real_run(
         json.dumps(report, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    return {"dataset_id": dataset, "observation_count": len(observations), "report_path": str(output_dir / "rule-extraction-v1-real-llm-report.json")}
+    return {
+        "dataset_id": dataset,
+        "observation_count": len(observations),
+        "operational_failure_count": len(operational_failures),
+        "report_path": str(output_dir / "rule-extraction-v1-real-llm-report.json"),
+    }
 
 
 def _write_markdown_reports(output_dir: Path, dataset: str, snapshot_id: str, reports: dict[str, Any], chunking_report: dict[str, Any]) -> None:
     timestamp = datetime.now(timezone.utc).isoformat()
     (output_dir / "doc-rule-agent-error-taxonomy.md").write_text(
-        "\n".join(["# DocRule-Agent Error Taxonomy", "", f"- run id: dry-run", f"- dataset id: {dataset}", "- model: fake", "- prompt version: dry-run-v1", f"- timestamp: {timestamp}", "", "## Categories", "", "- provider failure", "- empty output after retry", "- invalid JSON", "- condition omission", "- exclusion omission", "- tag omission", "- numeric limit omission", "- incorrect numeric threshold", "- unsupported nutrition concept", "- evidence quote drift", "- source-card chunk contamination", "- cross-run instability", "- conflict requiring governance", ""]) ,
+        "\n".join(["# DocRule-Agent Error Taxonomy", "", f"- run id: dry-run", f"- dataset id: {dataset}", "- model: fake", "- prompt version: dry-run-v1", f"- timestamp: {timestamp}", "", "## Categories", "", "- invalid JSON", "- condition omission", "- exclusion omission", "- tag omission", "- numeric limit omission", "- incorrect numeric threshold", "- unsupported nutrition concept", "- evidence quote drift", "- source-card chunk contamination", "- cross-run instability", "- conflict requiring governance", ""]) ,
         encoding="utf-8",
     )
     summary_lines = [

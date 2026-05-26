@@ -8,8 +8,6 @@
 
 ## Categories
 
-- provider failure
-- empty output after retry
 - invalid JSON
 - condition omission
 - exclusion omission

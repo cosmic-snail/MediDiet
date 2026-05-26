@@ -46,7 +46,9 @@ Primary metrics include field-level precision, recall, F1, numeric-limit exact m
 
 ## Failure Policy
 
-Provider errors, empty outputs, invalid JSON, missing numeric limits, unsupported concepts, and instability are recorded as observations. Research runs do not hide failures through silent retries.
+LLM API operational failures are excluded from research observations. This includes request timeouts, transport errors, HTTP/provider errors, and abnormal empty provider responses. These failures may be counted in `operational_failures` for run hygiene, but they do not participate in field-level scoring, stability, extraction architecture comparison, or append-only research observations.
+
+Model-level failures after a valid provider response remain in scope. Invalid JSON, missing numeric limits, unsupported concepts, no-rule extraction, evidence drift, and cross-run instability are recorded as research observations.
 
 ## Reproducibility Contract
 

@@ -78,14 +78,14 @@ These reports are intentionally machine-readable where possible, so future analy
 
 ## Real LLM Run
 
-The real LLM run used the local `.env` configuration without committing any credentials. It produced eight observations from:
+The real LLM run used the local `.env` configuration without committing any credentials. After excluding API-level operational failures from research metrics, it produced five research observations and three operational failure records from:
 
 - experiments: `E1`, `E2`
 - arms: `C1`, `C2`
 - documents: sodium source card and diabetes sugar source card
 - provider/model recorded in the report: `openai_compatible / deepseek-v4-flash`
 
-The run successfully extracted several numeric rules and also preserved provider/verification failures as observations. This is expected research behavior: failed provider calls, incomplete reads, verification failures, and unstable outputs are data points rather than hidden retry noise.
+The run successfully extracted several numeric rules. API and transport failures are treated as operational run failures, not research observations; they do not affect field-level scoring, stability, or extraction architecture comparisons.
 
 ## Safety Boundary
 

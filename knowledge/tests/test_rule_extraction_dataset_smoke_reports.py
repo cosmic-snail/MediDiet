@@ -42,6 +42,15 @@ class RecordingRuleLLMProvider:
         )
 
 
+class FailingExtractionLLMProvider:
+    def __init__(self) -> None:
+        self.tasks = []
+
+    def complete(self, request):
+        self.tasks.append(request.task)
+        raise RuntimeError("transport timeout")
+
+
 def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path):
     provider = RecordingRuleLLMProvider()
     result = run_research_real_run(
@@ -56,3 +65,29 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
     assert LLMTask.RULE_VALIDATION in provider.tasks
     assert result["observation_count"] == 1
     assert (tmp_path / "rule-extraction-v1-real-llm-report.json").exists()
+
+
+def test_real_run_excludes_api_failures_from_research_observations(tmp_path: Path):
+    provider = FailingExtractionLLMProvider()
+    observation_path = REPO_ROOT / "knowledge" / "datasets" / "rule_extraction_v1" / "extraction_observations.jsonl"
+    before = observation_path.read_text(encoding="utf-8")
+
+    result = run_research_real_run(
+        "rule_extraction_v1",
+        tmp_path,
+        llm_provider=provider,
+        arms=["C2"],
+        experiments=["E1"],
+        max_docs=1,
+        append_observations=True,
+    )
+
+    assert result["observation_count"] == 0
+    assert result["operational_failure_count"] == 1
+    assert observation_path.read_text(encoding="utf-8") == before
+
+    report = __import__("json").loads(
+        (tmp_path / "rule-extraction-v1-real-llm-report.json").read_text(encoding="utf-8")
+    )
+    assert report["observations"] == []
+    assert report["operational_failures"][0]["excluded_from_research"] is True
