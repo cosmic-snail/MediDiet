@@ -13,3 +13,4 @@ uv.lock
 # Runtime data
 data/chroma/
 data/knowledge.db
+reports/rule-extraction-v1-*.json

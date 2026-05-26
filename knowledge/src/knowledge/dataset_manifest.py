@@ -50,7 +50,16 @@ def load_dataset_documents(dataset_dir: Path, source_root: Path) -> list[Knowled
     importer = DocumentImporter()
     docs: list[KnowledgeDocument] = []
     for row in load_manifest_rows(dataset_dir):
-        card_path = source_root / row["source_card_path"]
+        source_card_path = row.get("source_card_path") or row.get("path")
+        if not source_card_path:
+            raise ValueError(f"manifest row {row.get('doc_id', '<unknown>')} is missing source_card_path/path")
+        raw_path = Path(source_card_path)
+        if raw_path.is_absolute():
+            card_path = raw_path
+        elif source_card_path.startswith("knowledge/source_documents/"):
+            card_path = source_root.parent.parent / raw_path
+        else:
+            card_path = source_root / raw_path
         source_text = card_path.read_text(encoding="utf-8")
         frontmatter = extract_frontmatter(source_text)
         if frontmatter.get("doc_id") and frontmatter["doc_id"] != row["doc_id"]:
@@ -58,11 +67,11 @@ def load_dataset_documents(dataset_dir: Path, source_root: Path) -> list[Knowled
                 f"manifest doc_id {row['doc_id']} disagrees with source card {frontmatter['doc_id']}"
             )
         extractable = extract_section(source_text, "Extractable Source Content") or source_text
-        metadata = {k: v for k, v in row.items() if k != "source_card_path"}
+        metadata = {k: v for k, v in row.items() if k not in {"source_card_path", "path"}}
         metadata.update(
             {
                 "dataset_id": dataset_dir.name,
-                "source_card_path": row["source_card_path"],
+                "source_card_path": source_card_path,
                 "source_card_hash": sha256_text(source_text),
                 "extractable_content_hash": sha256_text(extractable),
                 "manifest_row_hash": sha256_text(json.dumps(row, ensure_ascii=False, sort_keys=True)),

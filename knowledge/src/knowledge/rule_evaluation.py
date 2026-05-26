@@ -15,6 +15,16 @@ def _limits(rule: dict[str, Any]) -> set[tuple]:
     }
 
 
+def _code_value(item: Any) -> Any:
+    if isinstance(item, dict):
+        return item.get("value")
+    return item
+
+
+def _code_values(items: list[Any] | None) -> set[str]:
+    return {str(value) for value in (_code_value(item) for item in items or []) if value}
+
+
 def _soft_concepts(values: list[str]) -> set[str]:
     result = set(values)
     for value in values:
@@ -28,17 +38,27 @@ def _soft_concepts(values: list[str]) -> set[str]:
 def evaluate_rule(gold: dict[str, Any], extracted: list[dict[str, Any]], include_challenge: bool = False) -> dict[str, Any]:
     if gold.get("split") == "challenge" and not include_challenge:
         return {"gold_id": gold.get("gold_id"), "excluded_from_f1": True, "overall": "challenge_only", "field_scores": {}, "failures": []}
-    if gold.get("should_extract") is False:
+    if gold.get("should_extract") is False or gold.get("gold_behavior") == "negative":
         failures = [] if not extracted else ["unexpected_numeric_limit"]
         return {"gold_id": gold.get("gold_id"), "field_scores": {"no_rule_expected": "match" if not extracted else "extra"}, "overall": "match" if not extracted else "mismatch", "failures": failures}
+    if gold.get("gold_behavior") == "suggested_concept":
+        suggestions = _soft_concepts([item.get("suggested_code", item) if isinstance(item, dict) else item for rule in extracted for item in rule.get("suggested_concepts", []) or []])
+        expected = _soft_concepts(gold.get("suggested_concepts", []) or [])
+        failures = [] if expected <= suggestions else ["suggested_concept_mismatch"]
+        return {
+            "gold_id": gold.get("gold_id"),
+            "field_scores": {"suggested_concepts": "match" if not failures else "missing"},
+            "overall": "match" if not failures else "miss",
+            "failures": failures,
+        }
     best = extracted[0] if extracted else {}
     fields: dict[str, str] = {}
     failures: list[str] = []
-    fields["condition"] = "match" if best.get("condition") == gold.get("condition") else "missing"
+    fields["condition"] = "match" if _code_value(best.get("condition")) == _code_value(gold.get("condition")) else "missing"
     if fields["condition"] != "match":
         failures.append("condition_mismatch")
-    fields["hard_exclusions"] = "match" if set(best.get("hard_exclusions", []) or []) == set(gold.get("hard_exclusions", []) or []) else "partial"
-    fields["preferred_tags"] = "match" if set(best.get("preferred_tags", []) or []) == set(gold.get("preferred_tags", []) or []) else "partial"
+    fields["hard_exclusions"] = "match" if _code_values(best.get("hard_exclusions")) == _code_values(gold.get("hard_exclusions")) else "partial"
+    fields["preferred_tags"] = "match" if _code_values(best.get("preferred_tags")) == _code_values(gold.get("preferred_tags")) else "partial"
     gold_limits = _limits(gold)
     extracted_limits = _limits(best)
     if gold_limits <= extracted_limits:

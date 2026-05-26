@@ -23,7 +23,10 @@ def select_document_content(content: str, strategy: str = RAW_CARD) -> str:
 
     extract_marker = "## Extractable Source Content"
     notes_marker = "## Source Notes"
-    extractable = content.split(extract_marker, 1)[1].strip() if extract_marker in content else content.strip()
+    if extract_marker in content:
+        extractable = content.split(extract_marker, 1)[1].split("\n## ", 1)[0].strip()
+    else:
+        extractable = content.strip()
     if strategy == EXTRACTABLE_CONTENT:
         return extractable
 
