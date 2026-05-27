@@ -1,0 +1,790 @@
+{
+  "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+  "strategies": {
+    "raw_card": {
+      "summary": {
+        "total_chunks": 32,
+        "chunks_with_frontmatter": 8,
+        "chunks_with_copyright_handling": 17,
+        "chunks_starting_mid_word": 20
+      },
+      "per_doc_chunk_counts": {
+        "epfl_cdc_physical_activity_diet_weight": 4,
+        "epfl_cdc_who_flour_fortification": 4,
+        "epfl_cma_obesity_clinical_practice": 4,
+        "epfl_cma_type2_diabetes_primary_care": 4,
+        "epfl_nice_ckd_dialysis_fluid_management": 4,
+        "epfl_nice_obesity_local_communities": 4,
+        "epfl_pubmed_obesity_kidney_transplant": 4,
+        "epfl_pubmed_ada_type1_diabetes_nutrition": 4
+      },
+      "representative_chunk_previews": [
+        {
+          "doc_id": "epfl_cdc_physical_activity_diet_weight",
+          "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0000",
+          "preview": "---\ndoc_id: epfl_cdc_physical_activity_diet_weight\ntitle: \"CDC Physical Activity and Sound Dietary Practices for Weight Control\"\nlanguage: en\nsource_type: guide"
+        },
+        {
+          "doc_id": "epfl_cdc_physical_activity_diet_weight",
+          "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0001",
+          "preview": "xcerpt_windows\nnotes: \"CDC row includes population targets combining sound dietary practices and regular physical activity.\"\n---\n\n# CDC Physical Activity and So"
+        },
+        {
+          "doc_id": "epfl_cdc_physical_activity_diet_weight",
+          "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0002",
+          "preview": "w title: None\nOriginal row source: cdc\n\nThe card keeps short focus windows rather than the full guideline text so the external smoke dataset remains small and a"
+        }
+      ]
+    },
+    "extractable_content": {
+      "summary": {
+        "total_chunks": 8,
+        "chunks_with_frontmatter": 0,
+        "chunks_with_copyright_handling": 0,
+        "chunks_starting_mid_word": 0
+      },
+      "per_doc_chunk_counts": {
+        "epfl_cdc_physical_activity_diet_weight": 1,
+        "epfl_cdc_who_flour_fortification": 1,
+        "epfl_cma_obesity_clinical_practice": 1,
+        "epfl_cma_type2_diabetes_primary_care": 1,
+        "epfl_nice_ckd_dialysis_fluid_management": 1,
+        "epfl_nice_obesity_local_communities": 1,
+        "epfl_pubmed_obesity_kidney_transplant": 1,
+        "epfl_pubmed_ada_type1_diabetes_nutrition": 1
+      },
+      "representative_chunk_previews": [
+        {
+          "doc_id": "epfl_cdc_physical_activity_diet_weight",
+          "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0000",
+          "preview": "- Dataset overview: None\n- Excerpt window 1: It is coordinated by a multidisciplinary team and accountable to the community for program quality and effectivenes"
+        },
+        {
+          "doc_id": "epfl_cdc_who_flour_fortification",
+          "chunk_id": "epfl_cdc_who_flour_fortification-chunk-0000",
+          "preview": "- Dataset overview: None\n- Excerpt window 1: MS) personnel; students; part-time personnel; temporary staff not employed by the health-care facility; and persons"
+        },
+        {
+          "doc_id": "epfl_cma_obesity_clinical_practice",
+          "chunk_id": "epfl_cma_obesity_clinical_practice-chunk-0000",
+          "preview": "- Dataset overview: None\n- Excerpt window 1: reat this disease in an unbiased manner. 2. Assessment of an individual living with obesity, using appropriate meas"
+        }
+      ]
+    },
+    "source_notes_plus_extractable": {
+      "summary": {
+        "total_chunks": 16,
+        "chunks_with_frontmatter": 0,
+        "chunks_with_copyright_handling": 0,
+        "chunks_starting_mid_word": 7
+      },
+      "per_doc_chunk_counts": {
+        "epfl_cdc_physical_activity_diet_weight": 2,
+        "epfl_cdc_who_flour_fortification": 2,
+        "epfl_cma_obesity_clinical_practice": 2,
+        "epfl_cma_type2_diabetes_primary_care": 2,
+        "epfl_nice_ckd_dialysis_fluid_management": 2,
+        "epfl_nice_obesity_local_communities": 2,
+        "epfl_pubmed_obesity_kidney_transplant": 2,
+        "epfl_pubmed_ada_type1_diabetes_nutrition": 2
+      },
+      "representative_chunk_previews": [
+        {
+          "doc_id": "epfl_cdc_physical_activity_diet_weight",
+          "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0000",
+          "preview": "## Source Notes\n\nThis source card was generated from the public HuggingFace dataset `epfl-llm/guidelines`, row index 195.\nOriginal row title: None\nOriginal row "
+        },
+        {
+          "doc_id": "epfl_cdc_physical_activity_diet_weight",
+          "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0001",
+          "preview": "w title: None\nOriginal row source: cdc\n\nThe card keeps short focus windows rather than the full guideline text so the external smoke dataset remains small and a"
+        },
+        {
+          "doc_id": "epfl_cdc_who_flour_fortification",
+          "chunk_id": "epfl_cdc_who_flour_fortification-chunk-0000",
+          "preview": "## Source Notes\n\nThis source card was generated from the public HuggingFace dataset `epfl-llm/guidelines`, row index 102.\nOriginal row title: None\nOriginal row "
+        }
+      ]
+    }
+  },
+  "rows": [
+    {
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0000",
+      "chunk_hash": "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "flags": {
+        "frontmatter": true,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0001",
+      "chunk_hash": "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0002",
+      "chunk_hash": "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0003",
+      "chunk_hash": "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "flags": {
+        "frontmatter": false,
+        "copyright": true,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cdc_who_flour_fortification-chunk-0000",
+      "chunk_hash": "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "flags": {
+        "frontmatter": true,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cdc_who_flour_fortification-chunk-0001",
+      "chunk_hash": "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cdc_who_flour_fortification-chunk-0002",
+      "chunk_hash": "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cdc_who_flour_fortification-chunk-0003",
+      "chunk_hash": "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "flags": {
+        "frontmatter": false,
+        "copyright": true,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cma_obesity_clinical_practice-chunk-0000",
+      "chunk_hash": "sha256:e210dbb0ef82fed40aab6b3cbf3ad12535f61afb791a256762ef682a09a131a0",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "flags": {
+        "frontmatter": true,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cma_obesity_clinical_practice-chunk-0001",
+      "chunk_hash": "sha256:32a7ea9dac4a05f5ae92517ee5f5ed6dfa286ddf51b2d40a68ab71d4e06cd3a1",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "flags": {
+        "frontmatter": false,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cma_obesity_clinical_practice-chunk-0002",
+      "chunk_hash": "sha256:b8f9a03862450142a419f344aee376d0e1ee791f177b374f455a689c3e436ceb",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cma_obesity_clinical_practice-chunk-0003",
+      "chunk_hash": "sha256:9ac17fe65a1b0f384322cd2f2b2d1a29ce4beb0a080b02532e9bf95ee6aaad2c",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "flags": {
+        "frontmatter": false,
+        "copyright": true,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cma_type2_diabetes_primary_care-chunk-0000",
+      "chunk_hash": "sha256:7cb8df9f6896ab7653eb4d78cadbe0ea6fa78088a8e4ca9e2411c7a32ca192ba",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "flags": {
+        "frontmatter": true,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cma_type2_diabetes_primary_care-chunk-0001",
+      "chunk_hash": "sha256:314bcdadf21133c6e05cc1ffc3d12b94e0bb74af2d4a6f0fefc54bc28b4b012c",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cma_type2_diabetes_primary_care-chunk-0002",
+      "chunk_hash": "sha256:7dfb450204183da8d6339d1ad77b387c5296f42fef691d341206b89ed47abb0e",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_cma_type2_diabetes_primary_care-chunk-0003",
+      "chunk_hash": "sha256:b5818f5b85fdafe09b5c49e1030dc501633dbeaa11d7bb489d54fd905ff6259d",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "flags": {
+        "frontmatter": false,
+        "copyright": true,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_nice_ckd_dialysis_fluid_management-chunk-0000",
+      "chunk_hash": "sha256:17414ae3b12a795b562505eaf6d8d37dd2b56bb1ee68ab283015883e038562ab",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "flags": {
+        "frontmatter": true,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_nice_ckd_dialysis_fluid_management-chunk-0001",
+      "chunk_hash": "sha256:84e480ed9c1a0fb537be8dc9a76015b339129193dc3c1f19e6f20bd38bcf32be",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_nice_ckd_dialysis_fluid_management-chunk-0002",
+      "chunk_hash": "sha256:9cb76cac3622a96813fc6de2a6f91310f5e22abd237af4c56a9599356e3497b9",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_nice_ckd_dialysis_fluid_management-chunk-0003",
+      "chunk_hash": "sha256:e7e55513b88f8203448b3001feb0298e592e84e995003fa0362b968568b71b0b",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "flags": {
+        "frontmatter": false,
+        "copyright": true,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_nice_obesity_local_communities-chunk-0000",
+      "chunk_hash": "sha256:7ab5a794b9947adba1edd165f2e01b49b6fe8f95982e02de57fa80a83c12ba57",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "flags": {
+        "frontmatter": true,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_nice_obesity_local_communities-chunk-0001",
+      "chunk_hash": "sha256:de32bc6cd5b39a154d708901ec2a000482873f537cbac57fa1d2fd5d1eb44a0d",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_nice_obesity_local_communities-chunk-0002",
+      "chunk_hash": "sha256:4a6446996148c68fc2836b7a72ecbd021034685ea1593c112ea9c1d1493ef73c",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_nice_obesity_local_communities-chunk-0003",
+      "chunk_hash": "sha256:bcff8fe40f06991c354132664ce2be9df41395f2ab45523a61a313324904be39",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "flags": {
+        "frontmatter": false,
+        "copyright": true,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_pubmed_obesity_kidney_transplant-chunk-0000",
+      "chunk_hash": "sha256:6f0139735424ade7a92c2492f9f09b23ad131613a5e1ad67fbb9072f3f429075",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "flags": {
+        "frontmatter": true,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_pubmed_obesity_kidney_transplant-chunk-0001",
+      "chunk_hash": "sha256:6af021eb0560ca0802d6ca169c617fcfbc49ae0b06aa8b648dacfb7611f6bf64",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_pubmed_obesity_kidney_transplant-chunk-0002",
+      "chunk_hash": "sha256:6c08467e7b0e71395a5d8f96c507a18f9ddeafeb13591d5c4398b4233ffc4d92",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_pubmed_obesity_kidney_transplant-chunk-0003",
+      "chunk_hash": "sha256:24ce1bc6fd31d3c2f3d009c2545c0de0af7e038232b6ac31bf40be3ffd07e4af",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "flags": {
+        "frontmatter": false,
+        "copyright": true,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_pubmed_ada_type1_diabetes_nutrition-chunk-0000",
+      "chunk_hash": "sha256:bea30a34063c3fd439aac46a1ed196be0106f5cfbc18cd04700e365dc8737c26",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "flags": {
+        "frontmatter": true,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_pubmed_ada_type1_diabetes_nutrition-chunk-0001",
+      "chunk_hash": "sha256:05547d0d242cef12027c2b48802e818e3bb899d77332feb27f84fa6374491bd0",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_pubmed_ada_type1_diabetes_nutrition-chunk-0002",
+      "chunk_hash": "sha256:0031fcca7fbbf74436e49ad6c0e5c85a407a923049008cd8a5cf19a38298e19b",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "strategy": "raw_card",
+      "chunk_id": "epfl_pubmed_ada_type1_diabetes_nutrition-chunk-0003",
+      "chunk_hash": "sha256:d7f57cf7e2da874729536de1502f8cbcb226ed9bfcd019a5acfc7516e2b8b8ca",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "flags": {
+        "frontmatter": false,
+        "copyright": true,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "strategy": "extractable_content",
+      "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0000",
+      "chunk_hash": "sha256:f9e5b03f442087716104d5a1fa440eeda4910879feda2b9c97a99cee99d3bdbf",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "strategy": "extractable_content",
+      "chunk_id": "epfl_cdc_who_flour_fortification-chunk-0000",
+      "chunk_hash": "sha256:c74d05e672408b3d3863e795f2355cdb9f96b2ff1a17efe965e410d440241b50",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "strategy": "extractable_content",
+      "chunk_id": "epfl_cma_obesity_clinical_practice-chunk-0000",
+      "chunk_hash": "sha256:70ac3f543e83f2ef3418f4614b2b43af9593991660027323664b03b714d1b5cc",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "strategy": "extractable_content",
+      "chunk_id": "epfl_cma_type2_diabetes_primary_care-chunk-0000",
+      "chunk_hash": "sha256:5693731084bca6d79dbb2b772bed9f708d5198b32a3ac5171b24c830a18f98a3",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "strategy": "extractable_content",
+      "chunk_id": "epfl_nice_ckd_dialysis_fluid_management-chunk-0000",
+      "chunk_hash": "sha256:348a74de59decab73f05ec42b7e648703933c4840a274a5505bd7423104651f8",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "strategy": "extractable_content",
+      "chunk_id": "epfl_nice_obesity_local_communities-chunk-0000",
+      "chunk_hash": "sha256:aaf87987ce90718280e149abe4717f02fac2ead4b2c756ad0b8ea539355a21ae",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "strategy": "extractable_content",
+      "chunk_id": "epfl_pubmed_obesity_kidney_transplant-chunk-0000",
+      "chunk_hash": "sha256:cae6fb9829f63d1ad3dbc24aa4d796d81a91dd9a81695181d2ab281b5048f8d6",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "strategy": "extractable_content",
+      "chunk_id": "epfl_pubmed_ada_type1_diabetes_nutrition-chunk-0000",
+      "chunk_hash": "sha256:77846c7a8f9793cd5a0e8b679c0d703af9a9f7385994b9b1e6628f3d37075851",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0000",
+      "chunk_hash": "sha256:63a30348b355cb19288b3ccfc0f41471780ab0fb33b47e7af8b4178f1f2bdc3e",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_cdc_physical_activity_diet_weight-chunk-0001",
+      "chunk_hash": "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_cdc_who_flour_fortification-chunk-0000",
+      "chunk_hash": "sha256:e267f23f6d6f223321479ebd676f07fdd0d24cb63c3115f0ccf1e775b5b89737",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_cdc_who_flour_fortification-chunk-0001",
+      "chunk_hash": "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_cma_obesity_clinical_practice-chunk-0000",
+      "chunk_hash": "sha256:ac63beb9a5869af34d37a6031858270eaadd516af5cf15cfaf444d948fe41790",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_cma_obesity_clinical_practice-chunk-0001",
+      "chunk_hash": "sha256:b8f9a03862450142a419f344aee376d0e1ee791f177b374f455a689c3e436ceb",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_cma_type2_diabetes_primary_care-chunk-0000",
+      "chunk_hash": "sha256:fa3aede60a7e984958ad33fa60573ee4cff1c436019b14f200e24c247429afd4",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_cma_type2_diabetes_primary_care-chunk-0001",
+      "chunk_hash": "sha256:7dfb450204183da8d6339d1ad77b387c5296f42fef691d341206b89ed47abb0e",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_nice_ckd_dialysis_fluid_management-chunk-0000",
+      "chunk_hash": "sha256:da0fe2858955bc627e76d8ad4375e485ee5d59fbf6ac7ded723ca8f784560f72",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_nice_ckd_dialysis_fluid_management-chunk-0001",
+      "chunk_hash": "sha256:9cb76cac3622a96813fc6de2a6f91310f5e22abd237af4c56a9599356e3497b9",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_nice_obesity_local_communities-chunk-0000",
+      "chunk_hash": "sha256:f105eb423d06032181c0740bd2786b3488e7d53f426d165d79fb0a1d58215be4",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_nice_obesity_local_communities-chunk-0001",
+      "chunk_hash": "sha256:4a6446996148c68fc2836b7a72ecbd021034685ea1593c112ea9c1d1493ef73c",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_pubmed_obesity_kidney_transplant-chunk-0000",
+      "chunk_hash": "sha256:c547a8b2fc839e1f93abb985cd818b0bc80b1e7c1f874330b3263dda72ac552f",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_pubmed_obesity_kidney_transplant-chunk-0001",
+      "chunk_hash": "sha256:6c08467e7b0e71395a5d8f96c507a18f9ddeafeb13591d5c4398b4233ffc4d92",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_pubmed_ada_type1_diabetes_nutrition-chunk-0000",
+      "chunk_hash": "sha256:107a98a74fc9982a6887633de3486b49482a1a005243a7e9689f4443433f008b",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "epfl_pubmed_ada_type1_diabetes_nutrition-chunk-0001",
+      "chunk_hash": "sha256:0031fcca7fbbf74436e49ad6c0e5c85a407a923049008cd8a5cf19a38298e19b",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": true
+      }
+    }
+  ],
+  "summary": {
+    "total_chunks": 32,
+    "chunks_with_frontmatter": 8,
+    "chunks_with_copyright_handling": 17,
+    "chunks_starting_mid_word": 20
+  }
+}

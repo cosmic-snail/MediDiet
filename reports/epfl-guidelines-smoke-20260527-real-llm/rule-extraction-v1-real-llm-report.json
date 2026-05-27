@@ -1,0 +1,2758 @@
+{
+  "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+  "run_type": "real_llm",
+  "model": "deepseek-v4-flash",
+  "provider": "openai_compatible",
+  "observation_count": 24,
+  "operational_failure_count": 0,
+  "evaluation_summary": {
+    "evaluated_record_count": 0,
+    "overall": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "by_experiment_arm": []
+  },
+  "evaluations": [],
+  "suggested_concept_summary": {
+    "suggested_concept_count": 2,
+    "unique_suggested_concept_count": 2,
+    "concepts": [
+      {
+        "suggested_code": "high_potassium",
+        "count": 1,
+        "doc_ids": [
+          "epfl_pubmed_obesity_kidney_transplant"
+        ]
+      },
+      {
+        "suggested_code": "high_protein",
+        "count": 1,
+        "doc_ids": [
+          "epfl_pubmed_obesity_kidney_transplant"
+        ]
+      }
+    ]
+  },
+  "observations": [
+    {
+      "run_id": "sha256:a018ec286beb379fed45e8b363b6b9f143f4a92564d7a266ae522fea043dd31d",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 5799,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5799,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:fb516ed14b187b71858eac02c25bc7f0b3b76a7410a5350b1085f5dab200b37d",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 2659,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 2659,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:df4d6fc902ee0c62fb7c96a879cbc09cd1d0eeb655483e199ebff52a1add5047",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "chunk_hashes": [
+        "sha256:e210dbb0ef82fed40aab6b3cbf3ad12535f61afb791a256762ef682a09a131a0",
+        "sha256:32a7ea9dac4a05f5ae92517ee5f5ed6dfa286ddf51b2d40a68ab71d4e06cd3a1",
+        "sha256:b8f9a03862450142a419f344aee376d0e1ee791f177b374f455a689c3e436ceb",
+        "sha256:9ac17fe65a1b0f384322cd2f2b2d1a29ce4beb0a080b02532e9bf95ee6aaad2c"
+      ],
+      "latency_ms": 4284,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4284,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:046362f439412d45485a19e5ec0b0ac31ae0c9bb678ab4985c7bbcb7ed70e8b7",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "chunk_hashes": [
+        "sha256:7cb8df9f6896ab7653eb4d78cadbe0ea6fa78088a8e4ca9e2411c7a32ca192ba",
+        "sha256:314bcdadf21133c6e05cc1ffc3d12b94e0bb74af2d4a6f0fefc54bc28b4b012c",
+        "sha256:7dfb450204183da8d6339d1ad77b387c5296f42fef691d341206b89ed47abb0e",
+        "sha256:b5818f5b85fdafe09b5c49e1030dc501633dbeaa11d7bb489d54fd905ff6259d"
+      ],
+      "latency_ms": 2963,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 2963,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:ea01039efd4bff5bbe8bd509f045c7d5dd15f8f924fcd7d7407bdf6cb01f09bb",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "chunk_hashes": [
+        "sha256:17414ae3b12a795b562505eaf6d8d37dd2b56bb1ee68ab283015883e038562ab",
+        "sha256:84e480ed9c1a0fb537be8dc9a76015b339129193dc3c1f19e6f20bd38bcf32be",
+        "sha256:9cb76cac3622a96813fc6de2a6f91310f5e22abd237af4c56a9599356e3497b9",
+        "sha256:e7e55513b88f8203448b3001feb0298e592e84e995003fa0362b968568b71b0b"
+      ],
+      "latency_ms": 5715,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5715,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:728e40531c357a3ea0d881d0acfe126ca152d1bf3a0a47f0bf3e8e99ba8ec975",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "chunk_hashes": [
+        "sha256:7ab5a794b9947adba1edd165f2e01b49b6fe8f95982e02de57fa80a83c12ba57",
+        "sha256:de32bc6cd5b39a154d708901ec2a000482873f537cbac57fa1d2fd5d1eb44a0d",
+        "sha256:4a6446996148c68fc2836b7a72ecbd021034685ea1593c112ea9c1d1493ef73c",
+        "sha256:bcff8fe40f06991c354132664ce2be9df41395f2ab45523a61a313324904be39"
+      ],
+      "latency_ms": 4150,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4150,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:5fda6168c2317767ca4392356ad0ffbc8241d144d2dd72e29480a47af3d0f7e6",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "chunk_hashes": [
+        "sha256:6f0139735424ade7a92c2492f9f09b23ad131613a5e1ad67fbb9072f3f429075",
+        "sha256:6af021eb0560ca0802d6ca169c617fcfbc49ae0b06aa8b648dacfb7611f6bf64",
+        "sha256:6c08467e7b0e71395a5d8f96c507a18f9ddeafeb13591d5c4398b4233ffc4d92",
+        "sha256:24ce1bc6fd31d3c2f3d009c2545c0de0af7e038232b6ac31bf40be3ffd07e4af"
+      ],
+      "latency_ms": 32484,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:cd2d1160366d69b90b6550113622fe13a1a6a639867ce896e31ad30091c40e38",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "weight_control",
+          "hard_exclusions": [],
+          "preferred_tags": [],
+          "nutrition_limits": [],
+          "confidence": 0.6,
+          "status": "rejected",
+          "verification_verdict": "rejected"
+        }
+      ],
+      "suggested_concepts": [
+        {
+          "suggested_code": "high_potassium",
+          "kind": "contraindication",
+          "definition": "Foods high in potassium, which can cause hyperkalemia in patients with kidney disease on dialysis.",
+          "display_name": "High Potassium Foods"
+        },
+        {
+          "suggested_code": "high_protein",
+          "kind": "contraindication",
+          "definition": "Foods high in protein, which can exacerbate hyperphosphatemia in patients with kidney disease on dialysis.",
+          "display_name": "High Protein Foods"
+        }
+      ],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 32484,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 2
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:8e1a252ab3ac3ac361d17050a0acbd7199aae124b5140d939c09668ce6733b9f",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "chunk_hashes": [
+        "sha256:bea30a34063c3fd439aac46a1ed196be0106f5cfbc18cd04700e365dc8737c26",
+        "sha256:05547d0d242cef12027c2b48802e818e3bb899d77332feb27f84fa6374491bd0",
+        "sha256:0031fcca7fbbf74436e49ad6c0e5c85a407a923049008cd8a5cf19a38298e19b",
+        "sha256:d7f57cf7e2da874729536de1502f8cbcb226ed9bfcd019a5acfc7516e2b8b8ca"
+      ],
+      "latency_ms": 80963,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:8347c44460d7e7560737d61bfae978c58665a3057402b744f187aa5741e7cfc7",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [
+            "dessert",
+            "sugary_drink"
+          ],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs",
+            "high_fiber",
+            "vegetable_rich"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.7,
+          "status": "pending_review",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 80963,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "Verification failed for E1-C1-epfl_pubmed_ada_type1_diabetes_nutrition-a162218f: Invalid JSON: Expecting ',' delimiter: line 61 column 71 (char 3685)"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:89caabe68d05e8f3d8d5b02501e3b68c8f140a76193d13ed5ac50de6ef9613ed",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:f9e5b03f442087716104d5a1fa440eeda4910879feda2b9c97a99cee99d3bdbf",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:f9e5b03f442087716104d5a1fa440eeda4910879feda2b9c97a99cee99d3bdbf"
+      ],
+      "latency_ms": 5064,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:f9e5b03f442087716104d5a1fa440eeda4910879feda2b9c97a99cee99d3bdbf",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5064,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:3dbc036143a86515490da602aeb19af2af2fd060b23ee2c5df05a6e8b33b6ac9",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:c74d05e672408b3d3863e795f2355cdb9f96b2ff1a17efe965e410d440241b50",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:c74d05e672408b3d3863e795f2355cdb9f96b2ff1a17efe965e410d440241b50"
+      ],
+      "latency_ms": 6064,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:c74d05e672408b3d3863e795f2355cdb9f96b2ff1a17efe965e410d440241b50",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 6064,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:0f0e06b7fb4cf89a91f6d592799c9bcac67a6bfb7a735fa25d027a96308fb5b7",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:70ac3f543e83f2ef3418f4614b2b43af9593991660027323664b03b714d1b5cc",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "chunk_hashes": [
+        "sha256:70ac3f543e83f2ef3418f4614b2b43af9593991660027323664b03b714d1b5cc"
+      ],
+      "latency_ms": 5516,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:70ac3f543e83f2ef3418f4614b2b43af9593991660027323664b03b714d1b5cc",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5516,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:794e0cc73043454765d0f74aa2b06a6fa55297c0d7b6693484e21792f69261a1",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:5693731084bca6d79dbb2b772bed9f708d5198b32a3ac5171b24c830a18f98a3",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "chunk_hashes": [
+        "sha256:5693731084bca6d79dbb2b772bed9f708d5198b32a3ac5171b24c830a18f98a3"
+      ],
+      "latency_ms": 3275,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:5693731084bca6d79dbb2b772bed9f708d5198b32a3ac5171b24c830a18f98a3",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 3275,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:d7504533802c95bf08ca6c70d4baad551a26b97f8bb7f866074256d102918c26",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:348a74de59decab73f05ec42b7e648703933c4840a274a5505bd7423104651f8",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "chunk_hashes": [
+        "sha256:348a74de59decab73f05ec42b7e648703933c4840a274a5505bd7423104651f8"
+      ],
+      "latency_ms": 2864,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:348a74de59decab73f05ec42b7e648703933c4840a274a5505bd7423104651f8",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 2864,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:430f77d22613f8b1d4d3ee17437d3990f1d05f0a7c9d2e12c5427349aa2385e9",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:aaf87987ce90718280e149abe4717f02fac2ead4b2c756ad0b8ea539355a21ae",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "chunk_hashes": [
+        "sha256:aaf87987ce90718280e149abe4717f02fac2ead4b2c756ad0b8ea539355a21ae"
+      ],
+      "latency_ms": 5055,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:aaf87987ce90718280e149abe4717f02fac2ead4b2c756ad0b8ea539355a21ae",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5055,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:0d751e3fde9b20b303e8c3198f9100dc7384cf51eff3e6cb1aaf880470452102",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:cae6fb9829f63d1ad3dbc24aa4d796d81a91dd9a81695181d2ab281b5048f8d6",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "chunk_hashes": [
+        "sha256:cae6fb9829f63d1ad3dbc24aa4d796d81a91dd9a81695181d2ab281b5048f8d6"
+      ],
+      "latency_ms": 2587,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:cae6fb9829f63d1ad3dbc24aa4d796d81a91dd9a81695181d2ab281b5048f8d6",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 2587,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:b658655324ab831184ae9a471b319d0a701490cd3f12ef0f9709ee25b3957e5b",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:77846c7a8f9793cd5a0e8b679c0d703af9a9f7385994b9b1e6628f3d37075851",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "chunk_hashes": [
+        "sha256:77846c7a8f9793cd5a0e8b679c0d703af9a9f7385994b9b1e6628f3d37075851"
+      ],
+      "latency_ms": 29628,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:fa5b69fb24a229227493635c94dd00c9396f892b4f3046b8919de5c840cfdede",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "high_fiber",
+            "vegetable_rich"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.6,
+          "status": "pending_review",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:77846c7a8f9793cd5a0e8b679c0d703af9a9f7385994b9b1e6628f3d37075851",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 29628,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "Verification failed for E1-C2-epfl_pubmed_ada_type1_diabetes_nutrition-40c9fca3: Invalid JSON: Expecting ',' delimiter: line 44 column 56 (char 2255)"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:d1c6daaeabce13b87e1a5a82c7b0f1319450bb5e8864c57320f2367b817f1a23",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:021ca30990c46be493ffaf82a1e51293e2b65227d1a6753e9107247864cabba2",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:63a30348b355cb19288b3ccfc0f41471780ab0fb33b47e7af8b4178f1f2bdc3e",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91"
+      ],
+      "latency_ms": 4577,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:021ca30990c46be493ffaf82a1e51293e2b65227d1a6753e9107247864cabba2",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4577,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:33feae75dbef6b52a864f0186af0025d0c23a70bfddafc7e3674c55317f6b42e",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:462d34ab290368cf2144791d1bd838856692eb69d672067dc9e39e7f24f8d4cc",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:e267f23f6d6f223321479ebd676f07fdd0d24cb63c3115f0ccf1e775b5b89737",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d"
+      ],
+      "latency_ms": 5217,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:462d34ab290368cf2144791d1bd838856692eb69d672067dc9e39e7f24f8d4cc",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5217,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:408a219c7e22c836cd93bb852fe19fc71f926bebd316d44f3193b83be0b09c82",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:653f77095e5e3fc0ce62cdf4323298bc45c982961eb22b12a0a1689c49b499d5",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "chunk_hashes": [
+        "sha256:ac63beb9a5869af34d37a6031858270eaadd516af5cf15cfaf444d948fe41790",
+        "sha256:b8f9a03862450142a419f344aee376d0e1ee791f177b374f455a689c3e436ceb"
+      ],
+      "latency_ms": 5154,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:653f77095e5e3fc0ce62cdf4323298bc45c982961eb22b12a0a1689c49b499d5",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5154,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:e757b39529d8b90dd0e2e1495e1f42a63c17dc1e98f6a865a2a8ca00b73705bc",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:637574187115aacaf6fd7359b02b77f90b4bc097191f2b6a46fa8a90c163bf9a",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "chunk_hashes": [
+        "sha256:fa3aede60a7e984958ad33fa60573ee4cff1c436019b14f200e24c247429afd4",
+        "sha256:7dfb450204183da8d6339d1ad77b387c5296f42fef691d341206b89ed47abb0e"
+      ],
+      "latency_ms": 6005,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:637574187115aacaf6fd7359b02b77f90b4bc097191f2b6a46fa8a90c163bf9a",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 6005,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:20c68a49599cdc59613d0565191020ba52c5eb9acaa4de473a9612b3ced95b48",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:d0a0aea4e2c0204b4d36924a966b1516d12458ebc9337b17787c4a896dbd62c9",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "chunk_hashes": [
+        "sha256:da0fe2858955bc627e76d8ad4375e485ee5d59fbf6ac7ded723ca8f784560f72",
+        "sha256:9cb76cac3622a96813fc6de2a6f91310f5e22abd237af4c56a9599356e3497b9"
+      ],
+      "latency_ms": 4377,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:d0a0aea4e2c0204b4d36924a966b1516d12458ebc9337b17787c4a896dbd62c9",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4377,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:7b1f70aaedcbe5b456158ac4371397f8771d184abd0eaea44fd7f9b97eb8aef7",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:ff1ff8c38d8670052b2edf94a7f6e51806cbff7533f33eb621f64cf8b4e4683f",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "chunk_hashes": [
+        "sha256:f105eb423d06032181c0740bd2786b3488e7d53f426d165d79fb0a1d58215be4",
+        "sha256:4a6446996148c68fc2836b7a72ecbd021034685ea1593c112ea9c1d1493ef73c"
+      ],
+      "latency_ms": 4985,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:ff1ff8c38d8670052b2edf94a7f6e51806cbff7533f33eb621f64cf8b4e4683f",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4985,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:5ed1d9a399db84995178d922c7b094fd8938072d3b7fce341068adcf627b9547",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:20011e85f9732782405f02bba9a7bb97c3999fa27d8ea53832564400f2b88ce7",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "chunk_hashes": [
+        "sha256:c547a8b2fc839e1f93abb985cd818b0bc80b1e7c1f874330b3263dda72ac552f",
+        "sha256:6c08467e7b0e71395a5d8f96c507a18f9ddeafeb13591d5c4398b4233ffc4d92"
+      ],
+      "latency_ms": 10569,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:20011e85f9732782405f02bba9a7bb97c3999fa27d8ea53832564400f2b88ce7",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 10569,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:f7336169603a23da9accf388d7be7f1bb681e07ffd9c9bd5b88f04d76788d957",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:4bb77f6da0849e455e5bdd01c7fe80a1c4ccdf1d8227e883d6c71a80871fcf2d",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "chunk_hashes": [
+        "sha256:107a98a74fc9982a6887633de3486b49482a1a005243a7e9689f4443433f008b",
+        "sha256:0031fcca7fbbf74436e49ad6c0e5c85a407a923049008cd8a5cf19a38298e19b"
+      ],
+      "latency_ms": 66105,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:73b34869ca2a55a01c3cffc6f7052ca0f8aaa26bc11ea64f51782a6f2daf910a",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "high_fiber",
+            "vegetable_rich"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.9,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:4bb77f6da0849e455e5bdd01c7fe80a1c4ccdf1d8227e883d6c71a80871fcf2d",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 66105,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "source_notes_plus_extractable"
+    }
+  ],
+  "operational_failures": [],
+  "stability": {
+    "run_count": 24,
+    "condition_presence": {
+      "diabetes": 0.125,
+      "weight_control": 0.041666666666666664
+    },
+    "hard_exclusion_presence": {
+      "dessert": 0.041666666666666664,
+      "sugary_drink": 0.041666666666666664
+    },
+    "preferred_tag_presence": {
+      "balanced": 0.041666666666666664,
+      "controlled_carbs": 0.041666666666666664,
+      "high_fiber": 0.125,
+      "vegetable_rich": 0.125
+    },
+    "nutrition_limit_presence": {},
+    "parse_failure_rate": 0.0,
+    "empty_output_rate": 0.8333333333333334,
+    "retry_count_distribution": {
+      "0": 24
+    },
+    "pairwise_canonical_rule_set_similarity": 0.6951345755693582,
+    "failure_counts": {
+      "no_rule_extracted": 20,
+      "Verification failed for E1-C1-epfl_pubmed_ada_type1_diabetes_nutrition-a162218f: Invalid JSON: Expecting ',' delimiter: line 61 column 71 (char 3685)": 1,
+      "Verification failed for E1-C2-epfl_pubmed_ada_type1_diabetes_nutrition-40c9fca3: Invalid JSON: Expecting ',' delimiter: line 44 column 56 (char 2255)": 1
+    }
+  },
+  "rows": [
+    {
+      "run_id": "sha256:a018ec286beb379fed45e8b363b6b9f143f4a92564d7a266ae522fea043dd31d",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 5799,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5799,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:fb516ed14b187b71858eac02c25bc7f0b3b76a7410a5350b1085f5dab200b37d",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 2659,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 2659,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:df4d6fc902ee0c62fb7c96a879cbc09cd1d0eeb655483e199ebff52a1add5047",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "chunk_hashes": [
+        "sha256:e210dbb0ef82fed40aab6b3cbf3ad12535f61afb791a256762ef682a09a131a0",
+        "sha256:32a7ea9dac4a05f5ae92517ee5f5ed6dfa286ddf51b2d40a68ab71d4e06cd3a1",
+        "sha256:b8f9a03862450142a419f344aee376d0e1ee791f177b374f455a689c3e436ceb",
+        "sha256:9ac17fe65a1b0f384322cd2f2b2d1a29ce4beb0a080b02532e9bf95ee6aaad2c"
+      ],
+      "latency_ms": 4284,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4284,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:046362f439412d45485a19e5ec0b0ac31ae0c9bb678ab4985c7bbcb7ed70e8b7",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "chunk_hashes": [
+        "sha256:7cb8df9f6896ab7653eb4d78cadbe0ea6fa78088a8e4ca9e2411c7a32ca192ba",
+        "sha256:314bcdadf21133c6e05cc1ffc3d12b94e0bb74af2d4a6f0fefc54bc28b4b012c",
+        "sha256:7dfb450204183da8d6339d1ad77b387c5296f42fef691d341206b89ed47abb0e",
+        "sha256:b5818f5b85fdafe09b5c49e1030dc501633dbeaa11d7bb489d54fd905ff6259d"
+      ],
+      "latency_ms": 2963,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 2963,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:ea01039efd4bff5bbe8bd509f045c7d5dd15f8f924fcd7d7407bdf6cb01f09bb",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "chunk_hashes": [
+        "sha256:17414ae3b12a795b562505eaf6d8d37dd2b56bb1ee68ab283015883e038562ab",
+        "sha256:84e480ed9c1a0fb537be8dc9a76015b339129193dc3c1f19e6f20bd38bcf32be",
+        "sha256:9cb76cac3622a96813fc6de2a6f91310f5e22abd237af4c56a9599356e3497b9",
+        "sha256:e7e55513b88f8203448b3001feb0298e592e84e995003fa0362b968568b71b0b"
+      ],
+      "latency_ms": 5715,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5715,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:728e40531c357a3ea0d881d0acfe126ca152d1bf3a0a47f0bf3e8e99ba8ec975",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "chunk_hashes": [
+        "sha256:7ab5a794b9947adba1edd165f2e01b49b6fe8f95982e02de57fa80a83c12ba57",
+        "sha256:de32bc6cd5b39a154d708901ec2a000482873f537cbac57fa1d2fd5d1eb44a0d",
+        "sha256:4a6446996148c68fc2836b7a72ecbd021034685ea1593c112ea9c1d1493ef73c",
+        "sha256:bcff8fe40f06991c354132664ce2be9df41395f2ab45523a61a313324904be39"
+      ],
+      "latency_ms": 4150,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4150,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:5fda6168c2317767ca4392356ad0ffbc8241d144d2dd72e29480a47af3d0f7e6",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "chunk_hashes": [
+        "sha256:6f0139735424ade7a92c2492f9f09b23ad131613a5e1ad67fbb9072f3f429075",
+        "sha256:6af021eb0560ca0802d6ca169c617fcfbc49ae0b06aa8b648dacfb7611f6bf64",
+        "sha256:6c08467e7b0e71395a5d8f96c507a18f9ddeafeb13591d5c4398b4233ffc4d92",
+        "sha256:24ce1bc6fd31d3c2f3d009c2545c0de0af7e038232b6ac31bf40be3ffd07e4af"
+      ],
+      "latency_ms": 32484,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:cd2d1160366d69b90b6550113622fe13a1a6a639867ce896e31ad30091c40e38",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "weight_control",
+          "hard_exclusions": [],
+          "preferred_tags": [],
+          "nutrition_limits": [],
+          "confidence": 0.6,
+          "status": "rejected",
+          "verification_verdict": "rejected"
+        }
+      ],
+      "suggested_concepts": [
+        {
+          "suggested_code": "high_potassium",
+          "kind": "contraindication",
+          "definition": "Foods high in potassium, which can cause hyperkalemia in patients with kidney disease on dialysis.",
+          "display_name": "High Potassium Foods"
+        },
+        {
+          "suggested_code": "high_protein",
+          "kind": "contraindication",
+          "definition": "Foods high in protein, which can exacerbate hyperphosphatemia in patients with kidney disease on dialysis.",
+          "display_name": "High Protein Foods"
+        }
+      ],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 32484,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 2
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:8e1a252ab3ac3ac361d17050a0acbd7199aae124b5140d939c09668ce6733b9f",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "chunk_hashes": [
+        "sha256:bea30a34063c3fd439aac46a1ed196be0106f5cfbc18cd04700e365dc8737c26",
+        "sha256:05547d0d242cef12027c2b48802e818e3bb899d77332feb27f84fa6374491bd0",
+        "sha256:0031fcca7fbbf74436e49ad6c0e5c85a407a923049008cd8a5cf19a38298e19b",
+        "sha256:d7f57cf7e2da874729536de1502f8cbcb226ed9bfcd019a5acfc7516e2b8b8ca"
+      ],
+      "latency_ms": 80963,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:8347c44460d7e7560737d61bfae978c58665a3057402b744f187aa5741e7cfc7",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [
+            "dessert",
+            "sugary_drink"
+          ],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs",
+            "high_fiber",
+            "vegetable_rich"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.7,
+          "status": "pending_review",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 80963,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "Verification failed for E1-C1-epfl_pubmed_ada_type1_diabetes_nutrition-a162218f: Invalid JSON: Expecting ',' delimiter: line 61 column 71 (char 3685)"
+      ],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:89caabe68d05e8f3d8d5b02501e3b68c8f140a76193d13ed5ac50de6ef9613ed",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:f9e5b03f442087716104d5a1fa440eeda4910879feda2b9c97a99cee99d3bdbf",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:f9e5b03f442087716104d5a1fa440eeda4910879feda2b9c97a99cee99d3bdbf"
+      ],
+      "latency_ms": 5064,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:f9e5b03f442087716104d5a1fa440eeda4910879feda2b9c97a99cee99d3bdbf",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5064,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:3dbc036143a86515490da602aeb19af2af2fd060b23ee2c5df05a6e8b33b6ac9",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:c74d05e672408b3d3863e795f2355cdb9f96b2ff1a17efe965e410d440241b50",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:c74d05e672408b3d3863e795f2355cdb9f96b2ff1a17efe965e410d440241b50"
+      ],
+      "latency_ms": 6064,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:c74d05e672408b3d3863e795f2355cdb9f96b2ff1a17efe965e410d440241b50",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 6064,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:0f0e06b7fb4cf89a91f6d592799c9bcac67a6bfb7a735fa25d027a96308fb5b7",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:70ac3f543e83f2ef3418f4614b2b43af9593991660027323664b03b714d1b5cc",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "chunk_hashes": [
+        "sha256:70ac3f543e83f2ef3418f4614b2b43af9593991660027323664b03b714d1b5cc"
+      ],
+      "latency_ms": 5516,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:70ac3f543e83f2ef3418f4614b2b43af9593991660027323664b03b714d1b5cc",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5516,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:794e0cc73043454765d0f74aa2b06a6fa55297c0d7b6693484e21792f69261a1",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:5693731084bca6d79dbb2b772bed9f708d5198b32a3ac5171b24c830a18f98a3",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "chunk_hashes": [
+        "sha256:5693731084bca6d79dbb2b772bed9f708d5198b32a3ac5171b24c830a18f98a3"
+      ],
+      "latency_ms": 3275,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:5693731084bca6d79dbb2b772bed9f708d5198b32a3ac5171b24c830a18f98a3",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 3275,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:d7504533802c95bf08ca6c70d4baad551a26b97f8bb7f866074256d102918c26",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:348a74de59decab73f05ec42b7e648703933c4840a274a5505bd7423104651f8",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "chunk_hashes": [
+        "sha256:348a74de59decab73f05ec42b7e648703933c4840a274a5505bd7423104651f8"
+      ],
+      "latency_ms": 2864,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:348a74de59decab73f05ec42b7e648703933c4840a274a5505bd7423104651f8",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 2864,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:430f77d22613f8b1d4d3ee17437d3990f1d05f0a7c9d2e12c5427349aa2385e9",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:aaf87987ce90718280e149abe4717f02fac2ead4b2c756ad0b8ea539355a21ae",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "chunk_hashes": [
+        "sha256:aaf87987ce90718280e149abe4717f02fac2ead4b2c756ad0b8ea539355a21ae"
+      ],
+      "latency_ms": 5055,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:aaf87987ce90718280e149abe4717f02fac2ead4b2c756ad0b8ea539355a21ae",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5055,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:0d751e3fde9b20b303e8c3198f9100dc7384cf51eff3e6cb1aaf880470452102",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:cae6fb9829f63d1ad3dbc24aa4d796d81a91dd9a81695181d2ab281b5048f8d6",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "chunk_hashes": [
+        "sha256:cae6fb9829f63d1ad3dbc24aa4d796d81a91dd9a81695181d2ab281b5048f8d6"
+      ],
+      "latency_ms": 2587,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:cae6fb9829f63d1ad3dbc24aa4d796d81a91dd9a81695181d2ab281b5048f8d6",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 2587,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:b658655324ab831184ae9a471b319d0a701490cd3f12ef0f9709ee25b3957e5b",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:77846c7a8f9793cd5a0e8b679c0d703af9a9f7385994b9b1e6628f3d37075851",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "chunk_hashes": [
+        "sha256:77846c7a8f9793cd5a0e8b679c0d703af9a9f7385994b9b1e6628f3d37075851"
+      ],
+      "latency_ms": 29628,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:fa5b69fb24a229227493635c94dd00c9396f892b4f3046b8919de5c840cfdede",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "high_fiber",
+            "vegetable_rich"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.6,
+          "status": "pending_review",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:77846c7a8f9793cd5a0e8b679c0d703af9a9f7385994b9b1e6628f3d37075851",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 29628,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "Verification failed for E1-C2-epfl_pubmed_ada_type1_diabetes_nutrition-40c9fca3: Invalid JSON: Expecting ',' delimiter: line 44 column 56 (char 2255)"
+      ],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:d1c6daaeabce13b87e1a5a82c7b0f1319450bb5e8864c57320f2367b817f1a23",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:021ca30990c46be493ffaf82a1e51293e2b65227d1a6753e9107247864cabba2",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:63a30348b355cb19288b3ccfc0f41471780ab0fb33b47e7af8b4178f1f2bdc3e",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91"
+      ],
+      "latency_ms": 4577,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:021ca30990c46be493ffaf82a1e51293e2b65227d1a6753e9107247864cabba2",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4577,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:33feae75dbef6b52a864f0186af0025d0c23a70bfddafc7e3674c55317f6b42e",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:462d34ab290368cf2144791d1bd838856692eb69d672067dc9e39e7f24f8d4cc",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:e267f23f6d6f223321479ebd676f07fdd0d24cb63c3115f0ccf1e775b5b89737",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d"
+      ],
+      "latency_ms": 5217,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:462d34ab290368cf2144791d1bd838856692eb69d672067dc9e39e7f24f8d4cc",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5217,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:408a219c7e22c836cd93bb852fe19fc71f926bebd316d44f3193b83be0b09c82",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_obesity_clinical_practice",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:653f77095e5e3fc0ce62cdf4323298bc45c982961eb22b12a0a1689c49b499d5",
+      "source_card_hash": "sha256:76395742c386dc476808e502c44076c28d97669f18450b3eeb557888ec1063dd",
+      "chunk_hashes": [
+        "sha256:ac63beb9a5869af34d37a6031858270eaadd516af5cf15cfaf444d948fe41790",
+        "sha256:b8f9a03862450142a419f344aee376d0e1ee791f177b374f455a689c3e436ceb"
+      ],
+      "latency_ms": 5154,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:653f77095e5e3fc0ce62cdf4323298bc45c982961eb22b12a0a1689c49b499d5",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 5154,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:e757b39529d8b90dd0e2e1495e1f42a63c17dc1e98f6a865a2a8ca00b73705bc",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cma_type2_diabetes_primary_care",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:637574187115aacaf6fd7359b02b77f90b4bc097191f2b6a46fa8a90c163bf9a",
+      "source_card_hash": "sha256:beec253ce9f851f27a96017dd1cc63b959fdc847ffbfd19ed4874cee062c4e3b",
+      "chunk_hashes": [
+        "sha256:fa3aede60a7e984958ad33fa60573ee4cff1c436019b14f200e24c247429afd4",
+        "sha256:7dfb450204183da8d6339d1ad77b387c5296f42fef691d341206b89ed47abb0e"
+      ],
+      "latency_ms": 6005,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:637574187115aacaf6fd7359b02b77f90b4bc097191f2b6a46fa8a90c163bf9a",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 6005,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:20c68a49599cdc59613d0565191020ba52c5eb9acaa4de473a9612b3ced95b48",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_ckd_dialysis_fluid_management",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:d0a0aea4e2c0204b4d36924a966b1516d12458ebc9337b17787c4a896dbd62c9",
+      "source_card_hash": "sha256:63d5918536cf6807c732f15d0c8f70cf62406938f4b50e6f3a1686a3018d0d41",
+      "chunk_hashes": [
+        "sha256:da0fe2858955bc627e76d8ad4375e485ee5d59fbf6ac7ded723ca8f784560f72",
+        "sha256:9cb76cac3622a96813fc6de2a6f91310f5e22abd237af4c56a9599356e3497b9"
+      ],
+      "latency_ms": 4377,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:d0a0aea4e2c0204b4d36924a966b1516d12458ebc9337b17787c4a896dbd62c9",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4377,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:7b1f70aaedcbe5b456158ac4371397f8771d184abd0eaea44fd7f9b97eb8aef7",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_nice_obesity_local_communities",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:ff1ff8c38d8670052b2edf94a7f6e51806cbff7533f33eb621f64cf8b4e4683f",
+      "source_card_hash": "sha256:a489d8d2b4eab5a42e103b6341821dd6df9f21cd671e3de7dd36c5d69dd53597",
+      "chunk_hashes": [
+        "sha256:f105eb423d06032181c0740bd2786b3488e7d53f426d165d79fb0a1d58215be4",
+        "sha256:4a6446996148c68fc2836b7a72ecbd021034685ea1593c112ea9c1d1493ef73c"
+      ],
+      "latency_ms": 4985,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:ff1ff8c38d8670052b2edf94a7f6e51806cbff7533f33eb621f64cf8b4e4683f",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 4985,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:5ed1d9a399db84995178d922c7b094fd8938072d3b7fce341068adcf627b9547",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_obesity_kidney_transplant",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:20011e85f9732782405f02bba9a7bb97c3999fa27d8ea53832564400f2b88ce7",
+      "source_card_hash": "sha256:588e90ef27f622d52469c31fe817ef5f1082f1a8f2c8fe86885b18b74c7215fa",
+      "chunk_hashes": [
+        "sha256:c547a8b2fc839e1f93abb985cd818b0bc80b1e7c1f874330b3263dda72ac552f",
+        "sha256:6c08467e7b0e71395a5d8f96c507a18f9ddeafeb13591d5c4398b4233ffc4d92"
+      ],
+      "latency_ms": 10569,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:65ee6bb37bd26308b604d3a926bde83ce64e82a4d03522794f01023fefc84a6f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:20011e85f9732782405f02bba9a7bb97c3999fa27d8ea53832564400f2b88ce7",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 10569,
+          "retry_count": 0,
+          "empty_output": true
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:f7336169603a23da9accf388d7be7f1bb681e07ffd9c9bd5b88f04d76788d957",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_pubmed_ada_type1_diabetes_nutrition",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:4bb77f6da0849e455e5bdd01c7fe80a1c4ccdf1d8227e883d6c71a80871fcf2d",
+      "source_card_hash": "sha256:dcf78ca88a3d58cb7d4b66c1f12b4d0e73e878639eb82c8f8709a8257b1a2758",
+      "chunk_hashes": [
+        "sha256:107a98a74fc9982a6887633de3486b49482a1a005243a7e9689f4443433f008b",
+        "sha256:0031fcca7fbbf74436e49ad6c0e5c85a407a923049008cd8a5cf19a38298e19b"
+      ],
+      "latency_ms": 66105,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:73b34869ca2a55a01c3cffc6f7052ca0f8aaa26bc11ea64f51782a6f2daf910a",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "high_fiber",
+            "vegetable_rich"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.9,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:4bb77f6da0849e455e5bdd01c7fe80a1c4ccdf1d8227e883d6c71a80871fcf2d",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 66105,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "source_notes_plus_extractable"
+    }
+  ]
+}

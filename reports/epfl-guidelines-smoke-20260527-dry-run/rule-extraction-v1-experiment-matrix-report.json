@@ -1,0 +1,1312 @@
+{
+  "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+  "experiments": [
+    {
+      "experiment_id": "E1",
+      "name": "Chunking ablation",
+      "dataset_slice": "14 frozen gold records",
+      "comparator_arms": [
+        "C1",
+        "C2",
+        "C3"
+      ],
+      "default_repeats": 3,
+      "primary_metrics": [
+        "numeric_limit_recall",
+        "chunk_contamination_rate",
+        "parse_success_rate"
+      ],
+      "required_observation_points": [
+        "O1",
+        "O2",
+        "O3",
+        "O4",
+        "O5",
+        "O6",
+        "O7",
+        "O8",
+        "O10"
+      ]
+    },
+    {
+      "experiment_id": "E2",
+      "name": "Architecture ablation",
+      "dataset_slice": "14 frozen gold records",
+      "comparator_arms": [
+        "C2",
+        "C4",
+        "C5",
+        "C6"
+      ],
+      "default_repeats": 3,
+      "primary_metrics": [
+        "field_level_f1",
+        "unsupported_concept_rate",
+        "verifier_disagreement_rate"
+      ],
+      "required_observation_points": [
+        "O3",
+        "O5",
+        "O6",
+        "O7",
+        "O8",
+        "O9",
+        "O10"
+      ]
+    },
+    {
+      "experiment_id": "E3",
+      "name": "Stability study",
+      "dataset_slice": "5 high-value gold/challenge records",
+      "comparator_arms": [
+        "C1",
+        "C2",
+        "C7"
+      ],
+      "default_repeats": 10,
+      "primary_metrics": [
+        "field_stability",
+        "pairwise_similarity",
+        "empty_output_rate",
+        "retry_rate"
+      ],
+      "required_observation_points": [
+        "O5",
+        "O6",
+        "O7",
+        "O8",
+        "O9",
+        "O10",
+        "O11"
+      ]
+    },
+    {
+      "experiment_id": "E4",
+      "name": "Clean-vs-real chunk gap",
+      "dataset_slice": "matched clean chunks and generated chunks",
+      "comparator_arms": [
+        "C0",
+        "C1",
+        "C2"
+      ],
+      "default_repeats": 5,
+      "primary_metrics": [
+        "performance_drop",
+        "numeric_limit_recall_delta",
+        "rule_count_delta"
+      ],
+      "required_observation_points": [
+        "O3",
+        "O4",
+        "O5",
+        "O8",
+        "O10",
+        "O11"
+      ]
+    },
+    {
+      "experiment_id": "E5",
+      "name": "Source-update simulation",
+      "dataset_slice": "3 edited source-card variants",
+      "comparator_arms": [
+        "C2"
+      ],
+      "default_repeats": 1,
+      "primary_metrics": [
+        "stale_detection_accuracy",
+        "rule_diff_correctness"
+      ],
+      "required_observation_points": [
+        "O1",
+        "O2",
+        "O9",
+        "O12"
+      ]
+    },
+    {
+      "experiment_id": "E6",
+      "name": "Conflict governance",
+      "dataset_slice": "conflict challenge records",
+      "comparator_arms": [
+        "C2",
+        "C6"
+      ],
+      "default_repeats": 3,
+      "primary_metrics": [
+        "conflict_grouping_accuracy",
+        "authority_traceability"
+      ],
+      "required_observation_points": [
+        "O1",
+        "O2",
+        "O8",
+        "O9",
+        "O10",
+        "O12"
+      ]
+    },
+    {
+      "experiment_id": "E7",
+      "name": "Downstream citation effect",
+      "dataset_slice": "stable extracted candidates",
+      "comparator_arms": [
+        "C2",
+        "C7"
+      ],
+      "default_repeats": 1,
+      "primary_metrics": [
+        "recommendation_delta",
+        "citation_completeness"
+      ],
+      "required_observation_points": [
+        "O9",
+        "O10",
+        "O12",
+        "O13"
+      ]
+    }
+  ],
+  "benchmark_experiments": [
+    {
+      "experiment_id": "B1",
+      "name": "Guideline parsing",
+      "lifecycle_layer": "L0_raw_guideline_corpus",
+      "benchmark_ids": [
+        "epfl_guidelines"
+      ],
+      "comparator_arms": [
+        "C1",
+        "C2",
+        "C8"
+      ],
+      "primary_metrics": [
+        "parse_success_rate",
+        "section_coverage",
+        "candidate_rule_density"
+      ],
+      "bridge_outputs": [
+        "GuidelineDocument",
+        "GuidelineSection",
+        "RecommendationCandidate"
+      ]
+    },
+    {
+      "experiment_id": "B2",
+      "name": "Rule-backed QA",
+      "lifecycle_layer": "L1_guideline_qa_and_L5_rag_comparison",
+      "benchmark_ids": [
+        "cpgqa",
+        "ragcare_qa"
+      ],
+      "comparator_arms": [
+        "C2",
+        "C4",
+        "C6",
+        "C7"
+      ],
+      "primary_metrics": [
+        "qa_accuracy",
+        "citation_quality",
+        "answer_stability"
+      ],
+      "bridge_outputs": [
+        "GuidelineQuestion",
+        "AnswerEvidence",
+        "RuleBackedAnswer",
+        "CitationTrace"
+      ]
+    },
+    {
+      "experiment_id": "B3",
+      "name": "Executable structure",
+      "lifecycle_layer": "L2_executable_guideline_structure",
+      "benchmark_ids": [
+        "meddm",
+        "text2mdt"
+      ],
+      "comparator_arms": [
+        "C2",
+        "C4",
+        "C5",
+        "C6"
+      ],
+      "primary_metrics": [
+        "node_edge_f1",
+        "triplet_f1",
+        "execution_path_accuracy"
+      ],
+      "bridge_outputs": [
+        "DecisionNode",
+        "ActionNode",
+        "DecisionEdge",
+        "RuleCandidateDraft"
+      ]
+    },
+    {
+      "experiment_id": "B4",
+      "name": "Conflict governance",
+      "lifecycle_layer": "L3_conflict_governance",
+      "benchmark_ids": [
+        "sglt2i_conflicts"
+      ],
+      "comparator_arms": [
+        "C2",
+        "C6"
+      ],
+      "primary_metrics": [
+        "conflict_precision",
+        "conflict_recall",
+        "conflict_type_accuracy"
+      ],
+      "bridge_outputs": [
+        "ConflictPair",
+        "ConflictType",
+        "ArbitrationTrace"
+      ]
+    },
+    {
+      "experiment_id": "B5",
+      "name": "Guideline adherence",
+      "lifecycle_layer": "L4_guideline_adherence_safety",
+      "benchmark_ids": [
+        "amega_llm",
+        "medguide"
+      ],
+      "comparator_arms": [
+        "C2",
+        "C4",
+        "C6",
+        "C7"
+      ],
+      "primary_metrics": [
+        "guideline_adherence_score",
+        "safety_error_rate",
+        "citation_completeness"
+      ],
+      "bridge_outputs": [
+        "GuidelineAdherenceCase",
+        "SafetyError",
+        "CitationTrace"
+      ]
+    },
+    {
+      "experiment_id": "B6",
+      "name": "Version update",
+      "lifecycle_layer": "L6_version_evidence_update",
+      "benchmark_ids": [
+        "high_precision_ir_updates",
+        "q2crbench3"
+      ],
+      "comparator_arms": [
+        "C2",
+        "C6"
+      ],
+      "primary_metrics": [
+        "update_detection_recall",
+        "update_detection_precision",
+        "rule_diff_accuracy"
+      ],
+      "bridge_outputs": [
+        "VersionedRecommendation",
+        "EvidenceLink",
+        "RuleDiffGold"
+      ]
+    },
+    {
+      "experiment_id": "B7",
+      "name": "Auxiliary IE",
+      "lifecycle_layer": "L8_auxiliary_ie",
+      "benchmark_ids": [
+        "clinical_ie_aux"
+      ],
+      "comparator_arms": [
+        "C4",
+        "C6"
+      ],
+      "primary_metrics": [
+        "entity_f1",
+        "relation_f1",
+        "event_f1"
+      ],
+      "bridge_outputs": [
+        "ConditionCandidate",
+        "RelationCandidate",
+        "EvidenceUnit"
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "run_id": "sha256:a018ec286beb379fed45e8b363b6b9f143f4a92564d7a266ae522fea043dd31d",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:fb516ed14b187b71858eac02c25bc7f0b3b76a7410a5350b1085f5dab200b37d",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:748b6a7111dd19ea3f5c2b4e5552ca14b2bd5e4b391f1e4c2200158d9f3a349f",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:7e17fe0a4590d470e4ebc9426db8fa10edeb4f0cbba775b2086a4c743cfb5fca",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:a4f4e4b80b3bb2ad343aa11ebc2d14ad481aea8fc43ecc9bf7148588490dc33c",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:46c018eefe8d4774a3dbcb893b082d11fd04ab292e1bdcd2368b77b61e515c0c",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:1659510d2a194b56d19845c33bac3fd019435f9cda3d874d2eb5ae5bc0daf84c",
+      "experiment_id": "E2",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:136ca6327da2108431318c2c4625a6821a1abb615e0c4a9ea7cc4708bcbef87d",
+      "experiment_id": "E2",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:0403abd73622866677a8eef2ef4ffa33107a2456c32ddf18ffc6d4f58866dd7b",
+      "experiment_id": "E2",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:c8d753dd3ec20867bf5bf443899a8f6634e6832e38f74ae6154198e3d08a8c74",
+      "experiment_id": "E2",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:7f2d6e047ec02279b16e2bfc530e2a8d68d872aa4613dc21a4a8c9bedfbb80e6",
+      "experiment_id": "E2",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:7db07d8ea39c285d9cf064514b2b2034f3f6abd8f75e15bc78348ebbe178714e",
+      "experiment_id": "E2",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:f09e0107e2fd01ab5b67e7db694c64ad75a7c764ad9b7ea0311da1629e88d2a2",
+      "experiment_id": "E3",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:a60144b4f62aa6388920686701b4623c4f9525875e623a1174cbb5f065b3872b",
+      "experiment_id": "E3",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:82fcd3f4cfa701be2d522f8fb67392465b2536c265bc2837325612371707fa49",
+      "experiment_id": "E3",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:06cb95ca0f89512d095e6fac854d714377558d6c2b614740b229337bf0c6f959",
+      "experiment_id": "E3",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:9287237c5997a06a05ba4dae2b2106971cd787ecbf7f93a69d14ef4dd5b30ca8",
+      "experiment_id": "E3",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_physical_activity_diet_weight",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "source_card_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+      "chunk_hashes": [
+        "sha256:51462adbb51e8c9c7a3b05199a89b84938075e716f53fb78cf84717145491d6a",
+        "sha256:b5a0ea1d34b8f4be7435fe5dd2d04adbac370660266298e90e63488cce7795ab",
+        "sha256:758374ec255828c6fafc0dbfe94b1a5f534c618d647392c5619573f393eb0d91",
+        "sha256:cf85969fa1760d04abd10d7a9fe9b801f9f1f8b5a462dac926e8e0fae4aa63c0"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:36b8c204cc32e08c1e84c5ee20cc6822a79ac543271c20e979d85e3ea30b7d2d",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    },
+    {
+      "run_id": "sha256:1df8cdceafe13e483f53a44ab2fe648cf6b4fb4ccca25ef16f5dc8a29dd9da29",
+      "experiment_id": "E3",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+      "doc_id": "epfl_cdc_who_flour_fortification",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "fake",
+      "model": "fake",
+      "provider": "fake",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "source_card_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+      "chunk_hashes": [
+        "sha256:45fcab4143f08bd84b6cee84b83b9e277f5a4d59331cf0e29ec5dcf6ec4035f4",
+        "sha256:efe08cccf4ce3aaef9e3ca67f971e3fe1ba0c569829a1021bac1e62483330c1a",
+        "sha256:049e9101ec090226988c4713e4bf5485020f5471f5af8ee995510cd5cd3c994d",
+        "sha256:e5062d33d9aaa9fb292209f88e27b94ed4b0fd490645be58453274d1c6e7bdd1"
+      ],
+      "latency_ms": 0,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:13b18675582026b0485883667a98f66f80086cbc0d0604bb5638be59f2233b66",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:5a73533b172fb956e8393f489e8ad4b67d7f0a42774192b8b420703d3212a0be",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "fake",
+          "latency_ms": 0,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 0,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [
+        "no_rule_extracted"
+      ]
+    }
+  ]
+}

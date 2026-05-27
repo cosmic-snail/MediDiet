@@ -1,0 +1,9 @@
+{
+  "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+  "rows": [
+    {
+      "gap": "target_nutrition_numeric_thresholds",
+      "source": "dry_run"
+    }
+  ]
+}
