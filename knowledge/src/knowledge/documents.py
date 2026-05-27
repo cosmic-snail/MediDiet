@@ -2,23 +2,38 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 
 from knowledge.schema import KnowledgeDocument, DocumentChunk
 
 DEFAULT_CHUNK_SIZE = 1000
 DEFAULT_CHUNK_OVERLAP = 200
-RAW_CARD = "raw_card"
-EXTRACTABLE_CONTENT = "extractable_content"
-SOURCE_NOTES_PLUS_EXTRACTABLE = "source_notes_plus_extractable"
+
+
+class ContentSelectionStrategy(str, Enum):
+    RAW_CARD = "raw_card"
+    EXTRACTABLE_CONTENT = "extractable_content"
+    SOURCE_NOTES_PLUS_EXTRACTABLE = "source_notes_plus_extractable"
+
+
+RAW_CARD = ContentSelectionStrategy.RAW_CARD.value
+EXTRACTABLE_CONTENT = ContentSelectionStrategy.EXTRACTABLE_CONTENT.value
+SOURCE_NOTES_PLUS_EXTRACTABLE = ContentSelectionStrategy.SOURCE_NOTES_PLUS_EXTRACTABLE.value
 CHUNK_STRATEGIES = {RAW_CARD, EXTRACTABLE_CONTENT, SOURCE_NOTES_PLUS_EXTRACTABLE}
 
 
-def select_document_content(content: str, strategy: str = RAW_CARD) -> str:
+def _normalize_content_strategy(strategy: str | ContentSelectionStrategy) -> ContentSelectionStrategy:
+    try:
+        return ContentSelectionStrategy(strategy)
+    except ValueError as exc:
+        raise ValueError(f"unknown chunk strategy: {strategy}") from exc
+
+
+def select_document_content(content: str, strategy: str | ContentSelectionStrategy = RAW_CARD) -> str:
     """Select the text variant that an extraction experiment should see."""
-    if strategy not in CHUNK_STRATEGIES:
-        raise ValueError(f"unknown chunk strategy: {strategy}")
-    if strategy == RAW_CARD:
+    content_strategy = _normalize_content_strategy(strategy)
+    if content_strategy is ContentSelectionStrategy.RAW_CARD:
         return content
 
     extract_marker = "## Extractable Source Content"
@@ -27,7 +42,7 @@ def select_document_content(content: str, strategy: str = RAW_CARD) -> str:
         extractable = content.split(extract_marker, 1)[1].split("\n## ", 1)[0].strip()
     else:
         extractable = content.strip()
-    if strategy == EXTRACTABLE_CONTENT:
+    if content_strategy is ContentSelectionStrategy.EXTRACTABLE_CONTENT:
         return extractable
 
     notes = ""
@@ -55,12 +70,13 @@ class DocumentImporter:
         content: str,
         metadata: dict[str, str],
         ingested_at: datetime,
-        chunk_strategy: str = RAW_CARD,
+        chunk_strategy: str | ContentSelectionStrategy = RAW_CARD,
     ) -> KnowledgeDocument:
-        selected_content = select_document_content(content, chunk_strategy)
-        chunks = self._chunk_text(doc_id, selected_content, chunk_strategy=chunk_strategy)
+        chunk_strategy_value = _normalize_content_strategy(chunk_strategy).value
+        selected_content = select_document_content(content, chunk_strategy_value)
+        chunks = self._chunk_text(doc_id, selected_content, chunk_strategy=chunk_strategy_value)
         metadata = dict(metadata)
-        metadata.setdefault("chunk_strategy", chunk_strategy)
+        metadata.setdefault("chunk_strategy", chunk_strategy_value)
         return KnowledgeDocument(
             doc_id=doc_id,
             title=title,
@@ -79,7 +95,7 @@ class DocumentImporter:
         file_path: str,
         source_type: str,
         metadata: dict[str, str],
-        chunk_strategy: str = RAW_CARD,
+        chunk_strategy: str | ContentSelectionStrategy = RAW_CARD,
     ) -> KnowledgeDocument:
         path = Path(file_path)
         content = path.read_text(encoding="utf-8")

@@ -84,6 +84,8 @@ PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_rule_extraction_dataset
 真实 LLM 报告位置：
 
 - `reports/rule-extraction-v1-real-llm-report.json`
+- `reports/rule-extraction-v1-real-llm-field-evaluation-report.json`
+- `reports/rule-extraction-v1-real-llm-summary.md`
 
 ## 研究管线 dry-run / real-run
 
@@ -104,5 +106,8 @@ PYTHONPATH=src:knowledge/src python -m knowledge.rule_extraction_dataset_smoke \
   --real-llm \
   --experiments E1 \
   --arms C1,C2,C3 \
+  --max-docs 2 \
   --output-dir reports
 ```
+
+`--max-docs` 是真实 LLM 的保护性上限，默认只跑 2 个文档；传 `--max-docs 0` 表示跑完整 manifest。

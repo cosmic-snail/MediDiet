@@ -8,6 +8,7 @@ import pytest
 
 from medidiet.llm import LLMResponse, LLMTask
 from medidiet.rules import LimitScope, NutrientLimit, NutrientMetric
+import knowledge.rule_extraction_dataset_smoke as smoke
 from knowledge.rule_extraction_dataset_smoke import (
     _limit_key,
     _rule_limit_key,
@@ -89,7 +90,14 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
     assert LLMTask.RULE_EXTRACTION in provider.tasks
     assert LLMTask.RULE_VALIDATION in provider.tasks
     assert result["observation_count"] == 1
+    assert result["evaluated_record_count"] == 1
     assert (tmp_path / "rule-extraction-v1-real-llm-report.json").exists()
+    assert (tmp_path / "rule-extraction-v1-real-llm-field-evaluation-report.json").exists()
+    assert (tmp_path / "rule-extraction-v1-real-llm-summary.md").exists()
+    report = json.loads((tmp_path / "rule-extraction-v1-real-llm-report.json").read_text(encoding="utf-8"))
+    assert report["evaluation_summary"]["evaluated_record_count"] == 1
+    assert report["evaluations"][0]["gold_id"] == "gold_zh_guideline_hypertension_food_therapy_2023_001"
+    assert report["evaluations"][0]["arm_id"] == "C2"
 
 
 def test_real_run_maps_c3_to_source_notes_plus_extractable(tmp_path: Path):
@@ -106,6 +114,7 @@ def test_real_run_maps_c3_to_source_notes_plus_extractable(tmp_path: Path):
         (tmp_path / "rule-extraction-v1-real-llm-report.json").read_text(encoding="utf-8")
     )
     assert report["observations"][0]["input_variant"] == "source_notes_plus_extractable"
+    assert report["observations"][0]["source_content_strategy"] == "source_notes_plus_extractable"
     assert report["observations"][0]["observation_points"]["O5"]["input_variant"] == "source_notes_plus_extractable"
 
 
@@ -133,6 +142,48 @@ def test_real_run_excludes_api_failures_from_research_observations(tmp_path: Pat
     )
     assert report["observations"] == []
     assert report["operational_failures"][0]["excluded_from_research"] is True
+
+
+def test_cli_exposes_real_llm_max_docs(monkeypatch, tmp_path: Path):
+    captured: dict[str, object] = {}
+
+    def fake_real_run(dataset, output_dir, llm_provider=None, arms=None, experiments=None, max_docs=None, append_observations=False):
+        captured.update(
+            {
+                "dataset": dataset,
+                "output_dir": output_dir,
+                "arms": arms,
+                "experiments": experiments,
+                "max_docs": max_docs,
+                "append_observations": append_observations,
+            }
+        )
+        return {}
+
+    monkeypatch.setattr(smoke, "run_research_real_run", fake_real_run)
+
+    result = smoke.main(
+        [
+            "--real-llm",
+            "--dataset",
+            "rule_extraction_v1",
+            "--output-dir",
+            str(tmp_path),
+            "--experiments",
+            "E1",
+            "--arms",
+            "C1,C2",
+            "--max-docs",
+            "5",
+            "--append-observations",
+        ]
+    )
+
+    assert result == 0
+    assert captured["max_docs"] == 5
+    assert captured["append_observations"] is True
+    assert captured["arms"] == ["C1", "C2"]
+    assert captured["experiments"] == ["E1"]
 
 
 def test_rule_extraction_v1_gold_cards_write_chunking_report():

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -11,7 +12,13 @@ from medidiet.domain import CodeKind, ConceptCode, ConceptDefinition, ConceptReg
 from medidiet.llm import LLMConfig, OpenAICompatibleLLMProvider
 from medidiet.rules import load_baseline_rule_pack
 from knowledge.dataset_manifest import load_dataset_documents, snapshot_source_hashes
-from knowledge.documents import DocumentImporter, select_document_content
+from knowledge.documents import (
+    EXTRACTABLE_CONTENT,
+    RAW_CARD,
+    SOURCE_NOTES_PLUS_EXTRACTABLE,
+    DocumentImporter,
+    select_document_content,
+)
 from knowledge.extraction_comparators import ComparatorInput, run_comparator_arm
 from knowledge.extraction_experiments import BENCHMARK_EXPERIMENT_MATRIX, COMPARATOR_ARMS, EXPERIMENT_MATRIX, OBSERVATION_POINTS
 from knowledge.extraction_observations import append_observation
@@ -27,10 +34,10 @@ from knowledge.source_governance import detect_conflicts
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
-ARM_INPUT_VARIANTS = {
-    "C1": "raw_card",
-    "C2": "extractable_content",
-    "C3": "source_notes_plus_extractable",
+ARM_SOURCE_CONTENT_STRATEGIES = {
+    "C1": RAW_CARD,
+    "C2": EXTRACTABLE_CONTENT,
+    "C3": SOURCE_NOTES_PLUS_EXTRACTABLE,
 }
 
 
@@ -179,6 +186,145 @@ def _load_gold(dataset_dir: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def _evaluation_input_from_observation(observation: dict[str, Any]) -> list[dict[str, Any]]:
+    extracted = [dict(rule) for rule in observation.get("parsed_rules", [])]
+    suggested_codes = [
+        suggestion.get("suggested_code")
+        for suggestion in observation.get("suggested_concepts", [])
+        if suggestion.get("suggested_code")
+    ]
+    if suggested_codes:
+        extracted.append({"suggested_concepts": suggested_codes})
+    return extracted
+
+
+def _evaluate_observations_against_gold(
+    dataset_dir: Path,
+    observations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    gold_by_doc_id: dict[str, list[dict[str, Any]]] = {}
+    for gold_row in _load_gold(dataset_dir):
+        gold_by_doc_id.setdefault(gold_row.get("doc_id", ""), []).append(gold_row)
+
+    evaluations: list[dict[str, Any]] = []
+    for observation in observations:
+        for gold_row in gold_by_doc_id.get(observation.get("doc_id", ""), []):
+            evaluation = evaluate_rule(gold_row, _evaluation_input_from_observation(observation))
+            evaluations.append(
+                {
+                    **evaluation,
+                    "experiment_id": observation.get("experiment_id"),
+                    "arm_id": observation.get("arm_id"),
+                    "dataset_id": observation.get("dataset_id"),
+                    "doc_id": observation.get("doc_id"),
+                    "input_variant": observation.get("input_variant"),
+                    "source_content_strategy": observation.get(
+                        "source_content_strategy",
+                        observation.get("input_variant"),
+                    ),
+                    "gold_behavior": gold_row.get("gold_behavior"),
+                }
+            )
+    return evaluations
+
+
+def _summarize_evaluations(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for evaluation in evaluations:
+        key = (str(evaluation.get("experiment_id", "")), str(evaluation.get("arm_id", "")))
+        grouped.setdefault(key, []).append(evaluation)
+
+    return {
+        "evaluated_record_count": len(evaluations),
+        "overall": precision_recall_f1(evaluations),
+        "by_experiment_arm": [
+            {
+                "experiment_id": experiment_id,
+                "arm_id": arm_id,
+                "evaluated_record_count": len(rows),
+                **precision_recall_f1(rows),
+            }
+            for (experiment_id, arm_id), rows in sorted(grouped.items())
+        ],
+    }
+
+
+def _summarize_suggested_concepts(observations: list[dict[str, Any]]) -> dict[str, Any]:
+    concept_counts: Counter[str] = Counter()
+    concept_sources: dict[str, set[str]] = {}
+    for observation in observations:
+        doc_id = str(observation.get("doc_id", ""))
+        for suggestion in observation.get("suggested_concepts", []):
+            code = suggestion.get("suggested_code")
+            if not code:
+                continue
+            concept_counts[str(code)] += 1
+            concept_sources.setdefault(str(code), set()).add(doc_id)
+    return {
+        "suggested_concept_count": sum(concept_counts.values()),
+        "unique_suggested_concept_count": len(concept_counts),
+        "concepts": [
+            {
+                "suggested_code": code,
+                "count": count,
+                "doc_ids": sorted(concept_sources.get(code, set())),
+            }
+            for code, count in sorted(concept_counts.items())
+        ],
+    }
+
+
+def _metric_bar(value: float, width: int = 20) -> str:
+    filled = int(round(max(0.0, min(1.0, value)) * width))
+    return "#" * filled + "." * (width - filled)
+
+
+def _write_real_llm_visual_summary(
+    output_dir: Path,
+    report: dict[str, Any],
+    evaluation_summary: dict[str, Any],
+) -> Path:
+    overall = evaluation_summary.get("overall", {})
+    lines = [
+        "# Rule Extraction Real LLM Summary",
+        "",
+        "## Run",
+        "",
+        "| Metric | Value |",
+        "| --- | --- |",
+        f"| dataset | {report.get('dataset_id', '')} |",
+        f"| provider | {report.get('provider', '')} |",
+        f"| model | {report.get('model', '')} |",
+        f"| observations | {report.get('observation_count', 0)} |",
+        f"| operational failures | {report.get('operational_failure_count', 0)} |",
+        f"| unique suggested concepts | {report.get('suggested_concept_summary', {}).get('unique_suggested_concept_count', 0)} |",
+        "",
+        "## Gold Evaluation",
+        "",
+        "| Metric | Value | Bar |",
+        "| --- | ---: | --- |",
+        f"| precision | {overall.get('precision', 0):.3f} | `{_metric_bar(overall.get('precision', 0))}` |",
+        f"| recall | {overall.get('recall', 0):.3f} | `{_metric_bar(overall.get('recall', 0))}` |",
+        f"| f1 | {overall.get('f1', 0):.3f} | `{_metric_bar(overall.get('f1', 0))}` |",
+        "",
+        "## By Experiment And Arm",
+        "",
+        "| Experiment | Arm | Records | Precision | Recall | F1 |",
+        "| --- | --- | ---: | ---: | ---: | ---: |",
+    ]
+    for row in evaluation_summary.get("by_experiment_arm", []):
+        lines.append(
+            f"| {row['experiment_id']} | {row['arm_id']} | {row['evaluated_record_count']} | "
+            f"{row['precision']:.3f} | {row['recall']:.3f} | {row['f1']:.3f} |"
+        )
+    if not evaluation_summary.get("by_experiment_arm"):
+        lines.append("| - | - | 0 | 0.000 | 0.000 | 0.000 |")
+
+    summary_path = output_dir / "rule-extraction-v1-real-llm-summary.md"
+    summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return summary_path
+
+
 def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None = None, experiments: list[str] | None = None, chunk_strategies: list[str] | None = None) -> dict[str, Any]:
     dataset_dir = _dataset_dir(dataset)
     docs = load_dataset_documents(dataset_dir, _source_root())
@@ -255,11 +401,11 @@ def run_research_real_run(
     observation_path = dataset_dir / "extraction_observations.jsonl"
     for experiment_id in experiments:
         for arm_id in arms:
-            input_variant = ARM_INPUT_VARIANTS.get(arm_id, "extractable_content")
+            source_content_strategy = ARM_SOURCE_CONTENT_STRATEGIES.get(arm_id, EXTRACTABLE_CONTENT)
             importer = DocumentImporter()
             for doc in docs:
                 raw_text = Path(doc.source).read_text(encoding="utf-8")
-                selected = select_document_content(raw_text, input_variant)
+                selected = select_document_content(raw_text, source_content_strategy)
                 selected_doc = importer.import_from_text(
                     doc.doc_id,
                     doc.title,
@@ -268,7 +414,7 @@ def run_research_real_run(
                     selected,
                     doc.metadata,
                     doc.ingested_at,
-                    chunk_strategy=input_variant,
+                    chunk_strategy=source_content_strategy,
                 )
                 started = datetime.now(timezone.utc)
                 try:
@@ -295,7 +441,7 @@ def run_research_real_run(
                     arm_id=arm_id,
                     dataset_id=dataset,
                     doc_id=doc.doc_id,
-                    input_variant=input_variant,
+                    input_variant=source_content_strategy,
                     text=selected,
                     source_card_hash=doc.metadata.get("source_card_hash", ""),
                     chunk_hashes=tuple(chunk.metadata.get("chunk_hash", "") for chunk in selected_doc.chunks),
@@ -307,7 +453,8 @@ def run_research_real_run(
                             "arm_id": arm_id,
                             "dataset_id": dataset,
                             "doc_id": doc.doc_id,
-                            "input_variant": input_variant,
+                            "input_variant": source_content_strategy,
+                            "source_content_strategy": source_content_strategy,
                             "latency_ms": latency_ms,
                             "failures": failures,
                             "parse_status": parse_status,
@@ -326,6 +473,7 @@ def run_research_real_run(
                     "latency_ms": latency_ms,
                     "finish_reason": finish_reason,
                     "parse_status": parse_status,
+                    "source_content_strategy": source_content_strategy,
                     "parsed_rules": parsed_rules,
                     "suggested_concepts": suggested,
                     "raw_output_hash": run_comparator_arm(comparator_input, provider=None)["raw_output_hash"],
@@ -342,6 +490,9 @@ def run_research_real_run(
                     append_observation(observation_path, observation)
 
     stability = summarize_stability(observations)
+    evaluations = _evaluate_observations_against_gold(dataset_dir, observations)
+    evaluation_summary = _summarize_evaluations(evaluations)
+    suggested_concept_summary = _summarize_suggested_concepts(observations)
     report = {
         "dataset_id": dataset,
         "run_type": "real_llm",
@@ -349,6 +500,9 @@ def run_research_real_run(
         "provider": observations[0]["provider"] if observations else "",
         "observation_count": len(observations),
         "operational_failure_count": len(operational_failures),
+        "evaluation_summary": evaluation_summary,
+        "evaluations": evaluations,
+        "suggested_concept_summary": suggested_concept_summary,
         "observations": observations,
         "operational_failures": operational_failures,
         "stability": stability,
@@ -358,11 +512,30 @@ def run_research_real_run(
         json.dumps(report, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    evaluation_report_path = output_dir / "rule-extraction-v1-real-llm-field-evaluation-report.json"
+    evaluation_report_path.write_text(
+        json.dumps(
+            {
+                "dataset_id": dataset,
+                "run_type": "real_llm_field_evaluation",
+                "summary": evaluation_summary,
+                "evaluations": evaluations,
+                "rows": evaluations,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    visual_summary_path = _write_real_llm_visual_summary(output_dir, report, evaluation_summary)
     return {
         "dataset_id": dataset,
         "observation_count": len(observations),
         "operational_failure_count": len(operational_failures),
+        "evaluated_record_count": len(evaluations),
         "report_path": str(output_dir / "rule-extraction-v1-real-llm-report.json"),
+        "evaluation_report_path": str(evaluation_report_path),
+        "visual_summary_path": str(visual_summary_path),
     }
 
 
@@ -759,17 +932,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--append-observations", action="store_true")
     parser.add_argument("--write-reports", action="store_true")
     parser.add_argument("--output-dir", default=str(REPO_ROOT / "reports"))
+    parser.add_argument(
+        "--max-docs",
+        type=int,
+        default=2,
+        help="Maximum source documents to run in real-LLM mode; use 0 for all documents.",
+    )
     args = parser.parse_args(argv)
     arms = [item for item in args.arms.split(",") if item] or None
     experiments = [item for item in args.experiments.split(",") if item] or None
     strategies = [item for item in args.chunk_strategies.split(",") if item] or None
+    max_docs = None if args.max_docs <= 0 else args.max_docs
     if args.real_llm:
         run_research_real_run(
             args.dataset,
             Path(args.output_dir),
             arms=arms,
             experiments=experiments,
-            max_docs=2,
+            max_docs=max_docs,
             append_observations=args.append_observations,
         )
     else:

@@ -9,9 +9,9 @@ def _limit_key(limit: dict[str, Any]) -> str:
     return "|".join(str(limit.get(k)) for k in ("metric", "scope", "max_value", "window_hours"))
 
 
-def _rule_keys(run: dict[str, Any]) -> set[str]:
+def _rule_keys(observation_record: dict[str, Any]) -> set[str]:
     keys: set[str] = set()
-    for rule in run.get("parsed_rules", []):
+    for rule in observation_record.get("parsed_rules", []):
         keys.add(f"condition:{rule.get('condition')}")
         for tag in rule.get("preferred_tags", []) or []:
             keys.add(f"tag:{tag}")
@@ -28,8 +28,8 @@ def _presence(counter: Counter[str], total: int) -> dict[str, float]:
     return {key: count / total for key, count in sorted(counter.items())}
 
 
-def summarize_stability(runs: list[dict]) -> dict:
-    run_count = len(runs)
+def summarize_stability(observation_records: list[dict]) -> dict:
+    run_count = len(observation_records)
     conditions: Counter[str] = Counter()
     exclusions: Counter[str] = Counter()
     tags: Counter[str] = Counter()
@@ -38,18 +38,18 @@ def summarize_stability(runs: list[dict]) -> dict:
     retry_counts: Counter[int] = Counter()
     empty_outputs = 0
     parse_failures = 0
-    for run in runs:
-        failures.update(run.get("failures", []))
-        retry_counts[run.get("retry_count", 0)] += 1
-        if not run.get("parsed_rules"):
+    for observation_record in observation_records:
+        failures.update(observation_record.get("failures", []))
+        retry_counts[observation_record.get("retry_count", 0)] += 1
+        if not observation_record.get("parsed_rules"):
             empty_outputs += 1
-        if run.get("parse_status") not in (None, "parsed"):
+        if observation_record.get("parse_status") not in (None, "parsed"):
             parse_failures += 1
         seen_conditions: set[str] = set()
         seen_exclusions: set[str] = set()
         seen_tags: set[str] = set()
         seen_limits: set[str] = set()
-        for rule in run.get("parsed_rules", []):
+        for rule in observation_record.get("parsed_rules", []):
             if rule.get("condition"):
                 seen_conditions.add(str(rule["condition"]))
             seen_exclusions.update(map(str, rule.get("hard_exclusions", []) or []))
@@ -62,7 +62,7 @@ def summarize_stability(runs: list[dict]) -> dict:
         limits.update(seen_limits)
 
     similarities: list[float] = []
-    for left, right in combinations(runs, 2):
+    for left, right in combinations(observation_records, 2):
         left_keys = _rule_keys(left)
         right_keys = _rule_keys(right)
         union = left_keys | right_keys
