@@ -584,6 +584,7 @@ def run_research_real_run(
     arms: list[str] | None = None,
     experiments: list[str] | None = None,
     max_docs: int | None = None,
+    max_empty_retries: int = 2,
     append_observations: bool = False,
 ) -> dict[str, Any]:
     _load_default_dotenv()
@@ -619,23 +620,29 @@ def run_research_real_run(
                     chunk_strategy=source_content_strategy,
                 )
                 started = datetime.now(timezone.utc)
-                try:
-                    result = extractor.extract_and_validate(
-                        selected_doc.chunks,
-                        candidate_id_prefix=f"{experiment_id}-{arm_id}-{doc.doc_id}",
-                        max_retries=1,
-                    )
-                    parsed_rules = [_rule_to_dict(rule) for rule in result.rules]
-                    suggested = [_suggestion_to_dict(item) for item in result.suggested_concepts]
-                    failures = list(result.extraction_errors)
-                    parse_status = "parsed"
-                    finish_reason = "stop"
-                except Exception as exc:
-                    parsed_rules = []
-                    suggested = []
-                    failures = [f"provider_error:{type(exc).__name__}"]
-                    parse_status = "provider_error"
-                    finish_reason = "error"
+                empty_retries = 0
+                while True:
+                    try:
+                        result = extractor.extract_and_validate(
+                            selected_doc.chunks,
+                            candidate_id_prefix=f"{experiment_id}-{arm_id}-{doc.doc_id}",
+                            max_retries=1,
+                        )
+                        parsed_rules = [_rule_to_dict(rule) for rule in result.rules]
+                        suggested = [_suggestion_to_dict(item) for item in result.suggested_concepts]
+                        failures = list(result.extraction_errors)
+                        parse_status = "parsed"
+                        finish_reason = "stop"
+                    except Exception as exc:
+                        parsed_rules = []
+                        suggested = []
+                        failures = [f"provider_error:{type(exc).__name__}"]
+                        parse_status = "provider_error"
+                        finish_reason = "error"
+                        break
+                    if parsed_rules or suggested or empty_retries >= max_empty_retries:
+                        break
+                    empty_retries += 1
                 latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
                 raw_payload = {"parsed_rules": parsed_rules, "suggested_concepts": suggested, "failures": failures}
                 comparator_input = ComparatorInput(
@@ -673,6 +680,7 @@ def run_research_real_run(
                     "model": getattr(getattr(llm_provider, "config", None), "model", None) or "injected-provider",
                     "provider": getattr(getattr(llm_provider, "config", None), "provider", None) or getattr(llm_provider, "name", "injected"),
                     "latency_ms": latency_ms,
+                    "empty_retry_count": empty_retries,
                     "finish_reason": finish_reason,
                     "parse_status": parse_status,
                     "source_content_strategy": source_content_strategy,
@@ -681,7 +689,7 @@ def run_research_real_run(
                     "raw_output_hash": run_comparator_arm(comparator_input, provider=None)["raw_output_hash"],
                     "observation_points": {
                         **base["observation_points"],
-                        "O6": {**base["observation_points"]["O6"], "provider": "real_llm", "latency_ms": latency_ms, "empty_output": not bool(parsed_rules or suggested)},
+                        "O6": {**base["observation_points"]["O6"], "provider": "real_llm", "latency_ms": latency_ms, "empty_output": not bool(parsed_rules or suggested), "empty_retries": empty_retries},
                         "O8": {"parsed_rule_count": len(parsed_rules), "suggested_concept_count": len(suggested)},
                     },
                     "failures": failures if failures else ([] if parsed_rules else ["no_rule_extracted"]),
@@ -1169,6 +1177,12 @@ def main(argv: list[str] | None = None) -> int:
         default=2,
         help="Maximum source documents to run in real-LLM mode; use 0 for all documents.",
     )
+    parser.add_argument(
+        "--max-empty-retries",
+        type=int,
+        default=2,
+        help="Retry extraction up to N times when LLM returns empty rules and no suggested concepts.",
+    )
     args = parser.parse_args(argv)
     arms = [item for item in args.arms.split(",") if item] or None
     experiments = [item for item in args.experiments.split(",") if item] or None
@@ -1187,6 +1201,7 @@ def main(argv: list[str] | None = None) -> int:
             arms=arms,
             experiments=experiments,
             max_docs=max_docs,
+            max_empty_retries=args.max_empty_retries,
             append_observations=args.append_observations,
         )
     else:
