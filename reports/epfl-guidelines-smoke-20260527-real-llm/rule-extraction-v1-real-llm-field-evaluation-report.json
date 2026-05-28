@@ -1,0 +1,15 @@
+{
+  "dataset_id": "rule_extraction_epfl_guidelines_smoke",
+  "run_type": "real_llm_field_evaluation",
+  "summary": {
+    "evaluated_record_count": 0,
+    "overall": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "by_experiment_arm": []
+  },
+  "evaluations": [],
+  "rows": []
+}

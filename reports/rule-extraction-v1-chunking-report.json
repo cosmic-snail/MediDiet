@@ -1,0 +1,157 @@
+{
+  "dataset_id": "rule_extraction_v1",
+  "strategies": {
+    "raw_card": {
+      "summary": {
+        "total_chunks": 2,
+        "chunks_with_frontmatter": 2,
+        "chunks_with_copyright_handling": 1,
+        "chunks_starting_mid_word": 0
+      },
+      "per_doc_chunk_counts": {
+        "en_guideline_who_sodium_2012": 1,
+        "en_manual_diabetes_sugar_case": 1
+      },
+      "representative_chunk_previews": [
+        {
+          "doc_id": "en_guideline_who_sodium_2012",
+          "chunk_id": "en_guideline_who_sodium_2012-chunk-0000",
+          "preview": "---\ndoc_id: en_guideline_who_sodium_2012\ntitle: WHO sodium intake guideline source card\n---\n\n# WHO Sodium Intake Guideline Source Card\n\n## Source Notes\n\nShort r"
+        },
+        {
+          "doc_id": "en_manual_diabetes_sugar_case",
+          "chunk_id": "en_manual_diabetes_sugar_case-chunk-0000",
+          "preview": "---\ndoc_id: en_manual_diabetes_sugar_case\ntitle: Diabetes sugar stability source card\n---\n\n# Diabetes Sugar Stability Source Card\n\n## Source Notes\n\nFixture used"
+        }
+      ]
+    },
+    "extractable_content": {
+      "summary": {
+        "total_chunks": 2,
+        "chunks_with_frontmatter": 0,
+        "chunks_with_copyright_handling": 0,
+        "chunks_starting_mid_word": 0
+      },
+      "per_doc_chunk_counts": {
+        "en_guideline_who_sodium_2012": 1,
+        "en_manual_diabetes_sugar_case": 1
+      },
+      "representative_chunk_previews": [
+        {
+          "doc_id": "en_guideline_who_sodium_2012",
+          "chunk_id": "en_guideline_who_sodium_2012-chunk-0000",
+          "preview": "Adults should reduce sodium intake to less than 2 g/day. This is equivalent to less than 2000 mg sodium per day and is relevant to hypertension and cardiovascul"
+        },
+        {
+          "doc_id": "en_manual_diabetes_sugar_case",
+          "chunk_id": "en_manual_diabetes_sugar_case-chunk-0000",
+          "preview": "For adults with diabetes, limit added sugar to 25 g per day when designing a low-sugar diet pattern."
+        }
+      ]
+    },
+    "source_notes_plus_extractable": {
+      "summary": {
+        "total_chunks": 2,
+        "chunks_with_frontmatter": 0,
+        "chunks_with_copyright_handling": 0,
+        "chunks_starting_mid_word": 0
+      },
+      "per_doc_chunk_counts": {
+        "en_guideline_who_sodium_2012": 1,
+        "en_manual_diabetes_sugar_case": 1
+      },
+      "representative_chunk_previews": [
+        {
+          "doc_id": "en_guideline_who_sodium_2012",
+          "chunk_id": "en_guideline_who_sodium_2012-chunk-0000",
+          "preview": "## Source Notes\n\nShort research source card derived from a public guideline record. The source card stores only summary and short excerpt content.\n\n## Extractab"
+        },
+        {
+          "doc_id": "en_manual_diabetes_sugar_case",
+          "chunk_id": "en_manual_diabetes_sugar_case-chunk-0000",
+          "preview": "## Source Notes\n\nFixture used to make repeated-run instability visible in reports.\n\n## Extractable Source Content\n\nFor adults with diabetes, limit added sugar t"
+        }
+      ]
+    }
+  },
+  "rows": [
+    {
+      "doc_id": "en_guideline_who_sodium_2012",
+      "strategy": "raw_card",
+      "chunk_id": "en_guideline_who_sodium_2012-chunk-0000",
+      "chunk_hash": "sha256:81339acf4b68fdf423d34ca135a4d28b6c11c6ba703b733c71a8fadac45c3da7",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "flags": {
+        "frontmatter": true,
+        "copyright": true,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "strategy": "raw_card",
+      "chunk_id": "en_manual_diabetes_sugar_case-chunk-0000",
+      "chunk_hash": "sha256:002aceae7480d930721fc5c9896ddd5abd78385bab55af2c9819f75a496c66fa",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "flags": {
+        "frontmatter": true,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "en_guideline_who_sodium_2012",
+      "strategy": "extractable_content",
+      "chunk_id": "en_guideline_who_sodium_2012-chunk-0000",
+      "chunk_hash": "sha256:9875b3af06c692d1607d03f8a85afda6dc0621f4882d93041f9b7bf2444151b0",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "strategy": "extractable_content",
+      "chunk_id": "en_manual_diabetes_sugar_case-chunk-0000",
+      "chunk_hash": "sha256:cd6d1980c1808f2de2b12e86806346696778fdd30468b3d0038f85098e6800e7",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "en_guideline_who_sodium_2012",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "en_guideline_who_sodium_2012-chunk-0000",
+      "chunk_hash": "sha256:031b97a563fa8bd56a9f0972c36117f9e97716ecf456f1a8601a1edd540b8f6e",
+      "source_card_hash": "sha256:2a58736403f9bcf7393fc760b9be2fffa1f878ba4e2d5ba20b649ab2a11c7942",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    },
+    {
+      "doc_id": "en_manual_diabetes_sugar_case",
+      "strategy": "source_notes_plus_extractable",
+      "chunk_id": "en_manual_diabetes_sugar_case-chunk-0000",
+      "chunk_hash": "sha256:08def3a5a9d27f8bf3779919d0117959c5e1a254db523ef2126385981a2ecd85",
+      "source_card_hash": "sha256:e7f80203bf33fc4d091f811e202374d58b862d3a904c771652833465d70aa4b4",
+      "flags": {
+        "frontmatter": false,
+        "copyright": false,
+        "starts_mid_word": false
+      }
+    }
+  ],
+  "summary": {
+    "total_chunks": 2,
+    "chunks_with_frontmatter": 2,
+    "chunks_with_copyright_handling": 1,
+    "chunks_starting_mid_word": 0
+  }
+}

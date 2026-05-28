@@ -1,0 +1,164 @@
+{
+  "dataset_id": "rule_extraction_v1",
+  "run_type": "real_llm_field_evaluation",
+  "summary": {
+    "evaluated_record_count": 3,
+    "overall": {
+      "precision": 1.0,
+      "recall": 0.3333333333333333,
+      "f1": 0.5
+    },
+    "by_experiment_arm": [
+      {
+        "experiment_id": "E1",
+        "arm_id": "C1",
+        "evaluated_record_count": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      {
+        "experiment_id": "E1",
+        "arm_id": "C2",
+        "evaluated_record_count": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "experiment_id": "E1",
+        "arm_id": "C3",
+        "evaluated_record_count": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    ]
+  },
+  "evaluations": [
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "partial",
+        "nutrition_limits": "missing",
+        "evidence_quote": "missing"
+      },
+      "overall": "miss",
+      "failures": [
+        "missing_numeric_limit"
+      ],
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "raw_card",
+      "source_content_strategy": "raw_card",
+      "gold_behavior": "rule"
+    },
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "partial",
+        "preferred_tags": "partial",
+        "nutrition_limits": "partial",
+        "evidence_quote": "missing"
+      },
+      "overall": "partial_match",
+      "failures": [],
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "extractable_content",
+      "source_content_strategy": "extractable_content",
+      "gold_behavior": "rule"
+    },
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "partial",
+        "nutrition_limits": "missing",
+        "evidence_quote": "missing"
+      },
+      "overall": "miss",
+      "failures": [
+        "missing_numeric_limit"
+      ],
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "source_notes_plus_extractable",
+      "source_content_strategy": "source_notes_plus_extractable",
+      "gold_behavior": "rule"
+    }
+  ],
+  "rows": [
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "partial",
+        "nutrition_limits": "missing",
+        "evidence_quote": "missing"
+      },
+      "overall": "miss",
+      "failures": [
+        "missing_numeric_limit"
+      ],
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "raw_card",
+      "source_content_strategy": "raw_card",
+      "gold_behavior": "rule"
+    },
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "partial",
+        "preferred_tags": "partial",
+        "nutrition_limits": "partial",
+        "evidence_quote": "missing"
+      },
+      "overall": "partial_match",
+      "failures": [],
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "extractable_content",
+      "source_content_strategy": "extractable_content",
+      "gold_behavior": "rule"
+    },
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "partial",
+        "nutrition_limits": "missing",
+        "evidence_quote": "missing"
+      },
+      "overall": "miss",
+      "failures": [
+        "missing_numeric_limit"
+      ],
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "source_notes_plus_extractable",
+      "source_content_strategy": "source_notes_plus_extractable",
+      "gold_behavior": "rule"
+    }
+  ]
+}

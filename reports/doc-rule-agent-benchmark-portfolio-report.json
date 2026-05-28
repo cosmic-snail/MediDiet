@@ -1,0 +1,334 @@
+{
+  "dataset_id": "rule_extraction_v1",
+  "benchmarks": [
+    {
+      "benchmark_id": "epfl_guidelines",
+      "name": "epfl-llm / Guidelines",
+      "lifecycle_layer": "L0_raw_guideline_corpus",
+      "homepage": "https://huggingface.co/datasets/epfl-llm/guidelines",
+      "access": "open",
+      "required_for_ci": true,
+      "evaluation_role": "open_world_guideline_parsing",
+      "calibration_tasks": [
+        "guideline_document_parsing",
+        "section_typing",
+        "recommendation_candidate_detection"
+      ],
+      "ground_truth_type": "document_metadata_and_weak_coverage",
+      "primary_metrics": [
+        "parse_success_rate",
+        "section_coverage",
+        "candidate_rule_density"
+      ],
+      "bridge_outputs": [
+        "GuidelineDocument",
+        "GuidelineSection",
+        "RecommendationCandidate"
+      ],
+      "transfer_use": "Stress-test ingestion before MediDiet transfer."
+    },
+    {
+      "benchmark_id": "cpgqa",
+      "name": "cpgQA",
+      "lifecycle_layer": "L1_guideline_qa",
+      "homepage": "https://github.com/mmahbub/cpgQA",
+      "access": "open",
+      "required_for_ci": true,
+      "evaluation_role": "guideline_question_answering",
+      "calibration_tasks": [
+        "guideline_mrc",
+        "rule_backed_answer_generation",
+        "citation_trace_check"
+      ],
+      "ground_truth_type": "guideline_qa_pairs_with_contexts",
+      "primary_metrics": [
+        "qa_accuracy",
+        "answer_support_rate",
+        "citation_completeness"
+      ],
+      "bridge_outputs": [
+        "GuidelineQuestion",
+        "AnswerEvidence",
+        "RuleBackedAnswer"
+      ],
+      "transfer_use": "Compare DocRule-backed QA against direct RAG."
+    },
+    {
+      "benchmark_id": "meddm",
+      "name": "MedDM Clinical Guidance Trees",
+      "lifecycle_layer": "L2_executable_guideline_structure",
+      "homepage": "https://arxiv.org/html/2312.02441v1",
+      "access": "open",
+      "required_for_ci": true,
+      "evaluation_role": "text_to_executable_decision_structure",
+      "calibration_tasks": [
+        "decision_node_extraction",
+        "action_node_extraction",
+        "decision_edge_extraction"
+      ],
+      "ground_truth_type": "clinical_guidance_tree_nodes_and_edges",
+      "primary_metrics": [
+        "node_precision",
+        "node_recall",
+        "edge_f1"
+      ],
+      "bridge_outputs": [
+        "DecisionNode",
+        "ActionNode",
+        "DecisionEdge",
+        "RuleCandidateDraft"
+      ],
+      "transfer_use": "Sanity-check executable rule structure."
+    },
+    {
+      "benchmark_id": "text2mdt",
+      "name": "Text2MDT / Text2MDT-TE",
+      "lifecycle_layer": "L2_executable_guideline_structure",
+      "homepage": "https://arxiv.org/html/2401.02034v1",
+      "access": "open",
+      "required_for_ci": true,
+      "evaluation_role": "medical_text_to_decision_tree",
+      "calibration_tasks": [
+        "condition_action_triplet_extraction",
+        "threshold_extraction",
+        "tree_structure_reconstruction"
+      ],
+      "ground_truth_type": "medical_decision_tree_and_triplet_annotations",
+      "primary_metrics": [
+        "triplet_f1",
+        "condition_f1",
+        "threshold_accuracy"
+      ],
+      "bridge_outputs": [
+        "DecisionNode",
+        "ActionNode",
+        "DecisionEdge",
+        "RuleCandidateDraft"
+      ],
+      "transfer_use": "Compare MDT extraction with DocRule candidates."
+    },
+    {
+      "benchmark_id": "sglt2i_conflicts",
+      "name": "Chinese SGLT2i multidisciplinary guideline conflict dataset",
+      "lifecycle_layer": "L3_conflict_governance",
+      "homepage": "https://arxiv.org/html/2604.17340v1",
+      "access": "open",
+      "required_for_ci": true,
+      "evaluation_role": "multi_guideline_conflict_detection",
+      "calibration_tasks": [
+        "conflict_pair_detection",
+        "conflict_pair_classification",
+        "arbitration_trace_generation"
+      ],
+      "ground_truth_type": "expert_conflict_type_gold_standard",
+      "primary_metrics": [
+        "conflict_precision",
+        "conflict_recall",
+        "conflict_type_accuracy"
+      ],
+      "bridge_outputs": [
+        "ConflictPair",
+        "ConflictType",
+        "ArbitrationTrace"
+      ],
+      "transfer_use": "Validate governance before nutrition conflict transfer."
+    },
+    {
+      "benchmark_id": "amega_llm",
+      "name": "AMEGA-LLM",
+      "lifecycle_layer": "L4_guideline_adherence_safety",
+      "homepage": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11638254/",
+      "access": "open",
+      "required_for_ci": true,
+      "evaluation_role": "multi_turn_guideline_adherence",
+      "calibration_tasks": [
+        "guideline_adherence_scoring",
+        "safety_error_detection",
+        "explanation_audit"
+      ],
+      "ground_truth_type": "guideline_based_rubric",
+      "primary_metrics": [
+        "guideline_adherence_score",
+        "safety_error_rate",
+        "citation_completeness"
+      ],
+      "bridge_outputs": [
+        "GuidelineAdherenceCase",
+        "SafetyError",
+        "CitationTrace"
+      ],
+      "transfer_use": "Compare DocRule-Agent with pure RAG."
+    },
+    {
+      "benchmark_id": "medguide",
+      "name": "MedGUIDE",
+      "lifecycle_layer": "L4_guideline_adherence_safety",
+      "homepage": "https://arxiv.org/abs/2505.11613",
+      "access": "open",
+      "required_for_ci": false,
+      "evaluation_role": "guideline_consistent_decision_making",
+      "calibration_tasks": [
+        "decision_adherence_scoring",
+        "safety_error_detection"
+      ],
+      "ground_truth_type": "guideline_consistency_cases",
+      "primary_metrics": [
+        "guideline_consistency",
+        "decision_accuracy",
+        "unsafe_action_rate"
+      ],
+      "bridge_outputs": [
+        "GuidelineAdherenceCase",
+        "SafetyError",
+        "CitationTrace"
+      ],
+      "transfer_use": "External robustness check."
+    },
+    {
+      "benchmark_id": "ragcare_qa",
+      "name": "RAGCare-QA",
+      "lifecycle_layer": "L5_rag_comparison",
+      "homepage": "https://huggingface.co/datasets/ChatMED-Project/RAGCare-QA",
+      "access": "open",
+      "required_for_ci": true,
+      "evaluation_role": "medical_rag_question_answering",
+      "calibration_tasks": [
+        "rag_answering",
+        "retrieval_noise_robustness",
+        "citation_quality_scoring"
+      ],
+      "ground_truth_type": "medical_qa_labels_and_noise_settings",
+      "primary_metrics": [
+        "qa_accuracy",
+        "retrieval_noise_robustness",
+        "citation_quality"
+      ],
+      "bridge_outputs": [
+        "GuidelineQuestion",
+        "AnswerEvidence",
+        "RuleBackedAnswer",
+        "CitationTrace"
+      ],
+      "transfer_use": "Direct RAG baseline comparison."
+    },
+    {
+      "benchmark_id": "high_precision_ir_updates",
+      "name": "High-Precision IR / Next Generation Evidence guideline updates",
+      "lifecycle_layer": "L6_version_evidence_update",
+      "homepage": "https://www.nature.com/articles/s41746-025-01648-5",
+      "access": "method_reference",
+      "required_for_ci": false,
+      "evaluation_role": "living_guideline_update",
+      "calibration_tasks": [
+        "evidence_update_detection",
+        "versioned_recommendation_alignment",
+        "rule_diff_gold_construction"
+      ],
+      "ground_truth_type": "method_reference",
+      "primary_metrics": [
+        "update_detection_recall",
+        "update_detection_precision",
+        "rule_diff_accuracy"
+      ],
+      "bridge_outputs": [
+        "VersionedRecommendation",
+        "EvidenceLink",
+        "RuleDiffGold"
+      ],
+      "transfer_use": "Method template for source update gold."
+    },
+    {
+      "benchmark_id": "q2crbench3",
+      "name": "Q2CRBench-3 / Quicker",
+      "lifecycle_layer": "L6_version_evidence_update",
+      "homepage": "https://arxiv.org/html/2505.10282v1",
+      "access": "open_or_method_reference",
+      "required_for_ci": false,
+      "evaluation_role": "question_to_clinical_recommendation",
+      "calibration_tasks": [
+        "evidence_to_recommendation_reconstruction",
+        "recommendation_decomposition",
+        "evidence_chain_trace"
+      ],
+      "ground_truth_type": "recommendation_labels",
+      "primary_metrics": [
+        "recommendation_accuracy",
+        "evidence_chain_completeness",
+        "decomposition_f1"
+      ],
+      "bridge_outputs": [
+        "VersionedRecommendation",
+        "EvidenceLink",
+        "RuleCandidateDraft"
+      ],
+      "transfer_use": "Test evidence to recommendation decomposition."
+    },
+    {
+      "benchmark_id": "target_nutrition_gold",
+      "name": "Self-built KDOQI / KDIGO / ADA / dialysis nutrition rule gold",
+      "lifecycle_layer": "L7_target_transfer",
+      "homepage": "docs/research/target-nutrition-gold-protocol.md",
+      "access": "self_built",
+      "required_for_ci": false,
+      "evaluation_role": "target_domain_rule_registration_gold",
+      "calibration_tasks": [
+        "nutrition_rule_extraction",
+        "dialysis_rule_extraction",
+        "target_domain_conflict_detection"
+      ],
+      "ground_truth_type": "small_high_quality_rule_level_gold",
+      "primary_metrics": [
+        "rule_level_precision_recall_f1",
+        "high_risk_rule_miss_rate",
+        "numeric_threshold_accuracy"
+      ],
+      "bridge_outputs": [
+        "NutritionRuleGold",
+        "RuleCandidateDraft",
+        "ConflictPair",
+        "CitationTrace"
+      ],
+      "transfer_use": "Core target-domain evidence."
+    },
+    {
+      "benchmark_id": "clinical_ie_aux",
+      "name": "mitclinicalml / clinical-ie, CBLUE, MedBench",
+      "lifecycle_layer": "L8_auxiliary_ie",
+      "homepage": "https://huggingface.co/datasets/mitclinicalml/clinical-ie",
+      "access": "mixed_open",
+      "required_for_ci": false,
+      "evaluation_role": "field_level_clinical_ie",
+      "calibration_tasks": [
+        "entity_extraction",
+        "relation_extraction",
+        "event_extraction"
+      ],
+      "ground_truth_type": "dataset_specific_ie_labels",
+      "primary_metrics": [
+        "entity_f1",
+        "relation_f1",
+        "event_f1"
+      ],
+      "bridge_outputs": [
+        "ConditionCandidate",
+        "RelationCandidate",
+        "EvidenceUnit"
+      ],
+      "transfer_use": "Optional lower-level calibration."
+    }
+  ],
+  "rows": [
+    "epfl_guidelines",
+    "cpgqa",
+    "meddm",
+    "text2mdt",
+    "sglt2i_conflicts",
+    "amega_llm",
+    "medguide",
+    "ragcare_qa",
+    "high_precision_ir_updates",
+    "q2crbench3",
+    "target_nutrition_gold",
+    "clinical_ie_aux"
+  ]
+}

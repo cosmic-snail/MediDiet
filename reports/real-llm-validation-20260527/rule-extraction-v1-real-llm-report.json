@@ -1,0 +1,944 @@
+{
+  "dataset_id": "rule_extraction_v1",
+  "run_type": "real_llm",
+  "model": "deepseek-v4-flash",
+  "provider": "openai_compatible",
+  "observation_count": 6,
+  "operational_failure_count": 0,
+  "evaluation_summary": {
+    "evaluated_record_count": 3,
+    "overall": {
+      "precision": 1.0,
+      "recall": 0.3333333333333333,
+      "f1": 0.5
+    },
+    "by_experiment_arm": [
+      {
+        "experiment_id": "E1",
+        "arm_id": "C1",
+        "evaluated_record_count": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      {
+        "experiment_id": "E1",
+        "arm_id": "C2",
+        "evaluated_record_count": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "experiment_id": "E1",
+        "arm_id": "C3",
+        "evaluated_record_count": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    ]
+  },
+  "evaluations": [
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "partial",
+        "nutrition_limits": "missing",
+        "evidence_quote": "missing"
+      },
+      "overall": "miss",
+      "failures": [
+        "missing_numeric_limit"
+      ],
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "raw_card",
+      "source_content_strategy": "raw_card",
+      "gold_behavior": "rule"
+    },
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "partial",
+        "preferred_tags": "partial",
+        "nutrition_limits": "partial",
+        "evidence_quote": "missing"
+      },
+      "overall": "partial_match",
+      "failures": [],
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "extractable_content",
+      "source_content_strategy": "extractable_content",
+      "gold_behavior": "rule"
+    },
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "partial",
+        "nutrition_limits": "missing",
+        "evidence_quote": "missing"
+      },
+      "overall": "miss",
+      "failures": [
+        "missing_numeric_limit"
+      ],
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "source_notes_plus_extractable",
+      "source_content_strategy": "source_notes_plus_extractable",
+      "gold_behavior": "rule"
+    }
+  ],
+  "suggested_concept_summary": {
+    "suggested_concept_count": 1,
+    "unique_suggested_concept_count": 1,
+    "concepts": [
+      {
+        "suggested_code": "alcohol",
+        "count": 1,
+        "doc_ids": [
+          "zh_guideline_hypertension_food_therapy_2023"
+        ]
+      }
+    ]
+  },
+  "observations": [
+    {
+      "run_id": "sha256:84696125050117fc66a82889a815cd9cc1b1079f6b21ca94c901c4b61da7e7ef",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "source_card_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "chunk_hashes": [
+        "sha256:2b98a80b3fe647e1e6b0beacd8cff62c34eb9067c16b4171bfa43246375e2773",
+        "sha256:434efc334a245afdda1835891de761a478ff791fc7bf51100ba804b237d1004b"
+      ],
+      "latency_ms": 47904,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:75e044cd1fc2c8e9e018869f624664da375c941bab94dffbc0e49f6996dcf0e8",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "balanced",
+            "low_sodium"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.8,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 47904,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:33907b03b1ebc17aa07cba5ba914627683f08092a66642b397cda5ac21e920be",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "source_card_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "chunk_hashes": [
+        "sha256:4d4c6da3e7acc4928ba5385bfdf30ad8b8116ca0736f2103996bd39e665a0ee7",
+        "sha256:85ac1051a1e9eceebf6416f9c1135869152890268720f63a51dbd71645102815"
+      ],
+      "latency_ms": 51148,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:3111146ca107928ca6dd070403e74cd1e064eb60c70ab3d573c056450298424f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.5,
+          "status": "pending_review",
+          "verification_verdict": "revision_needed"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 51148,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:54900ebbaece0ec55342380ed748bd7160885b3eadac55ae523caffb5999a44c",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f",
+      "source_card_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "chunk_hashes": [
+        "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f"
+      ],
+      "latency_ms": 42959,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:2735c222a46472c171f86d5f4c393d9019ac541d500b4272f528d8ca041e3625",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2300.0,
+              "window_hours": null
+            }
+          ],
+          "confidence": 0.6,
+          "status": "pending_review",
+          "verification_verdict": "revision_needed"
+        }
+      ],
+      "suggested_concepts": [
+        {
+          "suggested_code": "alcohol",
+          "kind": "contraindication",
+          "definition": "Alcoholic beverages that may interfere with blood pressure management",
+          "display_name": "Alcohol"
+        }
+      ],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 42959,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 1
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:3ad76014ea356ea1e9c30a3f8e6299a840e818b2a7d4bea2174137ab09005799",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288",
+      "source_card_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "chunk_hashes": [
+        "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288"
+      ],
+      "latency_ms": 40439,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:50d6e902bc198ef706e85c3e57b25e8e8db1f1ca2da5f0956ea436fe23f9e8da",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.95,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 40439,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:1548f5743376701aa121cc5cade753e42dd139aa1fd32fe4b5613da78c5c0eef",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:ba59b8ea27bf53d779fe149a701ea918de8027668feaa38a84fa4d0bbb1c149c",
+      "source_card_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "chunk_hashes": [
+        "sha256:ba59b8ea27bf53d779fe149a701ea918de8027668feaa38a84fa4d0bbb1c149c"
+      ],
+      "latency_ms": 17176,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:594ddad52890ad087574e7e1b25b228cbf1ab5768af32c075d43fca8069e8ba5",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "balanced",
+            "low_sodium"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.7,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:ba59b8ea27bf53d779fe149a701ea918de8027668feaa38a84fa4d0bbb1c149c",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 17176,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:16980d63c9356e041676e5f0c156b0802c21abc8f15d356efb187d6998914d3b",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:12e556dc56747607a5ce68a722646d17d16c7956be1ef376d5a590c0becaead4",
+      "source_card_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "chunk_hashes": [
+        "sha256:12e556dc56747607a5ce68a722646d17d16c7956be1ef376d5a590c0becaead4"
+      ],
+      "latency_ms": 48894,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:518b90b5fa327b6d6600c4b996f717d7d4e283d519f5fba110a4a84fa51edd4d",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.8,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:12e556dc56747607a5ce68a722646d17d16c7956be1ef376d5a590c0becaead4",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 48894,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "source_notes_plus_extractable"
+    }
+  ],
+  "operational_failures": [],
+  "stability": {
+    "run_count": 6,
+    "condition_presence": {
+      "diabetes": 0.5,
+      "hypertension": 0.5
+    },
+    "hard_exclusion_presence": {
+      "high_sodium": 0.3333333333333333
+    },
+    "preferred_tag_presence": {
+      "balanced": 1.0,
+      "controlled_carbs": 0.5,
+      "low_sodium": 0.5
+    },
+    "nutrition_limit_presence": {
+      "sodium_mg|daily|2300.0|None": 0.16666666666666666
+    },
+    "parse_failure_rate": 0.0,
+    "empty_output_rate": 0.0,
+    "retry_count_distribution": {
+      "0": 6
+    },
+    "pairwise_canonical_rule_set_similarity": 0.44666666666666666,
+    "failure_counts": {}
+  },
+  "rows": [
+    {
+      "run_id": "sha256:84696125050117fc66a82889a815cd9cc1b1079f6b21ca94c901c4b61da7e7ef",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "source_card_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "chunk_hashes": [
+        "sha256:2b98a80b3fe647e1e6b0beacd8cff62c34eb9067c16b4171bfa43246375e2773",
+        "sha256:434efc334a245afdda1835891de761a478ff791fc7bf51100ba804b237d1004b"
+      ],
+      "latency_ms": 47904,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:75e044cd1fc2c8e9e018869f624664da375c941bab94dffbc0e49f6996dcf0e8",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "balanced",
+            "low_sodium"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.8,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 47904,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:33907b03b1ebc17aa07cba5ba914627683f08092a66642b397cda5ac21e920be",
+      "experiment_id": "E1",
+      "arm_id": "C1",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "raw_card",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c1-dry-run-v1",
+      "prompt_hash": "sha256:ab861dc170dc2e43224e45278d3d31a675b9ebc34c9b0f48c066ca1eeaed8ee6",
+      "input_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "source_card_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "chunk_hashes": [
+        "sha256:4d4c6da3e7acc4928ba5385bfdf30ad8b8116ca0736f2103996bd39e665a0ee7",
+        "sha256:85ac1051a1e9eceebf6416f9c1135869152890268720f63a51dbd71645102815"
+      ],
+      "latency_ms": 51148,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:3111146ca107928ca6dd070403e74cd1e064eb60c70ab3d573c056450298424f",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.5,
+          "status": "pending_review",
+          "verification_verdict": "revision_needed"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C1",
+          "input_variant": "raw_card",
+          "input_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+          "strategy": "raw_card_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 51148,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "raw_card"
+    },
+    {
+      "run_id": "sha256:54900ebbaece0ec55342380ed748bd7160885b3eadac55ae523caffb5999a44c",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f",
+      "source_card_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "chunk_hashes": [
+        "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f"
+      ],
+      "latency_ms": 42959,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:2735c222a46472c171f86d5f4c393d9019ac541d500b4272f528d8ca041e3625",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "low_sodium"
+          ],
+          "nutrition_limits": [
+            {
+              "metric": "sodium_mg",
+              "scope": "daily",
+              "max_value": 2300.0,
+              "window_hours": null
+            }
+          ],
+          "confidence": 0.6,
+          "status": "pending_review",
+          "verification_verdict": "revision_needed"
+        }
+      ],
+      "suggested_concepts": [
+        {
+          "suggested_code": "alcohol",
+          "kind": "contraindication",
+          "definition": "Alcoholic beverages that may interfere with blood pressure management",
+          "display_name": "Alcohol"
+        }
+      ],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 42959,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 1
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:3ad76014ea356ea1e9c30a3f8e6299a840e818b2a7d4bea2174137ab09005799",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288",
+      "source_card_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "chunk_hashes": [
+        "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288"
+      ],
+      "latency_ms": 40439,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:50d6e902bc198ef706e85c3e57b25e8e8db1f1ca2da5f0956ea436fe23f9e8da",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.95,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 40439,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:1548f5743376701aa121cc5cade753e42dd139aa1fd32fe4b5613da78c5c0eef",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:ba59b8ea27bf53d779fe149a701ea918de8027668feaa38a84fa4d0bbb1c149c",
+      "source_card_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "chunk_hashes": [
+        "sha256:ba59b8ea27bf53d779fe149a701ea918de8027668feaa38a84fa4d0bbb1c149c"
+      ],
+      "latency_ms": 17176,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:594ddad52890ad087574e7e1b25b228cbf1ab5768af32c075d43fca8069e8ba5",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "balanced",
+            "low_sodium"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.7,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:ba59b8ea27bf53d779fe149a701ea918de8027668feaa38a84fa4d0bbb1c149c",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 17176,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "source_notes_plus_extractable"
+    },
+    {
+      "run_id": "sha256:16980d63c9356e041676e5f0c156b0802c21abc8f15d356efb187d6998914d3b",
+      "experiment_id": "E1",
+      "arm_id": "C3",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "source_notes_plus_extractable",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c3-dry-run-v1",
+      "prompt_hash": "sha256:8a214cef6d474c9ad7249b3267218f8f0b7a5ad3a0f3ff09c692251fe9b827ca",
+      "input_hash": "sha256:12e556dc56747607a5ce68a722646d17d16c7956be1ef376d5a590c0becaead4",
+      "source_card_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "chunk_hashes": [
+        "sha256:12e556dc56747607a5ce68a722646d17d16c7956be1ef376d5a590c0becaead4"
+      ],
+      "latency_ms": 48894,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:518b90b5fa327b6d6600c4b996f717d7d4e283d519f5fba110a4a84fa51edd4d",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.8,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C3",
+          "input_variant": "source_notes_plus_extractable",
+          "input_hash": "sha256:12e556dc56747607a5ce68a722646d17d16c7956be1ef376d5a590c0becaead4",
+          "strategy": "source_notes_plus_extractable_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 48894,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {},
+      "failures": [],
+      "source_content_strategy": "source_notes_plus_extractable"
+    }
+  ]
+}
