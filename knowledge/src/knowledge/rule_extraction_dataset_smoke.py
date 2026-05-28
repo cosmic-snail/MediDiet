@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -698,6 +699,8 @@ def run_research_real_run(
                 observations.append(observation)
                 if append_observations:
                     append_observation(observation_path, observation)
+                # Delay between docs to avoid DeepSeek rate limiting
+                time.sleep(5.0)
 
     layer_0_1_summary = _attach_layer_0_1_evaluations(observations, dataset_dir)
     stability = summarize_stability(observations)

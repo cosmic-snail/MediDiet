@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import http.client
 import os
+import socket
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -176,38 +178,48 @@ class OpenAICompatibleLLMProvider:
             },
             method="POST",
         )
-        for attempt in range(self.config.retry_attempts):
-            try:
-                with urllib.request.urlopen(http_request, timeout=self.config.timeout_seconds) as response:
-                    payload = json.loads(response.read().decode("utf-8"))
-                content = payload["choices"][0]["message"]["content"]
-                if not isinstance(content, str):
-                    raise _RetryableProviderResponseError("LLM provider message content must be a string")
-                if not content.strip():
-                    raise _RetryableProviderResponseError("LLM provider message content was empty")
-                return LLMResponse(
-                    content=content,
-                    provider_name="openai_compatible",
-                    model=self.config.model,
-                )
-            except urllib.error.HTTPError as exc:
-                if not _is_retryable_http_error(exc) or attempt == self.config.retry_attempts - 1:
-                    raise RuntimeError("LLM provider request failed") from exc
-                _sleep_before_retry(self.config.retry_backoff_seconds, attempt)
-            except (
-                urllib.error.URLError,
-                TimeoutError,
-                http.client.IncompleteRead,
-                json.JSONDecodeError,
-                KeyError,
-                IndexError,
-                TypeError,
-                _RetryableProviderResponseError,
-            ) as exc:
-                if attempt == self.config.retry_attempts - 1:
-                    raise RuntimeError("LLM provider request failed") from exc
-                _sleep_before_retry(self.config.retry_backoff_seconds, attempt)
-        raise RuntimeError("LLM provider request failed")
+        saved_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(self.config.timeout_seconds)
+        try:
+            for attempt in range(self.config.retry_attempts):
+                try:
+                    response = _run_with_timeout(
+                        self.config.timeout_seconds + 5,
+                        lambda: urllib.request.urlopen(http_request, timeout=self.config.timeout_seconds),
+                    )
+                    with response:
+                        raw = _run_with_timeout(self.config.timeout_seconds, lambda: response.read())
+                    payload = json.loads(raw.decode("utf-8"))
+                    content = payload["choices"][0]["message"]["content"]
+                    if not isinstance(content, str):
+                        raise _RetryableProviderResponseError("LLM provider message content must be a string")
+                    if not content.strip():
+                        raise _RetryableProviderResponseError("LLM provider message content was empty")
+                    return LLMResponse(
+                        content=content,
+                        provider_name="openai_compatible",
+                        model=self.config.model,
+                    )
+                except urllib.error.HTTPError as exc:
+                    if not _is_retryable_http_error(exc) or attempt == self.config.retry_attempts - 1:
+                        raise RuntimeError("LLM provider request failed") from exc
+                    _sleep_before_retry(self.config.retry_backoff_seconds, attempt)
+                except (
+                    urllib.error.URLError,
+                    TimeoutError,
+                    http.client.IncompleteRead,
+                    json.JSONDecodeError,
+                    KeyError,
+                    IndexError,
+                    TypeError,
+                    _RetryableProviderResponseError,
+                ) as exc:
+                    if attempt == self.config.retry_attempts - 1:
+                        raise RuntimeError("LLM provider request failed") from exc
+                    _sleep_before_retry(self.config.retry_backoff_seconds, attempt)
+            raise RuntimeError("LLM provider request failed")
+        finally:
+            socket.setdefaulttimeout(saved_timeout)
 
 
 def _is_retryable_http_error(exc: urllib.error.HTTPError) -> bool:
@@ -217,6 +229,29 @@ def _is_retryable_http_error(exc: urllib.error.HTTPError) -> bool:
 def _sleep_before_retry(backoff_seconds: float, attempt: int) -> None:
     if backoff_seconds:
         time.sleep(backoff_seconds * (2**attempt))
+
+
+def _run_with_timeout(timeout_seconds: int, fn: "object") -> object:
+    """Run fn() in a daemon thread, raise TimeoutError if it exceeds timeout."""
+    result: list[object] = [None]
+    error: list[Exception | None] = [None]
+    done = threading.Event()
+
+    def _worker() -> None:
+        try:
+            result[0] = fn()  # type: ignore[call-arg]
+        except Exception as exc:
+            error[0] = exc
+        finally:
+            done.set()
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    if not done.wait(timeout=timeout_seconds):
+        raise TimeoutError(f"Operation timed out after {timeout_seconds}s")
+    if error[0] is not None:
+        raise error[0]
+    return result[0]
 
 
 @dataclass(frozen=True)
