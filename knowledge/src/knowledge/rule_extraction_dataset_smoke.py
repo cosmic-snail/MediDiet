@@ -24,10 +24,14 @@ from knowledge.extraction_experiments import BENCHMARK_EXPERIMENT_MATRIX, COMPAR
 from knowledge.extraction_observations import append_observation
 from knowledge.extraction_stability import summarize_stability
 from knowledge.extractor import RuleExtractor
+from knowledge.golden_eval_accuracy import write_golden_eval_accuracy_artifacts
+from knowledge.judge_evaluator import JudgeLLMEvaluator, build_layer_2_judge_summary
 from knowledge.public_benchmarks import BENCHMARK_PORTFOLIO
 from knowledge.research_registry import ResearchRegistry
+from knowledge.rule_plausibility import build_plausibility_context, evaluate_observation_plausibility
 from knowledge.rule_evaluation import evaluate_rule, precision_recall_f1
 from knowledge.rule_identity import canonical_rule_identity
+from knowledge.semantic_grounding import evaluate_observation_grounding
 from knowledge.schema import DocumentChunk, ExtractedConditionRule, SuggestedConcept
 from knowledge.source_governance import detect_conflicts
 
@@ -274,6 +278,122 @@ def _summarize_suggested_concepts(observations: list[dict[str, Any]]) -> dict[st
     }
 
 
+def _attach_layer_0_1_evaluations(
+    observations: list[dict[str, Any]],
+    dataset_dir: Path,
+) -> dict[str, Any]:
+    manifest_rows = _read_jsonl(dataset_dir / "manifest.jsonl")
+    plausibility_context = build_plausibility_context(manifest_rows)
+    source_text_by_doc_id = _source_text_by_doc_id(manifest_rows)
+    plausibility_counts: Counter[str] = Counter()
+    grounding_scores: list[float] = []
+    unsupported_observation_count = 0
+    for observation in observations:
+        plausibility = evaluate_observation_plausibility(
+            observation,
+            manifest_rows,
+            plausibility_context,
+        )
+        source_text = source_text_by_doc_id.get(str(observation.get("doc_id")), "")
+        grounding = evaluate_observation_grounding(observation, source_text)
+        observation["evaluator"] = {
+            **observation.get("evaluator", {}),
+            "plausibility": plausibility,
+            "grounding": grounding,
+        }
+        plausibility_counts[plausibility["plausibility_flag"]] += 1
+        grounding_scores.append(float(grounding["avg_score"]))
+        if grounding["unsupported_rate"] > 0:
+            unsupported_observation_count += 1
+    return {
+        "layer_0_plausibility": {
+            "pass": plausibility_counts.get("pass", 0),
+            "warn": plausibility_counts.get("warn", 0),
+            "fail": plausibility_counts.get("fail", 0),
+        },
+        "layer_1_grounding": {
+            "evaluated_observation_count": len(observations),
+            "avg_score": sum(grounding_scores) / len(grounding_scores) if grounding_scores else 1.0,
+            "unsupported_rate": unsupported_observation_count / len(observations) if observations else 0.0,
+        },
+    }
+
+
+def _attach_layer_2_judge_evaluations(
+    observations: list[dict[str, Any]],
+    dataset_dir: Path,
+    judge_provider,
+    gold_evaluations: list[dict[str, Any]],
+    judge_max_rules: int | None = None,
+) -> dict[str, Any]:
+    if judge_provider is None or judge_max_rules == 0:
+        return build_layer_2_judge_summary([], gold_evaluations)
+    manifest_rows = _read_jsonl(dataset_dir / "manifest.jsonl")
+    source_text_by_doc_id = _source_text_by_doc_id(manifest_rows)
+    gold_id_by_doc_id = {
+        str(gold_evaluation.get("doc_id")): str(gold_evaluation.get("gold_id"))
+        for gold_evaluation in gold_evaluations
+        if gold_evaluation.get("doc_id") and gold_evaluation.get("gold_id")
+    }
+    evaluator = JudgeLLMEvaluator(judge_provider)
+    judge_results: list[dict[str, Any]] = []
+    judged_rule_count = 0
+    for observation in observations:
+        source_text = source_text_by_doc_id.get(str(observation.get("doc_id")), "")
+        doc_id = str(observation.get("doc_id") or "")
+        gold_id = observation.get("gold_id") or gold_id_by_doc_id.get(doc_id)
+        rule_results: list[dict[str, Any]] = []
+        for rule_index, extracted_rule in enumerate(observation.get("parsed_rules", []) or []):
+            if not isinstance(extracted_rule, dict):
+                continue
+            if judge_max_rules is not None and judged_rule_count >= judge_max_rules:
+                continue
+            judge_result = evaluator.evaluate_rule(
+                source_text=source_text,
+                extracted_rule=extracted_rule,
+                evaluation_context={
+                    "experiment_id": observation.get("experiment_id"),
+                    "arm_id": observation.get("arm_id"),
+                    "dataset_id": observation.get("dataset_id"),
+                    "doc_id": doc_id,
+                    "gold_id": gold_id,
+                    "rule_index": rule_index,
+                },
+            )
+            enriched_result = {
+                **judge_result,
+                "experiment_id": observation.get("experiment_id"),
+                "arm_id": observation.get("arm_id"),
+                "dataset_id": observation.get("dataset_id"),
+                "doc_id": doc_id,
+                "gold_id": gold_id,
+                "rule_index": rule_index,
+            }
+            rule_results.append(enriched_result)
+            judge_results.append(enriched_result)
+            judged_rule_count += 1
+        observation["evaluator"] = {
+            **observation.get("evaluator", {}),
+            "judge": {"rule_results": rule_results},
+        }
+    return build_layer_2_judge_summary(judge_results, gold_evaluations)
+
+
+def _source_text_by_doc_id(manifest_rows: list[dict[str, Any]]) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for manifest_row in manifest_rows:
+        doc_id = str(manifest_row.get("doc_id") or "")
+        path = manifest_row.get("path") or manifest_row.get("source_card_path")
+        if not doc_id or not path:
+            continue
+        source_path = Path(path)
+        if not source_path.is_absolute():
+            source_path = REPO_ROOT / source_path
+        if source_path.exists():
+            result[doc_id] = source_path.read_text(encoding="utf-8")
+    return result
+
+
 def _metric_bar(value: float, width: int = 20) -> str:
     filled = int(round(max(0.0, min(1.0, value)) * width))
     return "#" * filled + "." * (width - filled)
@@ -321,6 +441,78 @@ def _write_real_llm_visual_summary(
         lines.append("| - | - | 0 | 0.000 | 0.000 | 0.000 |")
 
     summary_path = output_dir / "rule-extraction-v1-real-llm-summary.md"
+    summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return summary_path
+
+
+def _write_layered_evaluation_summary(output_dir: Path, report: dict[str, Any]) -> Path:
+    layer_0 = report.get("layer_0_plausibility", {})
+    layer_1 = report.get("layer_1_grounding", {})
+    layer_2 = report.get("layer_2_judge", {})
+    calibration = layer_2.get("calibration", {})
+    best_arm = report.get("evaluation_summary", {}).get("overall", {})
+    lines = [
+        "# Rule Extraction Layered Evaluation Summary",
+        "",
+        "## Run",
+        "",
+        f"- dataset: `{report.get('dataset_id', '')}`",
+        f"- run type: `{report.get('run_type', '')}`",
+        f"- provider: `{report.get('provider', '')}`",
+        f"- model: `{report.get('model', '')}`",
+        f"- observations: {report.get('observation_count', 0)}",
+        f"- operational failures: {report.get('operational_failure_count', 0)}",
+        "",
+        "## Golden Eval",
+        "",
+        f"- precision: {best_arm.get('precision', 0):.3f}",
+        f"- recall: {best_arm.get('recall', 0):.3f}",
+        f"- f1: {best_arm.get('f1', 0):.3f}",
+        f"- accuracy chart: `{report.get('golden_eval_accuracy', {}).get('chart_path', '')}`",
+        "",
+        "## Layer 0 Plausibility",
+        "",
+        f"- pass: {layer_0.get('pass', 0)}",
+        f"- warn: {layer_0.get('warn', 0)}",
+        f"- fail: {layer_0.get('fail', 0)}",
+        "",
+        "## Layer 1 Grounding",
+        "",
+        f"- evaluated observations: {layer_1.get('evaluated_observation_count', 0)}",
+        f"- average score: {layer_1.get('avg_score', 0):.3f}",
+        f"- unsupported rate: {layer_1.get('unsupported_rate', 0):.3f}",
+        "",
+        "## Layer 2 Judge",
+        "",
+        f"- evaluated rules: {layer_2.get('evaluated_rule_count', 0)}",
+        f"- accept rate: {layer_2.get('accept_rate', 0):.3f}",
+        f"- uncertain rate: {layer_2.get('uncertain_rate', 0):.3f}",
+        f"- reject rate: {layer_2.get('reject_rate', 0):.3f}",
+        f"- average confidence: {layer_2.get('avg_confidence', 0):.3f}",
+        f"- calibrated records: {calibration.get('calibrated_record_count', 0)}",
+        f"- agreement rate: {calibration.get('agreement_rate', 0):.3f}",
+        f"- Gwet AC1: {calibration.get('gwet_ac1', 0):.3f}",
+        "",
+        "## Judge Cases",
+        "",
+        "| Experiment | Arm | Doc | Verdict | Confidence | Reason |",
+        "| --- | --- | --- | --- | ---: | --- |",
+    ]
+    judge_rows = []
+    for observation in report.get("observations", []):
+        for judge_result in observation.get("evaluator", {}).get("judge", {}).get("rule_results", []):
+            judge_rows.append(judge_result)
+    if judge_rows:
+        for judge_result in judge_rows[:20]:
+            reason = str(judge_result.get("reason", "")).replace("\n", " ")
+            lines.append(
+                f"| {judge_result.get('experiment_id', '')} | {judge_result.get('arm_id', '')} | "
+                f"{judge_result.get('doc_id', '')} | {judge_result.get('verdict', '')} | "
+                f"{float(judge_result.get('confidence', 0)):.2f} | {reason} |"
+            )
+    else:
+        lines.append("| - | - | - | - | 0.00 | Judge LLM was not enabled for this run. |")
+    summary_path = output_dir / "rule-extraction-v1-layered-evaluation-summary.md"
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return summary_path
 
@@ -379,6 +571,8 @@ def run_research_real_run(
     dataset: str,
     output_dir: Path,
     llm_provider=None,
+    judge_provider=None,
+    judge_max_rules: int | None = None,
     arms: list[str] | None = None,
     experiments: list[str] | None = None,
     max_docs: int | None = None,
@@ -489,9 +683,24 @@ def run_research_real_run(
                 if append_observations:
                     append_observation(observation_path, observation)
 
+    layer_0_1_summary = _attach_layer_0_1_evaluations(observations, dataset_dir)
     stability = summarize_stability(observations)
     evaluations = _evaluate_observations_against_gold(dataset_dir, observations)
     evaluation_summary = _summarize_evaluations(evaluations)
+    layer_2_judge = _attach_layer_2_judge_evaluations(
+        observations,
+        dataset_dir,
+        judge_provider,
+        evaluations,
+        judge_max_rules,
+    )
+    golden_eval_accuracy = write_golden_eval_accuracy_artifacts(
+        output_dir=output_dir,
+        dataset_id=dataset,
+        run_type="real_llm",
+        evaluations=evaluations,
+        layer_summaries={**layer_0_1_summary, "layer_2_judge": layer_2_judge},
+    )
     suggested_concept_summary = _summarize_suggested_concepts(observations)
     report = {
         "dataset_id": dataset,
@@ -501,6 +710,9 @@ def run_research_real_run(
         "observation_count": len(observations),
         "operational_failure_count": len(operational_failures),
         "evaluation_summary": evaluation_summary,
+        "golden_eval_accuracy": golden_eval_accuracy,
+        **layer_0_1_summary,
+        "layer_2_judge": layer_2_judge,
         "evaluations": evaluations,
         "suggested_concept_summary": suggested_concept_summary,
         "observations": observations,
@@ -528,6 +740,7 @@ def run_research_real_run(
         encoding="utf-8",
     )
     visual_summary_path = _write_real_llm_visual_summary(output_dir, report, evaluation_summary)
+    layered_summary_path = _write_layered_evaluation_summary(output_dir, report)
     return {
         "dataset_id": dataset,
         "observation_count": len(observations),
@@ -535,7 +748,10 @@ def run_research_real_run(
         "evaluated_record_count": len(evaluations),
         "report_path": str(output_dir / "rule-extraction-v1-real-llm-report.json"),
         "evaluation_report_path": str(evaluation_report_path),
+        "golden_eval_accuracy_report_path": golden_eval_accuracy["report_path"],
+        "golden_eval_accuracy_chart_path": golden_eval_accuracy["chart_path"],
         "visual_summary_path": str(visual_summary_path),
+        "layered_summary_path": str(layered_summary_path),
     }
 
 
@@ -929,6 +1145,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--chunk-strategies", default="raw_card,extractable_content")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--real-llm", action="store_true")
+    parser.add_argument("--judge-llm", action="store_true")
+    parser.add_argument(
+        "--judge-max-rules",
+        type=int,
+        default=20,
+        help="Maximum extracted rules to evaluate with Judge LLM when --judge-llm is set; use 0 to skip judge calls.",
+    )
     parser.add_argument("--append-observations", action="store_true")
     parser.add_argument("--write-reports", action="store_true")
     parser.add_argument("--output-dir", default=str(REPO_ROOT / "reports"))
@@ -944,9 +1167,15 @@ def main(argv: list[str] | None = None) -> int:
     strategies = [item for item in args.chunk_strategies.split(",") if item] or None
     max_docs = None if args.max_docs <= 0 else args.max_docs
     if args.real_llm:
+        judge_provider = None
+        if args.judge_llm:
+            _load_default_dotenv()
+            judge_provider = OpenAICompatibleLLMProvider(LLMConfig.from_env())
         run_research_real_run(
             args.dataset,
             Path(args.output_dir),
+            judge_provider=judge_provider,
+            judge_max_rules=args.judge_max_rules if args.judge_llm else None,
             arms=arms,
             experiments=experiments,
             max_docs=max_docs,

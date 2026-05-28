@@ -1,0 +1,62 @@
+{
+  "chart_path": "reports/layered-judge-validation-20260528/rule-extraction-v1-golden-eval-accuracy-chart.png",
+  "dataset_id": "rule_extraction_v1",
+  "generated_at": "2026-05-28T11:04:46.858265+00:00",
+  "layer_0_plausibility": {
+    "fail": 0,
+    "pass": 2,
+    "warn": 0
+  },
+  "layer_1_grounding": {
+    "avg_score": 1.0,
+    "evaluated_observation_count": 2,
+    "unsupported_rate": 0.0
+  },
+  "layer_2_judge": {
+    "accept_rate": 1.0,
+    "avg_confidence": 0.9,
+    "calibration": {
+      "agreement_rate": 0.0,
+      "calibrated_record_count": 1,
+      "gwet_ac1": -1.0,
+      "rows": [
+        {
+          "agrees": false,
+          "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+          "gold_label": "reject",
+          "judge_label": "accept"
+        }
+      ]
+    },
+    "evaluated_rule_count": 2,
+    "reject_rate": 0.0,
+    "uncertain_rate": 0.0
+  },
+  "rows": [
+    {
+      "arm_id": "C2",
+      "evaluated_record_count": 1,
+      "exact_accuracy": 0.0,
+      "exact_match_count": 0,
+      "experiment_id": "E1",
+      "miss_count": 1,
+      "usable_accuracy": 0.0,
+      "usable_match_count": 0
+    }
+  ],
+  "run_type": "real_llm",
+  "summary": {
+    "best_arm": {
+      "arm_id": "C2",
+      "evaluated_record_count": 1,
+      "exact_accuracy": 0.0,
+      "exact_match_count": 0,
+      "experiment_id": "E1",
+      "miss_count": 1,
+      "usable_accuracy": 0.0,
+      "usable_match_count": 0
+    },
+    "comparison_count": 1,
+    "evaluated_record_count": 1
+  }
+}

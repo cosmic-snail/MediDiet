@@ -68,6 +68,19 @@ class RecordingRuleLLMProvider:
         )
 
 
+class RecordingAcceptJudgeProvider:
+    def __init__(self) -> None:
+        self.tasks = []
+
+    def complete(self, request):
+        self.tasks.append(request.task)
+        return LLMResponse(
+            content='{"verdict":"accept","confidence":0.85,"field_verdicts":{"condition":"accept","nutrition_limits":"accept"},"reason":"supported"}',
+            provider_name="judge",
+            model="judge-model",
+        )
+
+
 class FailingExtractionLLMProvider:
     def __init__(self) -> None:
         self.tasks = []
@@ -94,10 +107,63 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
     assert (tmp_path / "rule-extraction-v1-real-llm-report.json").exists()
     assert (tmp_path / "rule-extraction-v1-real-llm-field-evaluation-report.json").exists()
     assert (tmp_path / "rule-extraction-v1-real-llm-summary.md").exists()
+    assert (tmp_path / "rule-extraction-v1-golden-eval-accuracy-report.json").exists()
+    assert (tmp_path / "rule-extraction-v1-golden-eval-accuracy-chart.png").exists()
+    assert result["golden_eval_accuracy_chart_path"].endswith("rule-extraction-v1-golden-eval-accuracy-chart.png")
     report = json.loads((tmp_path / "rule-extraction-v1-real-llm-report.json").read_text(encoding="utf-8"))
     assert report["evaluation_summary"]["evaluated_record_count"] == 1
+    assert report["golden_eval_accuracy"]["chart_path"].endswith("rule-extraction-v1-golden-eval-accuracy-chart.png")
+    assert report["layer_0_plausibility"]["pass"] == 1
+    assert report["layer_1_grounding"]["evaluated_observation_count"] == 1
+    assert "plausibility" in report["observations"][0]["evaluator"]
+    assert "grounding" in report["observations"][0]["evaluator"]
     assert report["evaluations"][0]["gold_id"] == "gold_zh_guideline_hypertension_food_therapy_2023_001"
     assert report["evaluations"][0]["arm_id"] == "C2"
+
+
+def test_real_run_can_include_layer_2_judge_summary(tmp_path: Path):
+    extractor_provider = RecordingRuleLLMProvider()
+    judge_provider = RecordingAcceptJudgeProvider()
+
+    run_research_real_run(
+        "rule_extraction_v1",
+        tmp_path,
+        llm_provider=extractor_provider,
+        judge_provider=judge_provider,
+        arms=["C2"],
+        experiments=["E1"],
+        max_docs=1,
+    )
+
+    report = json.loads((tmp_path / "rule-extraction-v1-real-llm-report.json").read_text(encoding="utf-8"))
+    accuracy_report = json.loads((tmp_path / "rule-extraction-v1-golden-eval-accuracy-report.json").read_text(encoding="utf-8"))
+    assert LLMTask.RULE_VALIDATION in judge_provider.tasks
+    assert report["layer_2_judge"]["evaluated_rule_count"] == 1
+    assert report["layer_2_judge"]["accept_rate"] == 1.0
+    assert report["layer_2_judge"]["calibration"]["calibrated_record_count"] == 1
+    assert "judge" in report["observations"][0]["evaluator"]
+    assert accuracy_report["layer_2_judge"]["accept_rate"] == 1.0
+    assert (tmp_path / "rule-extraction-v1-layered-evaluation-summary.md").exists()
+
+
+def test_real_run_limits_layer_2_judge_rule_count(tmp_path: Path):
+    extractor_provider = RecordingRuleLLMProvider()
+    judge_provider = RecordingAcceptJudgeProvider()
+
+    run_research_real_run(
+        "rule_extraction_v1",
+        tmp_path,
+        llm_provider=extractor_provider,
+        judge_provider=judge_provider,
+        judge_max_rules=0,
+        arms=["C2"],
+        experiments=["E1"],
+        max_docs=1,
+    )
+
+    report = json.loads((tmp_path / "rule-extraction-v1-real-llm-report.json").read_text(encoding="utf-8"))
+    assert judge_provider.tasks == []
+    assert report["layer_2_judge"]["evaluated_rule_count"] == 0
 
 
 def test_real_run_maps_c3_to_source_notes_plus_extractable(tmp_path: Path):
@@ -144,10 +210,20 @@ def test_real_run_excludes_api_failures_from_research_observations(tmp_path: Pat
     assert report["operational_failures"][0]["excluded_from_research"] is True
 
 
-def test_cli_exposes_real_llm_max_docs(monkeypatch, tmp_path: Path):
+def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path: Path):
     captured: dict[str, object] = {}
 
-    def fake_real_run(dataset, output_dir, llm_provider=None, arms=None, experiments=None, max_docs=None, append_observations=False):
+    def fake_real_run(
+        dataset,
+        output_dir,
+        llm_provider=None,
+        judge_provider=None,
+        judge_max_rules=None,
+        arms=None,
+        experiments=None,
+        max_docs=None,
+        append_observations=False,
+    ):
         captured.update(
             {
                 "dataset": dataset,
@@ -156,11 +232,14 @@ def test_cli_exposes_real_llm_max_docs(monkeypatch, tmp_path: Path):
                 "experiments": experiments,
                 "max_docs": max_docs,
                 "append_observations": append_observations,
+                "judge_provider": judge_provider,
+                "judge_max_rules": judge_max_rules,
             }
         )
         return {}
 
     monkeypatch.setattr(smoke, "run_research_real_run", fake_real_run)
+    monkeypatch.setattr(smoke, "OpenAICompatibleLLMProvider", lambda config: "judge-provider")
 
     result = smoke.main(
         [
@@ -175,6 +254,9 @@ def test_cli_exposes_real_llm_max_docs(monkeypatch, tmp_path: Path):
             "C1,C2",
             "--max-docs",
             "5",
+            "--judge-llm",
+            "--judge-max-rules",
+            "7",
             "--append-observations",
         ]
     )
@@ -184,6 +266,8 @@ def test_cli_exposes_real_llm_max_docs(monkeypatch, tmp_path: Path):
     assert captured["append_observations"] is True
     assert captured["arms"] == ["C1", "C2"]
     assert captured["experiments"] == ["E1"]
+    assert captured["judge_provider"] == "judge-provider"
+    assert captured["judge_max_rules"] == 7
 
 
 def test_rule_extraction_v1_gold_cards_write_chunking_report():
