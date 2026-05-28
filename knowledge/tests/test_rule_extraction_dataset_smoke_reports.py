@@ -71,9 +71,11 @@ class RecordingRuleLLMProvider:
 class RecordingAcceptJudgeProvider:
     def __init__(self) -> None:
         self.tasks = []
+        self.requests = []
 
     def complete(self, request):
         self.tasks.append(request.task)
+        self.requests.append(request)
         return LLMResponse(
             content='{"verdict":"accept","confidence":0.85,"field_verdicts":{"condition":"accept","nutrition_limits":"accept"},"reason":"supported"}',
             provider_name="judge",
@@ -144,6 +146,27 @@ def test_real_run_can_include_layer_2_judge_summary(tmp_path: Path):
     assert "judge" in report["observations"][0]["evaluator"]
     assert accuracy_report["layer_2_judge"]["accept_rate"] == 1.0
     assert (tmp_path / "rule-extraction-v1-layered-evaluation-summary.md").exists()
+
+
+def test_real_run_passes_gold_expectation_to_layer_2_judge(tmp_path: Path):
+    extractor_provider = RecordingRuleLLMProvider()
+    judge_provider = RecordingAcceptJudgeProvider()
+
+    run_research_real_run(
+        "rule_extraction_v1",
+        tmp_path,
+        llm_provider=extractor_provider,
+        judge_provider=judge_provider,
+        arms=["C2"],
+        experiments=["E1"],
+        max_docs=1,
+    )
+
+    prompt_payload = json.loads(judge_provider.requests[0].user_prompt)
+    expected_gold_rule = prompt_payload["evaluation_context"]["expected_gold_rule"]
+    assert expected_gold_rule["gold_id"] == "gold_zh_guideline_hypertension_food_therapy_2023_001"
+    assert expected_gold_rule["nutrition_limits"][0]["metric"] == "sodium_mg"
+    assert "missing required nutrition_limits" in judge_provider.requests[0].system_prompt
 
 
 def test_real_run_limits_layer_2_judge_rule_count(tmp_path: Path):

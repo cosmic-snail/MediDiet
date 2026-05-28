@@ -142,7 +142,11 @@ def _clamp_confidence(value: Any) -> float:
 def _judge_system_prompt() -> str:
     return (
         "You are evaluating whether a structured nutrition rule is supported by a source card. "
-        "Return JSON only with verdict accept, reject, or uncertain; confidence; field_verdicts; and reason."
+        "Return JSON only with verdict accept, reject, or uncertain; confidence; field_verdicts; and reason. "
+        "When evaluation_context.expected_gold_rule is present, judge the extracted rule against those required fields. "
+        "A source-supported but incomplete rule is not an accept. If the expected gold rule has nutrition_limits and "
+        "the extracted rule is missing required nutrition_limits, return reject or uncertain, not accept. "
+        "Use accept only when the key extracted fields are source-supported and satisfy the expected gold requirement."
     )
 
 

@@ -330,6 +330,12 @@ def _attach_layer_2_judge_evaluations(
         return build_layer_2_judge_summary([], gold_evaluations)
     manifest_rows = _read_jsonl(dataset_dir / "manifest.jsonl")
     source_text_by_doc_id = _source_text_by_doc_id(manifest_rows)
+    gold_rows = _load_gold(dataset_dir)
+    gold_row_by_doc_id = {
+        str(gold_row.get("doc_id")): gold_row
+        for gold_row in gold_rows
+        if gold_row.get("doc_id")
+    }
     gold_id_by_doc_id = {
         str(gold_evaluation.get("doc_id")): str(gold_evaluation.get("gold_id"))
         for gold_evaluation in gold_evaluations
@@ -342,6 +348,7 @@ def _attach_layer_2_judge_evaluations(
         source_text = source_text_by_doc_id.get(str(observation.get("doc_id")), "")
         doc_id = str(observation.get("doc_id") or "")
         gold_id = observation.get("gold_id") or gold_id_by_doc_id.get(doc_id)
+        expected_gold_rule = gold_row_by_doc_id.get(doc_id)
         rule_results: list[dict[str, Any]] = []
         for rule_index, extracted_rule in enumerate(observation.get("parsed_rules", []) or []):
             if not isinstance(extracted_rule, dict):
@@ -357,6 +364,7 @@ def _attach_layer_2_judge_evaluations(
                     "dataset_id": observation.get("dataset_id"),
                     "doc_id": doc_id,
                     "gold_id": gold_id,
+                    "expected_gold_rule": expected_gold_rule,
                     "rule_index": rule_index,
                 },
             )
