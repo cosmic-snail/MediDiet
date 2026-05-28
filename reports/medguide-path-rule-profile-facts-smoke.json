@@ -1,0 +1,462 @@
+{
+  "answer_accuracy": 0.5,
+  "autonomous_llm_answering": false,
+  "average_path_node_precision": 0.6226190476190476,
+  "average_path_node_recall": 0.5077380952380952,
+  "dataset_id": "MedGUIDE/MedGUIDE-MCQA-8K",
+  "mode": "profile_lexical_facts",
+  "note": "external_facts mode evaluates deterministic rule matching from supplied patient facts; oracle_path_facts mode is a pipeline smoke test and must not be reported as model performance.",
+  "path_order_match_rate": 1.0,
+  "row_count": 20,
+  "rows": [
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "E",
+      "gold_answer_text": "Autologous HCT",
+      "gold_rule_id": "medguide-0",
+      "missing_path_nodes": [
+        "Second remission (morphologic)",
+        "Consider CNS prophylaxis with IT chemotherapy (methotrexate or cytarabine)",
+        "PCR negative (by BM)",
+        "Transplant candidate"
+      ],
+      "path_node_precision": 1.0,
+      "path_node_recall": 0.42857142857142855,
+      "path_order_match": true,
+      "sample_id": "medguide-0",
+      "selected_answer": "C",
+      "selected_answer_text": "Clinical trial or Matched sibling or alternative donor HCT",
+      "selected_rule_id": "medguide-4",
+      "unsupported_path_nodes": []
+    },
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "B",
+      "gold_answer_text": "Arsenic trioxide consolidation (total of 6 cycles)",
+      "gold_rule_id": "medguide-1",
+      "missing_path_nodes": [
+        "Consider CNS prophylaxis with IT chemotherapy (methotrexate or cytarabine)",
+        "Not transplant candidate"
+      ],
+      "path_node_precision": 0.8333333333333334,
+      "path_node_recall": 0.7142857142857143,
+      "path_order_match": true,
+      "sample_id": "medguide-1",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-0",
+      "unsupported_path_nodes": [
+        "Transplant candidate"
+      ]
+    },
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "D",
+      "gold_answer_text": "Matched sibling or alternative donor HCT",
+      "gold_rule_id": "medguide-2",
+      "missing_path_nodes": [
+        "Consider CNS prophylaxis with IT chemotherapy (methotrexate or cytarabine)",
+        "PCR positive (by BM)"
+      ],
+      "path_node_precision": 0.8333333333333334,
+      "path_node_recall": 0.7142857142857143,
+      "path_order_match": true,
+      "sample_id": "medguide-2",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-0",
+      "unsupported_path_nodes": [
+        "PCR negative (by BM)"
+      ]
+    },
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "A",
+      "gold_answer_text": "Clinical trial",
+      "gold_rule_id": "medguide-3",
+      "missing_path_nodes": [
+        "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)",
+        "Anthracycline-based regimen as per APL-3 or gemtuzumab ozogamicin",
+        "Consider CNS prophylaxis with IT chemotherapy (methotrexate or cytarabine)",
+        "PCR positive (by BM)",
+        "Not transplant candidate"
+      ],
+      "path_node_precision": 0.3333333333333333,
+      "path_node_recall": 0.2857142857142857,
+      "path_order_match": true,
+      "sample_id": "medguide-3",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-5",
+      "unsupported_path_nodes": [
+        "PCR negative (by BM)",
+        "Transplant candidate",
+        "No prior exposure to arsenic trioxide or early relapse (<6 mo) after ATRA + anthracycline-containing regimen",
+        "Arsenic trioxide ± ATRA ± gemtuzumab ozogamicin"
+      ]
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_7",
+      "gold_answer": "C",
+      "gold_answer_text": "Clinical trial or Matched sibling or alternative donor HCT",
+      "gold_rule_id": "medguide-4",
+      "missing_path_nodes": [
+        "No remission"
+      ],
+      "path_node_precision": 1.0,
+      "path_node_recall": 0.75,
+      "path_order_match": true,
+      "sample_id": "medguide-4",
+      "selected_answer": "C",
+      "selected_answer_text": "Clinical trial or Matched sibling or alternative donor HCT",
+      "selected_rule_id": "medguide-4",
+      "unsupported_path_nodes": []
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_7",
+      "gold_answer": "E",
+      "gold_answer_text": "Autologous HCT",
+      "gold_rule_id": "medguide-5",
+      "missing_path_nodes": [
+        "No prior exposure to arsenic trioxide or early relapse (<6 mo) after ATRA + anthracycline-containing regimen",
+        "Arsenic trioxide ± ATRA ± gemtuzumab ozogamicin"
+      ],
+      "path_node_precision": 0.7142857142857143,
+      "path_node_recall": 0.7142857142857143,
+      "path_order_match": true,
+      "sample_id": "medguide-5",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-0",
+      "unsupported_path_nodes": [
+        "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)",
+        "Anthracycline-based regimen as per APL-3 or gemtuzumab ozogamicin"
+      ]
+    },
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "B",
+      "gold_answer_text": "Arsenic trioxide consolidation (total of 6 cycles)",
+      "gold_rule_id": "medguide-6",
+      "missing_path_nodes": [
+        "No prior exposure to arsenic trioxide or early relapse (<6 mo) after ATRA + anthracycline-containing regimen",
+        "Arsenic trioxide ± ATRA ± gemtuzumab ozogamicin",
+        "Not transplant candidate"
+      ],
+      "path_node_precision": 0.5714285714285714,
+      "path_node_recall": 0.5714285714285714,
+      "path_order_match": true,
+      "sample_id": "medguide-6",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-0",
+      "unsupported_path_nodes": [
+        "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)",
+        "Anthracycline-based regimen as per APL-3 or gemtuzumab ozogamicin",
+        "Transplant candidate"
+      ]
+    },
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "D",
+      "gold_answer_text": "Matched sibling or alternative donor HCT",
+      "gold_rule_id": "medguide-7",
+      "missing_path_nodes": [
+        "No prior exposure to arsenic trioxide or early relapse (<6 mo) after ATRA + anthracycline-containing regimen",
+        "Arsenic trioxide ± ATRA ± gemtuzumab ozogamicin",
+        "Second remission (morphologic)",
+        "Consider CNS prophylaxis with IT chemotherapy (methotrexate or cytarabine)",
+        "PCR positive (by BM)",
+        "Transplant candidate"
+      ],
+      "path_node_precision": 0.3333333333333333,
+      "path_node_recall": 0.14285714285714285,
+      "path_order_match": true,
+      "sample_id": "medguide-7",
+      "selected_answer": "C",
+      "selected_answer_text": "Clinical trial or Matched sibling or alternative donor HCT",
+      "selected_rule_id": "medguide-4",
+      "unsupported_path_nodes": [
+        "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)",
+        "Anthracycline-based regimen as per APL-3 or gemtuzumab ozogamicin"
+      ]
+    },
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "A",
+      "gold_answer_text": "Clinical trial",
+      "gold_rule_id": "medguide-8",
+      "missing_path_nodes": [
+        "No prior exposure to arsenic trioxide or early relapse (<6 mo) after ATRA + anthracycline-containing regimen",
+        "Arsenic trioxide ± ATRA ± gemtuzumab ozogamicin",
+        "Consider CNS prophylaxis with IT chemotherapy (methotrexate or cytarabine)",
+        "PCR positive (by BM)",
+        "Not transplant candidate"
+      ],
+      "path_node_precision": 0.3333333333333333,
+      "path_node_recall": 0.2857142857142857,
+      "path_order_match": true,
+      "sample_id": "medguide-8",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-0",
+      "unsupported_path_nodes": [
+        "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)",
+        "Anthracycline-based regimen as per APL-3 or gemtuzumab ozogamicin",
+        "PCR negative (by BM)",
+        "Transplant candidate"
+      ]
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_7",
+      "gold_answer": "C",
+      "gold_answer_text": "Clinical trial or Matched sibling or alternative donor HCT",
+      "gold_rule_id": "medguide-9",
+      "missing_path_nodes": [
+        "No prior exposure to arsenic trioxide or early relapse (<6 mo) after ATRA + anthracycline-containing regimen",
+        "Arsenic trioxide ± ATRA ± gemtuzumab ozogamicin",
+        "No remission"
+      ],
+      "path_node_precision": 0.3333333333333333,
+      "path_node_recall": 0.25,
+      "path_order_match": true,
+      "sample_id": "medguide-9",
+      "selected_answer": "C",
+      "selected_answer_text": "Clinical trial or Matched sibling or alternative donor HCT",
+      "selected_rule_id": "medguide-4",
+      "unsupported_path_nodes": [
+        "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)",
+        "Anthracycline-based regimen as per APL-3 or gemtuzumab ozogamicin"
+      ]
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_7",
+      "gold_answer": "E",
+      "gold_answer_text": "Autologous HCT",
+      "gold_rule_id": "medguide-10",
+      "missing_path_nodes": [
+        "Late relapse (≥6 mo) after arsenic trioxide–containing regimen",
+        "Arsenic trioxide ± ATRA ± (anthracycline or gemtuzumab ozogamicin)",
+        "Consider CNS prophylaxis with IT chemotherapy (methotrexate or cytarabine)"
+      ],
+      "path_node_precision": 0.6666666666666666,
+      "path_node_recall": 0.5714285714285714,
+      "path_order_match": true,
+      "sample_id": "medguide-10",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-5",
+      "unsupported_path_nodes": [
+        "No prior exposure to arsenic trioxide or early relapse (<6 mo) after ATRA + anthracycline-containing regimen",
+        "Arsenic trioxide ± ATRA ± gemtuzumab ozogamicin"
+      ]
+    },
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "B",
+      "gold_answer_text": "Arsenic trioxide consolidation (total of 6 cycles)",
+      "gold_rule_id": "medguide-11",
+      "missing_path_nodes": [
+        "Late relapse (≥6 mo) after arsenic trioxide–containing regimen",
+        "Arsenic trioxide ± ATRA ± (anthracycline or gemtuzumab ozogamicin)",
+        "Consider CNS prophylaxis with IT chemotherapy (methotrexate or cytarabine)",
+        "Not transplant candidate"
+      ],
+      "path_node_precision": 0.5,
+      "path_node_recall": 0.42857142857142855,
+      "path_order_match": true,
+      "sample_id": "medguide-11",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-0",
+      "unsupported_path_nodes": [
+        "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)",
+        "Anthracycline-based regimen as per APL-3 or gemtuzumab ozogamicin",
+        "Transplant candidate"
+      ]
+    },
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "D",
+      "gold_answer_text": "Matched sibling or alternative donor HCT",
+      "gold_rule_id": "medguide-12",
+      "missing_path_nodes": [
+        "Late relapse (≥6 mo) after arsenic trioxide–containing regimen",
+        "Arsenic trioxide ± ATRA ± (anthracycline or gemtuzumab ozogamicin)",
+        "PCR positive (by BM)",
+        "Transplant candidate"
+      ],
+      "path_node_precision": 0.5,
+      "path_node_recall": 0.42857142857142855,
+      "path_order_match": true,
+      "sample_id": "medguide-12",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-0",
+      "unsupported_path_nodes": [
+        "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)",
+        "Anthracycline-based regimen as per APL-3 or gemtuzumab ozogamicin",
+        "PCR negative (by BM)"
+      ]
+    },
+    {
+      "answer_correct": false,
+      "disease": "aml_7",
+      "gold_answer": "A",
+      "gold_answer_text": "Clinical trial",
+      "gold_rule_id": "medguide-13",
+      "missing_path_nodes": [
+        "Late relapse (≥6 mo) after arsenic trioxide–containing regimen",
+        "Arsenic trioxide ± ATRA ± (anthracycline or gemtuzumab ozogamicin)",
+        "Consider CNS prophylaxis with IT chemotherapy (methotrexate or cytarabine)",
+        "PCR positive (by BM)",
+        "Not transplant candidate"
+      ],
+      "path_node_precision": 0.3333333333333333,
+      "path_node_recall": 0.2857142857142857,
+      "path_order_match": true,
+      "sample_id": "medguide-13",
+      "selected_answer": "E",
+      "selected_answer_text": "Autologous HCT",
+      "selected_rule_id": "medguide-5",
+      "unsupported_path_nodes": [
+        "PCR negative (by BM)",
+        "Transplant candidate",
+        "No prior exposure to arsenic trioxide or early relapse (<6 mo) after ATRA + anthracycline-containing regimen",
+        "Arsenic trioxide ± ATRA ± gemtuzumab ozogamicin"
+      ]
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_7",
+      "gold_answer": "C",
+      "gold_answer_text": "Clinical trial or Matched sibling or alternative donor HCT",
+      "gold_rule_id": "medguide-14",
+      "missing_path_nodes": [
+        "Late relapse (≥6 mo) after arsenic trioxide–containing regimen",
+        "Arsenic trioxide ± ATRA ± (anthracycline or gemtuzumab ozogamicin)",
+        "No remission"
+      ],
+      "path_node_precision": 0.3333333333333333,
+      "path_node_recall": 0.25,
+      "path_order_match": true,
+      "sample_id": "medguide-14",
+      "selected_answer": "C",
+      "selected_answer_text": "Clinical trial or Matched sibling or alternative donor HCT",
+      "selected_rule_id": "medguide-4",
+      "unsupported_path_nodes": [
+        "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)",
+        "Anthracycline-based regimen as per APL-3 or gemtuzumab ozogamicin"
+      ]
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_12",
+      "gold_answer": "A",
+      "gold_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "gold_rule_id": "medguide-15",
+      "missing_path_nodes": [],
+      "path_node_precision": 1.0,
+      "path_node_recall": 1.0,
+      "path_order_match": true,
+      "sample_id": "medguide-15",
+      "selected_answer": "A",
+      "selected_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "selected_rule_id": "medguide-15",
+      "unsupported_path_nodes": []
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_12",
+      "gold_answer": "A",
+      "gold_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "gold_rule_id": "medguide-16",
+      "missing_path_nodes": [
+        "Cytarabine + midostaurin (FLT3-ITD or TKD)"
+      ],
+      "path_node_precision": 0.6666666666666666,
+      "path_node_recall": 0.6666666666666666,
+      "path_order_match": true,
+      "sample_id": "medguide-16",
+      "selected_answer": "A",
+      "selected_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "selected_rule_id": "medguide-15",
+      "unsupported_path_nodes": [
+        "Allogeneic HCT (preferred for FLT3-ITD)"
+      ]
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_12",
+      "gold_answer": "A",
+      "gold_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "gold_rule_id": "medguide-17",
+      "missing_path_nodes": [
+        "Cytarabine + quizartinib (FLT3-ITD only)"
+      ],
+      "path_node_precision": 0.6666666666666666,
+      "path_node_recall": 0.6666666666666666,
+      "path_order_match": true,
+      "sample_id": "medguide-17",
+      "selected_answer": "A",
+      "selected_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "selected_rule_id": "medguide-15",
+      "unsupported_path_nodes": [
+        "Allogeneic HCT (preferred for FLT3-ITD)"
+      ]
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_12",
+      "gold_answer": "A",
+      "gold_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "gold_rule_id": "medguide-18",
+      "missing_path_nodes": [
+        "Allogeneic HCT"
+      ],
+      "path_node_precision": 1.0,
+      "path_node_recall": 0.6666666666666666,
+      "path_order_match": true,
+      "sample_id": "medguide-18",
+      "selected_answer": "A",
+      "selected_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "selected_rule_id": "medguide-18",
+      "unsupported_path_nodes": []
+    },
+    {
+      "answer_correct": true,
+      "disease": "aml_12",
+      "gold_answer": "A",
+      "gold_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "gold_rule_id": "medguide-19",
+      "missing_path_nodes": [
+        "Poor-risk AML with and without TP53 mutation or del(17p) abnormality / Therapy-related AML other than CBF-AML / Antecedent MDS/CMML / Cytogenetic changes consistent with MDS (previously classified as AML-MRC)",
+        "Allogeneic HCT (preferred)"
+      ],
+      "path_node_precision": 0.5,
+      "path_node_recall": 0.3333333333333333,
+      "path_order_match": true,
+      "sample_id": "medguide-19",
+      "selected_answer": "A",
+      "selected_answer_text": "Allogeneic HCT (if not previously performed) or Maintenance (AML-7) or Surveillance (AML-8)",
+      "selected_rule_id": "medguide-15",
+      "unsupported_path_nodes": [
+        "AML with FLT3 mutation"
+      ]
+    }
+  ],
+  "run_type": "medguide_path_rule_benchmark"
+}

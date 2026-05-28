@@ -105,3 +105,43 @@ PYTHONPATH=src:knowledge/src pytest \
 ```
 
 Expected: existing nutrition-rule tests still pass.
+
+### Task 4: Profile Facts Mode
+
+**Files:**
+- Create: `knowledge/src/knowledge/profile_fact_extraction.py`
+- Modify: `knowledge/src/knowledge/medguide_path_rule_benchmark.py`
+- Modify: `knowledge/tests/test_medguide_path_rules.py`
+- Create: `reports/medguide-path-rule-profile-facts-smoke.json`
+
+- [x] **Step 1: Write failing tests**
+
+Add tests proving `extract_profile_facts` can match profile text to candidate path nodes without seeing options, and proving the runner can build profile facts and report `profile_lexical_facts` mode.
+
+- [x] **Step 2: Run tests and confirm red**
+
+Run:
+
+```bash
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_medguide_path_rules.py -q --rootdir=.
+```
+
+Expected: import failure for `knowledge.profile_fact_extraction` or missing `build_profile_facts_for_medguide_rows`.
+
+- [x] **Step 3: Implement lexical fact extractor**
+
+Add deterministic token-overlap matching with small clinical abbreviation normalization such as `BM -> bone marrow` and `HCT -> transplant`. Keep fact extraction independent of answer options.
+
+- [x] **Step 4: Run profile-facts live smoke**
+
+Run:
+
+```bash
+PYTHONPATH=src:knowledge/src python -m knowledge.medguide_path_rule_benchmark \
+  --offset 0 \
+  --limit 20 \
+  --profile-facts \
+  --output reports/medguide-path-rule-profile-facts-smoke.json
+```
+
+Expected: report writes with `mode=profile_lexical_facts` and `autonomous_llm_answering=false`.

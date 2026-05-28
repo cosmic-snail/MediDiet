@@ -65,6 +65,40 @@ facts JSONL 格式：
 {"sample_id":"medguide-0","facts":["First relapse (morphologic or molecular)","PCR negative (by BM)","Transplant candidate"]}
 ```
 
+使用内置 lexical profile fact extractor：
+
+```bash
+PYTHONPATH=src:knowledge/src python -m knowledge.medguide_path_rule_benchmark \
+  --offset 0 \
+  --limit 20 \
+  --profile-facts \
+  --output reports/medguide-path-rule-profile-facts-smoke.json
+```
+
+这个模式会做：
+
+```text
+MedGUIDE profile + 同 disease 的 candidate path nodes
+  -> lexical fact extractor
+  -> facts
+  -> deterministic matcher
+  -> answer/path metrics
+```
+
+它仍然不会让 LLM 直接读 `profile + options` 自主答题。
+
+当前 smoke 结果：
+
+- row_count: 20
+- mode: `profile_lexical_facts`
+- autonomous_llm_answering: false
+- answer_accuracy: 0.5
+- average_path_node_precision: 0.623
+- average_path_node_recall: 0.508
+- path_order_match_rate: 1.0
+
+这些数字只代表第一版 lexical facts 的小样本诊断，不代表最终系统性能。
+
 ## 指标
 
 - `answer_accuracy`：最终推荐答案是否等于 MedGUIDE gold answer。

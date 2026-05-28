@@ -10,6 +10,7 @@ import urllib.error
 from pathlib import Path
 from typing import Any
 
+from knowledge.profile_fact_extraction import extract_profile_facts
 from knowledge.path_rule_evaluation import evaluate_medguide_rows
 
 
@@ -57,16 +58,41 @@ def load_facts_jsonl(path: Path) -> dict[str, list[str]]:
     return facts_by_sample_id
 
 
+def build_profile_facts_for_medguide_rows(rows: list[dict[str, Any]]) -> dict[str, list[str]]:
+    candidate_nodes_by_disease: dict[str, list[str]] = {}
+    for item in rows:
+        row = item["row"]
+        disease = str(row.get("disease", ""))
+        path_nodes = [str(node) for node in row.get("path", [])[:-1]]
+        candidate_nodes_by_disease.setdefault(disease, [])
+        for node in path_nodes:
+            if node not in candidate_nodes_by_disease[disease]:
+                candidate_nodes_by_disease[disease].append(node)
+
+    facts_by_sample_id: dict[str, list[str]] = {}
+    for item in rows:
+        sample_id = f"medguide-{item['row_idx']}"
+        row = item["row"]
+        disease = str(row.get("disease", ""))
+        facts = extract_profile_facts(
+            str(row.get("profile", "")),
+            candidate_nodes_by_disease.get(disease, []),
+        )
+        facts_by_sample_id[sample_id] = [fact.node for fact in facts]
+    return facts_by_sample_id
+
+
 def write_medguide_path_rule_report(
     rows: list[dict[str, Any]],
     output_path: Path,
     facts_by_sample_id: dict[str, list[str]] | None = None,
+    mode: str | None = None,
 ) -> dict[str, Any]:
     report = evaluate_medguide_rows(rows, facts_by_sample_id=facts_by_sample_id)
     report = {
         "dataset_id": MEDGUIDE_DATASET,
         "run_type": "medguide_path_rule_benchmark",
-        "mode": "external_facts" if facts_by_sample_id is not None else "oracle_path_facts",
+        "mode": mode or ("external_facts" if facts_by_sample_id is not None else "oracle_path_facts"),
         "autonomous_llm_answering": False,
         "note": (
             "external_facts mode evaluates deterministic rule matching from supplied patient facts; "
@@ -84,15 +110,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--facts-jsonl", default="")
+    parser.add_argument("--profile-facts", action="store_true")
     parser.add_argument("--output", default="reports/medguide-path-rule-benchmark-report.json")
     args = parser.parse_args(argv)
 
-    facts = load_facts_jsonl(Path(args.facts_jsonl)) if args.facts_jsonl else None
     rows = fetch_medguide_rows(offset=args.offset, limit=args.limit)
+    mode = None
+    if args.profile_facts:
+        facts = build_profile_facts_for_medguide_rows(rows)
+        mode = "profile_lexical_facts"
+    else:
+        facts = load_facts_jsonl(Path(args.facts_jsonl)) if args.facts_jsonl else None
     report = write_medguide_path_rule_report(
         rows=rows,
         output_path=Path(args.output),
         facts_by_sample_id=facts,
+        mode=mode,
     )
     print(json.dumps({key: report[key] for key in ("row_count", "answer_accuracy", "mode")}, ensure_ascii=False))
     return 0

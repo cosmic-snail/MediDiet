@@ -4,7 +4,12 @@ import http.client
 import json
 
 from knowledge import medguide_path_rule_benchmark
-from knowledge.medguide_path_rule_benchmark import fetch_medguide_rows, write_medguide_path_rule_report
+from knowledge.medguide_path_rule_benchmark import (
+    build_profile_facts_for_medguide_rows,
+    fetch_medguide_rows,
+    write_medguide_path_rule_report,
+)
+from knowledge.profile_fact_extraction import extract_profile_facts
 from knowledge.path_rule_evaluation import (
     PathRulePrediction,
     evaluate_medguide_rows,
@@ -177,3 +182,35 @@ def test_fetch_medguide_rows_retries_incomplete_reads(monkeypatch) -> None:
 
     assert calls["count"] == 2
     assert rows[0]["row"]["answer_text"] == "Autologous HCT"
+
+
+def test_profile_fact_extractor_matches_candidate_path_nodes_without_options() -> None:
+    candidates = MEDGUIDE_ROW["path"][:-1] + ["Matched sibling or alternative donor HCT"]
+
+    facts = extract_profile_facts(MEDGUIDE_ROW["profile"], candidates)
+
+    matched_nodes = [fact.node for fact in facts]
+    assert "First relapse (morphologic or molecular)" in matched_nodes
+    assert "Early relapse (<6 mo) after ATRA and arsenic trioxide (no anthracycline)" in matched_nodes
+    assert "PCR negative (by BM)" in matched_nodes
+    assert "Transplant candidate" in matched_nodes
+    assert "Matched sibling or alternative donor HCT" not in matched_nodes
+    assert all(fact.evidence for fact in facts)
+
+
+def test_runner_can_build_profile_facts_and_report_external_mode(tmp_path) -> None:
+    rows = [{"row_idx": 0, "row": MEDGUIDE_ROW}]
+    facts_by_sample_id = build_profile_facts_for_medguide_rows(rows)
+    output_path = tmp_path / "profile-facts-report.json"
+
+    report = write_medguide_path_rule_report(
+        rows=rows,
+        output_path=output_path,
+        facts_by_sample_id=facts_by_sample_id,
+        mode="profile_lexical_facts",
+    )
+
+    assert "medguide-0" in facts_by_sample_id
+    assert report["mode"] == "profile_lexical_facts"
+    assert report["autonomous_llm_answering"] is False
+    assert output_path.exists()

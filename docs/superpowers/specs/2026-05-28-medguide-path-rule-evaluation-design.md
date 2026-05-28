@@ -71,3 +71,5 @@ The existing nutrition recommendation capability remains compatible because:
 `external_facts` mode is the intended system-evaluation mode. It evaluates facts extracted by the system from the clinical profile.
 
 `oracle_path_facts` mode uses MedGUIDE gold path nodes as facts. It is only a pipeline smoke test and must not be reported as model or system performance.
+
+`profile_lexical_facts` mode is the first external-facts implementation. It matches normalized profile tokens against candidate path nodes from the same disease and then lets the deterministic matcher select the answer. It does not see answer options during fact extraction and does not let an LLM answer autonomously.
