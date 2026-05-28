@@ -212,7 +212,10 @@ def _parse_concept_code(
     code = ConceptCode(kind, value_str)
     if (code.kind, code.value) in registry._definitions:
         return code
-    return None
+    try:
+        return registry.resolve_alias(kind, value_str)
+    except ValueError:
+        return None
 
 
 def _parse_extraction_response(
