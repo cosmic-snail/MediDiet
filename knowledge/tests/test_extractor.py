@@ -29,6 +29,7 @@ def _sample_registry() -> ConceptRegistry:
             ConceptDefinition(
                 code=ConceptCode(CodeKind.CONDITION, "hypertension"),
                 display_name="Hypertension",
+                aliases=("high blood pressure",),
                 source="baseline",
             ),
             ConceptDefinition(
@@ -133,6 +134,11 @@ class TestParseConceptCode:
         registry = _sample_registry()
         code = _parse_concept_code("condition", "unknown_disease", registry)
         assert code is None
+
+    def test_alias_with_non_code_text_returns_registered_code(self):
+        registry = _sample_registry()
+        code = _parse_concept_code("condition", "high blood pressure", registry)
+        assert code == ConceptCode(CodeKind.CONDITION, "hypertension")
 
     def test_invalid_kind_returns_none(self):
         registry = _sample_registry()
