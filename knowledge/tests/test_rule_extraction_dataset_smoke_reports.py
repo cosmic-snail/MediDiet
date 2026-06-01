@@ -293,6 +293,47 @@ def test_source_text_bundle_reports_missing_manifest_paths(tmp_path: Path):
     }
 
 
+def test_summarize_operational_failures_by_arm():
+    summary = smoke._summarize_operational_failures(
+        [
+            {"arm_id": "C1", "doc_id": "doc1", "failures": ["provider_error:TimeoutError"]},
+            {"arm_id": "C2", "doc_id": "doc2", "failures": ["provider_error:RemoteDisconnected"]},
+            {"arm_id": "C2", "doc_id": "doc3", "failures": ["provider_error:TimeoutError"]},
+        ]
+    )
+
+    assert summary["by_arm"]["C1"]["count"] == 1
+    assert summary["by_arm"]["C2"]["count"] == 2
+    assert summary["by_failure_type"]["provider_error:TimeoutError"] == 2
+
+
+def test_paired_arm_summary_counts_common_successful_docs():
+    observations = [
+        {"doc_id": "doc1", "arm_id": "C1", "parsed_rules": [{"condition": "hypertension"}]},
+        {"doc_id": "doc1", "arm_id": "C2", "parsed_rules": []},
+        {"doc_id": "doc2", "arm_id": "C1", "parsed_rules": [{"condition": "diabetes"}]},
+        {"doc_id": "doc2", "arm_id": "C2", "parsed_rules": [{"condition": "diabetes"}]},
+        {"doc_id": "doc3", "arm_id": "C1", "parsed_rules": []},
+        {"doc_id": "doc3", "arm_id": "C2", "parsed_rules": [{"condition": "diabetes"}]},
+        {"doc_id": "doc4", "arm_id": "C1", "parsed_rules": []},
+        {"doc_id": "doc4", "arm_id": "C2", "parsed_rules": []},
+        {"doc_id": "doc5", "arm_id": "C1", "parsed_rules": [{"condition": "obesity"}]},
+    ]
+
+    summary = smoke._summarize_paired_arm_rule_presence(
+        observations,
+        left_arm="C1",
+        right_arm="C2",
+    )
+
+    assert summary["paired_doc_count"] == 4
+    assert summary["both_present_doc_count"] == 1
+    assert summary["left_only_doc_count"] == 1
+    assert summary["right_only_doc_count"] == 1
+    assert summary["neither_present_doc_count"] == 1
+    assert summary["unpaired_left_doc_count"] == 1
+
+
 def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path: Path):
     captured: dict[str, object] = {}
 

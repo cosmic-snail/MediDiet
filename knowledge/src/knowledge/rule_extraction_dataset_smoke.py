@@ -304,6 +304,96 @@ def _summarize_suggested_concepts(observations: list[dict[str, Any]]) -> dict[st
     }
 
 
+def _summarize_operational_failures(operational_failures: list[dict[str, Any]]) -> dict[str, Any]:
+    by_arm: dict[str, dict[str, Any]] = {}
+    by_failure_type: Counter[str] = Counter()
+    for operational_failure in operational_failures:
+        arm_id = str(operational_failure.get("arm_id") or "")
+        by_arm.setdefault(arm_id, {"count": 0, "doc_ids": []})
+        by_arm[arm_id]["count"] += 1
+        doc_id = str(operational_failure.get("doc_id") or "")
+        if doc_id:
+            by_arm[arm_id]["doc_ids"].append(doc_id)
+        for failure_label in operational_failure.get("failures", []) or []:
+            by_failure_type[str(failure_label)] += 1
+    for arm_summary in by_arm.values():
+        arm_summary["doc_ids"] = sorted(arm_summary["doc_ids"])
+    return {
+        "total": len(operational_failures),
+        "by_arm": dict(sorted(by_arm.items())),
+        "by_failure_type": dict(sorted(by_failure_type.items())),
+    }
+
+
+def _summarize_paired_arm_rule_presence(
+    observations: list[dict[str, Any]],
+    *,
+    left_arm: str,
+    right_arm: str,
+) -> dict[str, Any]:
+    rule_presence_by_doc_id: dict[str, dict[str, bool]] = {}
+    for observation_record in observations:
+        doc_id = str(observation_record.get("doc_id") or "")
+        arm_id = str(observation_record.get("arm_id") or "")
+        if not doc_id or arm_id not in {left_arm, right_arm}:
+            continue
+        rule_presence_by_doc_id.setdefault(doc_id, {})
+        rule_presence_by_doc_id[doc_id][arm_id] = bool(observation_record.get("parsed_rules"))
+
+    paired_docs = {
+        doc_id: arm_presence
+        for doc_id, arm_presence in rule_presence_by_doc_id.items()
+        if left_arm in arm_presence and right_arm in arm_presence
+    }
+    both_present = [
+        doc_id
+        for doc_id, arm_presence in paired_docs.items()
+        if arm_presence[left_arm] and arm_presence[right_arm]
+    ]
+    left_only = [
+        doc_id
+        for doc_id, arm_presence in paired_docs.items()
+        if arm_presence[left_arm] and not arm_presence[right_arm]
+    ]
+    right_only = [
+        doc_id
+        for doc_id, arm_presence in paired_docs.items()
+        if arm_presence[right_arm] and not arm_presence[left_arm]
+    ]
+    neither_present = [
+        doc_id
+        for doc_id, arm_presence in paired_docs.items()
+        if not arm_presence[left_arm] and not arm_presence[right_arm]
+    ]
+    unpaired_left = [
+        doc_id
+        for doc_id, arm_presence in rule_presence_by_doc_id.items()
+        if left_arm in arm_presence and right_arm not in arm_presence
+    ]
+    unpaired_right = [
+        doc_id
+        for doc_id, arm_presence in rule_presence_by_doc_id.items()
+        if right_arm in arm_presence and left_arm not in arm_presence
+    ]
+    return {
+        "left_arm": left_arm,
+        "right_arm": right_arm,
+        "paired_doc_count": len(paired_docs),
+        "both_present_doc_count": len(both_present),
+        "left_only_doc_count": len(left_only),
+        "right_only_doc_count": len(right_only),
+        "neither_present_doc_count": len(neither_present),
+        "unpaired_left_doc_count": len(unpaired_left),
+        "unpaired_right_doc_count": len(unpaired_right),
+        "both_present_doc_ids": sorted(both_present),
+        "left_only_doc_ids": sorted(left_only),
+        "right_only_doc_ids": sorted(right_only),
+        "neither_present_doc_ids": sorted(neither_present),
+        "unpaired_left_doc_ids": sorted(unpaired_left),
+        "unpaired_right_doc_ids": sorted(unpaired_right),
+    }
+
+
 @dataclass(frozen=True)
 class SourceTextBundle:
     source_text_by_doc_id: dict[str, str]
@@ -809,6 +899,12 @@ def run_research_real_run(
         "concept_coverage": concept_coverage,
         "observation_count": len(observations),
         "operational_failure_count": len(operational_failures),
+        "operational_failure_summary": _summarize_operational_failures(operational_failures),
+        "paired_arm_summary": _summarize_paired_arm_rule_presence(
+            observations,
+            left_arm="C1",
+            right_arm="C2",
+        ),
         "evaluation_summary": evaluation_summary,
         "golden_eval_accuracy": golden_eval_accuracy,
         **layer_0_1_summary,
