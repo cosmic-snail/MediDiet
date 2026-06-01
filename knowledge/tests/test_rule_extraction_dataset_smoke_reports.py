@@ -165,6 +165,8 @@ def test_real_run_can_include_layer_2_judge_summary(tmp_path: Path):
     assert report["layer_2_judge"]["evaluated_rule_count"] == 1
     assert report["layer_2_judge"]["accept_rate"] == 1.0
     assert report["layer_2_judge"]["calibration"]["calibrated_record_count"] == 1
+    assert report["judge_sampling"]["strategy"] == "stratified_by_gold_outcome"
+    assert report["judge_sampling"]["selected_observation_count"] == 1
     assert "judge" in report["observations"][0]["evaluator"]
     assert accuracy_report["layer_2_judge"]["accept_rate"] == 1.0
     assert (tmp_path / "rule-extraction-v1-layered-evaluation-summary.md").exists()
@@ -362,6 +364,27 @@ def test_summarize_numeric_limit_failures_counts_missing_limits():
 
     assert summary["missing_numeric_limit_count"] == 2
     assert summary["missing_numeric_limit_doc_ids"] == ["doc1", "doc3"]
+
+
+def test_select_judge_calibration_cases_is_stratified():
+    observations = [
+        {"doc_id": "match1", "parsed_rules": [{"id": "r1"}]},
+        {"doc_id": "miss1", "parsed_rules": []},
+        {"doc_id": "negative1", "parsed_rules": []},
+    ]
+    evaluations = [
+        {"doc_id": "match1", "overall": "match", "gold_behavior": "rule"},
+        {"doc_id": "miss1", "overall": "miss", "gold_behavior": "rule"},
+        {"doc_id": "negative1", "overall": "match", "gold_behavior": "negative"},
+    ]
+
+    selected = smoke._select_judge_calibration_observations(
+        observations=observations,
+        evaluations=evaluations,
+        max_cases=3,
+    )
+
+    assert [item["doc_id"] for item in selected] == ["match1", "miss1", "negative1"]
 
 
 def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path: Path):

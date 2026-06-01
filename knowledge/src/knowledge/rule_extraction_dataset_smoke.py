@@ -416,6 +416,43 @@ def _summarize_numeric_limit_failures(evaluations: list[dict[str, Any]]) -> dict
     }
 
 
+def _select_judge_calibration_observations(
+    *,
+    observations: list[dict[str, Any]],
+    evaluations: list[dict[str, Any]],
+    max_cases: int,
+) -> list[dict[str, Any]]:
+    evaluation_by_doc_id = {
+        str(evaluation.get("doc_id")): evaluation
+        for evaluation in evaluations
+        if evaluation.get("doc_id")
+    }
+    buckets: dict[str, list[dict[str, Any]]] = {
+        "match": [],
+        "miss": [],
+        "negative": [],
+        "other": [],
+    }
+    for observation_record in observations:
+        doc_id = str(observation_record.get("doc_id") or "")
+        evaluation = evaluation_by_doc_id.get(doc_id, {})
+        if evaluation.get("gold_behavior") == "negative":
+            buckets["negative"].append(observation_record)
+        elif evaluation.get("overall") == "match":
+            buckets["match"].append(observation_record)
+        elif evaluation.get("overall") == "miss":
+            buckets["miss"].append(observation_record)
+        else:
+            buckets["other"].append(observation_record)
+
+    selected: list[dict[str, Any]] = []
+    while len(selected) < max_cases and any(buckets.values()):
+        for bucket_name in ("match", "miss", "negative", "other"):
+            if buckets[bucket_name] and len(selected) < max_cases:
+                selected.append(buckets[bucket_name].pop(0))
+    return selected
+
+
 def run_concept_discovery_report(
     dataset: str,
     output_dir: Path,
@@ -1005,13 +1042,30 @@ def run_research_real_run(
     stability = summarize_stability(observations)
     evaluations = _evaluate_observations_against_gold(dataset_dir, observations)
     evaluation_summary = _summarize_evaluations(evaluations)
+    judge_call_limit = None
+    if judge_provider is not None and judge_max_rules == 0:
+        judge_observations = []
+        judge_call_limit = 0
+    elif judge_provider is not None and judge_max_rules is not None:
+        judge_observations = _select_judge_calibration_observations(
+            observations=observations,
+            evaluations=evaluations,
+            max_cases=judge_max_rules,
+        )
+    else:
+        judge_observations = observations
+    judge_sampling = {
+        "strategy": "stratified_by_gold_outcome" if judge_provider is not None and judge_max_rules != 0 else "not_run",
+        "requested_max_cases": judge_max_rules,
+        "selected_observation_count": len(judge_observations) if judge_provider is not None else 0,
+    }
     layer_2_judge = _attach_layer_2_judge_evaluations(
-        observations,
+        judge_observations,
         dataset_dir,
         source_text_bundle,
         judge_provider,
         evaluations,
-        judge_max_rules,
+        judge_call_limit,
     )
     golden_eval_accuracy = write_golden_eval_accuracy_artifacts(
         output_dir=output_dir,
@@ -1050,6 +1104,7 @@ def run_research_real_run(
             right_arm="C2",
         ),
         "numeric_limit_summary": _summarize_numeric_limit_failures(evaluations),
+        "judge_sampling": judge_sampling,
         "evaluation_summary": evaluation_summary,
         "golden_eval_accuracy": golden_eval_accuracy,
         **layer_0_1_summary,
