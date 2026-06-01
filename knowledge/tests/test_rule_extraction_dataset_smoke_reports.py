@@ -92,6 +92,19 @@ class FailingExtractionLLMProvider:
         raise RuntimeError("transport timeout")
 
 
+class DiscoveryCandidateProvider:
+    def __init__(self) -> None:
+        self.tasks = []
+
+    def complete(self, request):
+        self.tasks.append(request.task)
+        return LLMResponse(
+            content='{"candidates":[{"kind":"condition","value":"diet_quality","display_name":"Diet Quality","aliases":["healthy diet"],"definition":"Overall dietary quality target.","evidence_quote":"balanced diet","confidence":0.8}]}',
+            provider_name="discovery",
+            model="discovery-model",
+        )
+
+
 def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path):
     provider = RecordingRuleLLMProvider()
     result = run_research_real_run(
@@ -464,6 +477,33 @@ def test_cli_uses_prefixed_judge_llm_config(monkeypatch, tmp_path: Path):
     assert result == 0
     judge_provider = captured["judge_provider"]
     assert judge_provider.config.model == "deepseek-v4-pro"
+
+
+def test_cli_discover_concepts_writes_registry_candidate_records(monkeypatch, tmp_path: Path):
+    provider = DiscoveryCandidateProvider()
+    monkeypatch.setattr(smoke, "_build_default_extraction_provider", lambda: provider)
+
+    result = smoke.main(
+        [
+            "--discover-concepts",
+            "--dataset",
+            "rule_extraction_v1",
+            "--output-dir",
+            str(tmp_path),
+            "--max-docs",
+            "1",
+        ]
+    )
+
+    assert result == 0
+    candidate_path = tmp_path / "rule-extraction-v1-concept-candidates.jsonl"
+    report_path = tmp_path / "rule-extraction-v1-concept-candidates-report.md"
+    assert candidate_path.exists()
+    assert report_path.exists()
+    row = json.loads(candidate_path.read_text(encoding="utf-8").splitlines()[0])
+    assert row["value"] == "diet_quality"
+    assert row["source_type"] == "llm"
+    assert row["status"] == "candidate"
 
 
 def test_rule_extraction_v1_gold_cards_write_chunking_report():

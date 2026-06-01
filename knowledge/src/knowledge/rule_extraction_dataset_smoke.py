@@ -20,6 +20,7 @@ from medidiet.llm import LLMConfig, OpenAICompatibleLLMProvider
 from medidiet.rules import load_baseline_rule_pack
 from knowledge.dataset_manifest import load_dataset_documents, snapshot_source_hashes
 from knowledge.concept_coverage import audit_concept_coverage
+from knowledge.concept_discovery import discover_concept_candidates
 from knowledge.documents import (
     EXTRACTABLE_CONTENT,
     RAW_CARD,
@@ -397,6 +398,80 @@ def _summarize_paired_arm_rule_presence(
         "neither_present_doc_ids": sorted(neither_present),
         "unpaired_left_doc_ids": sorted(unpaired_left),
         "unpaired_right_doc_ids": sorted(unpaired_right),
+    }
+
+
+def run_concept_discovery_report(
+    dataset: str,
+    output_dir: Path,
+    *,
+    provider,
+    max_docs: int | None = None,
+    source_content_strategy: str = EXTRACTABLE_CONTENT,
+) -> dict[str, Any]:
+    dataset_dir = _dataset_dir(dataset)
+    docs = load_dataset_documents(dataset_dir, _source_root())
+    if max_docs is not None:
+        docs = docs[:max_docs]
+    output_dir.mkdir(parents=True, exist_ok=True)
+    baseline_rule_pack = load_baseline_rule_pack()
+    concept_registry_path = dataset_dir / "concept_registry.jsonl"
+    extra_concept_definitions = load_concept_definitions_from_jsonl(
+        concept_registry_path,
+        include_statuses=EXPERIMENT_CONCEPT_STATUSES,
+    )
+    known_registry = merge_concept_definitions(
+        baseline_rule_pack.concepts,
+        extra_concept_definitions,
+    )
+    known_condition_values = {
+        value
+        for (kind, value) in known_registry._definitions
+        if kind is CodeKind.CONDITION
+    }
+    candidates: list[dict[str, Any]] = []
+    for doc in docs:
+        raw_text = Path(doc.source).read_text(encoding="utf-8")
+        selected = select_document_content(raw_text, source_content_strategy)
+        candidates.extend(
+            discover_concept_candidates(
+                provider=provider,
+                doc_id=doc.doc_id,
+                source_text=selected,
+                known_condition_values=known_condition_values,
+                source_content_strategy=source_content_strategy,
+                source_hash=str(doc.metadata.get("source_card_hash") or ""),
+            )
+        )
+
+    candidate_path = output_dir / "rule-extraction-v1-concept-candidates.jsonl"
+    candidate_path.write_text(
+        "".join(json.dumps(candidate, ensure_ascii=False, sort_keys=True) + "\n" for candidate in candidates),
+        encoding="utf-8",
+    )
+    report_path = output_dir / "rule-extraction-v1-concept-candidates-report.md"
+    report_lines = [
+        "# Concept Candidate Discovery",
+        "",
+        f"- dataset: {dataset}",
+        f"- source content strategy: {source_content_strategy}",
+        f"- document count: {len(docs)}",
+        f"- candidate count: {len(candidates)}",
+        "",
+        "| value | kind | status | source_type | docs | confidence |",
+        "| --- | --- | --- | --- | --- | ---: |",
+    ]
+    for candidate in candidates:
+        report_lines.append(
+            f"| {candidate['value']} | {candidate['kind']} | {candidate['status']} | {candidate['source_type']} | {', '.join(candidate.get('source_doc_ids', []))} | {float(candidate.get('confidence', 0.0)):.2f} |"
+        )
+    report_path.write_text("\n".join(report_lines) + "\n", encoding="utf-8")
+    return {
+        "dataset_id": dataset,
+        "document_count": len(docs),
+        "candidate_count": len(candidates),
+        "candidate_path": str(candidate_path),
+        "report_path": str(report_path),
     }
 
 
@@ -1408,6 +1483,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--chunk-strategies", default="raw_card,extractable_content")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--real-llm", action="store_true")
+    parser.add_argument("--discover-concepts", action="store_true")
     parser.add_argument("--judge-llm", action="store_true")
     parser.add_argument(
         "--judge-max-rules",
@@ -1445,7 +1521,15 @@ def main(argv: list[str] | None = None) -> int:
     experiments = [item for item in args.experiments.split(",") if item] or None
     strategies = [item for item in args.chunk_strategies.split(",") if item] or None
     max_docs = None if args.max_docs <= 0 else args.max_docs
-    if args.real_llm:
+    if args.discover_concepts:
+        _load_default_dotenv()
+        run_concept_discovery_report(
+            args.dataset,
+            Path(args.output_dir),
+            provider=_build_default_extraction_provider(),
+            max_docs=max_docs,
+        )
+    elif args.real_llm:
         judge_provider = None
         if args.judge_llm:
             _load_default_dotenv()
