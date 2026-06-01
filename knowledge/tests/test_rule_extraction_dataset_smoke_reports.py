@@ -122,6 +122,9 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
         "missing_path_doc_ids": [],
         "missing_file_doc_ids": [],
     }
+    assert report["concept_registry_extra_count"] >= 1
+    assert "candidate" in report["concept_registry_included_statuses"]
+    assert "cardiovascular_risk" in report["concept_coverage"]["condition_focus"]["registered"]
     assert "hypertension" in report["concept_coverage"]["condition_focus"]["registered"]
     assert "plausibility" in report["observations"][0]["evaluator"]
     assert "grounding" in report["observations"][0]["evaluator"]

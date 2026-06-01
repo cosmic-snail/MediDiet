@@ -1,6 +1,7 @@
 """MediDiet recommendation engine core."""
 
 from medidiet.engine import RecommendationEngine, RecommendationResult
+from medidiet.concept_registry import ConceptSourceType, ConceptStatus
 from medidiet.llm import (
     LLMAnswer,
     LLMConfig,
@@ -23,6 +24,8 @@ __all__ = [
     "KnowledgeContext",
     "KnowledgePort",
     "KnowledgeSnippet",
+    "ConceptSourceType",
+    "ConceptStatus",
     "LLMAnswer",
     "LLMConfig",
     "LLMContextSanitizer",

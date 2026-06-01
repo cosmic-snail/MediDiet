@@ -3,7 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from math import isfinite
+from pathlib import Path
+from typing import Iterable
 
+from medidiet.concept_registry import (
+    DEFAULT_PRODUCT_CONCEPT_STATUSES,
+    ConceptStatus,
+    load_concept_definitions_from_jsonl,
+    merge_concept_definitions,
+)
 from medidiet.domain import CodeKind, ConceptCode, ConceptDefinition, ConceptRegistry
 
 
@@ -85,8 +93,22 @@ class RulePack:
         return self.rules_by_condition[condition]
 
 
-def load_baseline_rule_pack() -> RulePack:
+def load_baseline_rule_pack(
+    *,
+    concept_registry_paths: Iterable[Path] | None = None,
+    include_concept_statuses: Iterable[ConceptStatus | str] = DEFAULT_PRODUCT_CONCEPT_STATUSES,
+) -> RulePack:
     concepts = _baseline_concepts()
+    extra_definitions: list[ConceptDefinition] = []
+    for concept_registry_path in concept_registry_paths or []:
+        extra_definitions.extend(
+            load_concept_definitions_from_jsonl(
+                Path(concept_registry_path),
+                include_statuses=include_concept_statuses,
+            )
+        )
+    if extra_definitions:
+        concepts = merge_concept_definitions(concepts, extra_definitions)
     sources = (
         RuleSource(
             title="Chinese Dietary Guidelines",

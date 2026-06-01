@@ -11,6 +11,11 @@ from pathlib import Path
 from typing import Any
 
 from medidiet.domain import CodeKind, ConceptCode, ConceptDefinition, ConceptRegistry
+from medidiet.concept_registry import (
+    EXPERIMENT_CONCEPT_STATUSES,
+    load_concept_definitions_from_jsonl,
+    merge_concept_definitions,
+)
 from medidiet.llm import LLMConfig, OpenAICompatibleLLMProvider
 from medidiet.rules import load_baseline_rule_pack
 from knowledge.dataset_manifest import load_dataset_documents, snapshot_source_hashes
@@ -747,12 +752,21 @@ def run_research_real_run(
     if llm_provider is None:
         llm_provider = _build_default_extraction_provider()
     baseline_rule_pack = load_baseline_rule_pack()
+    concept_registry_path = dataset_dir / "concept_registry.jsonl"
+    extra_concept_definitions = load_concept_definitions_from_jsonl(
+        concept_registry_path,
+        include_statuses=EXPERIMENT_CONCEPT_STATUSES,
+    )
+    extractor_registry = merge_concept_definitions(
+        baseline_rule_pack.concepts,
+        extra_concept_definitions,
+    )
     concept_coverage = audit_concept_coverage(
         manifest_rows=manifest_rows,
         gold_rows=gold_rows,
-        registry=baseline_rule_pack.concepts,
+        registry=extractor_registry,
     )
-    extractor = RuleExtractor(llm_provider, baseline_rule_pack.concepts)
+    extractor = RuleExtractor(llm_provider, extractor_registry)
     checkpoint = (
         RunCheckpoint(Path(checkpoint_path))
         if resume and checkpoint_path
@@ -933,6 +947,9 @@ def run_research_real_run(
         "circuit_breaker_failures": circuit_breaker_failures,
         "circuit_breaker_cooldown_seconds": circuit_breaker_cooldown_seconds,
         "source_text_diagnostics": source_text_bundle.diagnostics,
+        "concept_registry_paths": [str(concept_registry_path)] if concept_registry_path.exists() else [],
+        "concept_registry_included_statuses": [status.value for status in EXPERIMENT_CONCEPT_STATUSES],
+        "concept_registry_extra_count": len(extra_concept_definitions),
         "concept_coverage": concept_coverage,
         "observation_count": len(observations),
         "operational_failure_count": len(operational_failures),
