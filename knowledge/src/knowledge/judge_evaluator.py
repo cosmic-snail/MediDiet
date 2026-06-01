@@ -22,14 +22,22 @@ class JudgeLLMEvaluator:
         extracted_rule: dict[str, Any],
         evaluation_context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        response = self.llm_provider.complete(
-            LLMRequest(
-                task=LLMTask.RULE_VALIDATION,
-                system_prompt=_judge_system_prompt(),
-                user_prompt=_judge_user_prompt(source_text, extracted_rule, evaluation_context or {}),
-                response_format="json",
+        try:
+            response = self.llm_provider.complete(
+                LLMRequest(
+                    task=LLMTask.RULE_VALIDATION,
+                    system_prompt=_judge_system_prompt(),
+                    user_prompt=_judge_user_prompt(source_text, extracted_rule, evaluation_context or {}),
+                    response_format="json",
+                )
             )
-        )
+        except Exception as exc:
+            return {
+                "verdict": "uncertain",
+                "confidence": 0.0,
+                "field_verdicts": {},
+                "reason": f"judge_provider_error:{type(exc).__name__}",
+            }
         return _parse_judge_response(response.content)
 
 

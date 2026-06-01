@@ -25,6 +25,11 @@ class RecordingJudgeProvider:
         )
 
 
+class FailingJudgeProvider:
+    def complete(self, request):
+        raise RuntimeError("judge timeout")
+
+
 def test_judge_evaluator_parses_accept_verdict():
     provider = RecordingJudgeProvider(
         [
@@ -48,6 +53,19 @@ def test_judge_evaluator_parses_accept_verdict():
     assert result["verdict"] == "accept"
     assert result["confidence"] == 0.82
     assert result["field_verdicts"]["condition"] == "accept"
+
+
+def test_judge_evaluator_converts_provider_error_to_uncertain():
+    evaluator = JudgeLLMEvaluator(FailingJudgeProvider())
+
+    result = evaluator.evaluate_rule(
+        source_text="Hypertension guidance recommends sodium below 2000 mg per day.",
+        extracted_rule={"condition": "hypertension"},
+    )
+
+    assert result["verdict"] == "uncertain"
+    assert result["confidence"] == 0.0
+    assert "judge_provider_error" in result["reason"]
 
 
 def test_gwet_ac1_handles_binary_agreement():
