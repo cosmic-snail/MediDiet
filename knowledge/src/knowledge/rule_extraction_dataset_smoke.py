@@ -14,6 +14,7 @@ from medidiet.domain import CodeKind, ConceptCode, ConceptDefinition, ConceptReg
 from medidiet.llm import LLMConfig, OpenAICompatibleLLMProvider
 from medidiet.rules import load_baseline_rule_pack
 from knowledge.dataset_manifest import load_dataset_documents, snapshot_source_hashes
+from knowledge.concept_coverage import audit_concept_coverage
 from knowledge.documents import (
     EXTRACTABLE_CONTENT,
     RAW_CARD,
@@ -650,7 +651,13 @@ def run_research_real_run(
     experiments = experiments or ["E1"]
     if llm_provider is None:
         llm_provider = OpenAICompatibleLLMProvider(LLMConfig.from_env())
-    extractor = RuleExtractor(llm_provider, load_baseline_rule_pack().concepts)
+    baseline_rule_pack = load_baseline_rule_pack()
+    concept_coverage = audit_concept_coverage(
+        manifest_rows=manifest_rows,
+        gold_rows=gold_rows,
+        registry=baseline_rule_pack.concepts,
+    )
+    extractor = RuleExtractor(llm_provider, baseline_rule_pack.concepts)
 
     observations: list[dict[str, Any]] = []
     operational_failures: list[dict[str, Any]] = []
@@ -797,6 +804,7 @@ def run_research_real_run(
         "max_empty_retries": max_empty_retries,
         "inter_doc_delay_seconds": inter_doc_delay_seconds,
         "source_text_diagnostics": source_text_bundle.diagnostics,
+        "concept_coverage": concept_coverage,
         "observation_count": len(observations),
         "operational_failure_count": len(operational_failures),
         "evaluation_summary": evaluation_summary,

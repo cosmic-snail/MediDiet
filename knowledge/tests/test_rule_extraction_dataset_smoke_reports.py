@@ -122,6 +122,7 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
         "missing_path_doc_ids": [],
         "missing_file_doc_ids": [],
     }
+    assert "hypertension" in report["concept_coverage"]["condition_focus"]["registered"]
     assert "plausibility" in report["observations"][0]["evaluator"]
     assert "grounding" in report["observations"][0]["evaluator"]
     assert report["evaluations"][0]["gold_id"] == "gold_zh_guideline_hypertension_food_therapy_2023_001"
