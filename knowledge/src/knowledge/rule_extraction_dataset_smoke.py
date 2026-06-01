@@ -191,6 +191,29 @@ def _load_gold(dataset_dir: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def _gold_rows_by_doc_id(gold_rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    gold_rows_by_doc_id: dict[str, list[dict[str, Any]]] = {}
+    for gold_evaluation_row in gold_rows:
+        doc_id = str(gold_evaluation_row.get("doc_id") or "")
+        if doc_id:
+            gold_rows_by_doc_id.setdefault(doc_id, []).append(gold_evaluation_row)
+    return gold_rows_by_doc_id
+
+
+def _research_failure_labels_for_empty_extraction(
+    *,
+    doc_id: str,
+    gold_rows: list[dict[str, Any]],
+) -> list[str]:
+    doc_gold_rows = _gold_rows_by_doc_id(gold_rows).get(doc_id, [])
+    if doc_gold_rows and all(
+        gold_evaluation_row.get("gold_behavior") == "negative"
+        for gold_evaluation_row in doc_gold_rows
+    ):
+        return ["expected_empty_extraction"]
+    return ["no_rule_extracted"]
+
+
 def _evaluation_input_from_observation(observation: dict[str, Any]) -> list[dict[str, Any]]:
     extracted = [dict(rule) for rule in observation.get("parsed_rules", [])]
     suggested_codes = [
@@ -591,6 +614,7 @@ def run_research_real_run(
 ) -> dict[str, Any]:
     _load_default_dotenv()
     dataset_dir = _dataset_dir(dataset)
+    gold_rows = _load_gold(dataset_dir)
     docs = load_dataset_documents(dataset_dir, _source_root())
     if max_docs is not None:
         docs = docs[:max_docs]
@@ -694,7 +718,16 @@ def run_research_real_run(
                         "O6": {**base["observation_points"]["O6"], "provider": "real_llm", "latency_ms": latency_ms, "empty_output": not bool(parsed_rules or suggested), "empty_retries": empty_retries},
                         "O8": {"parsed_rule_count": len(parsed_rules), "suggested_concept_count": len(suggested)},
                     },
-                    "failures": failures if failures else ([] if parsed_rules else ["no_rule_extracted"]),
+                    "failures": failures
+                    if failures
+                    else (
+                        []
+                        if parsed_rules or suggested
+                        else _research_failure_labels_for_empty_extraction(
+                            doc_id=doc.doc_id,
+                            gold_rows=gold_rows,
+                        )
+                    ),
                 }
                 observation["raw_output_hash"] = "sha256:" + __import__("hashlib").sha256(json.dumps(raw_payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
                 observations.append(observation)

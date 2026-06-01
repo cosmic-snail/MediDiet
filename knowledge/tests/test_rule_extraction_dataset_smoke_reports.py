@@ -233,6 +233,40 @@ def test_real_run_excludes_api_failures_from_research_observations(tmp_path: Pat
     assert report["operational_failures"][0]["excluded_from_research"] is True
 
 
+def test_empty_extraction_is_expected_for_negative_gold():
+    gold_rows = [
+        {
+            "doc_id": "negative_doc",
+            "gold_behavior": "negative",
+            "gold_id": "gold_negative_doc",
+        }
+    ]
+
+    failures = smoke._research_failure_labels_for_empty_extraction(
+        doc_id="negative_doc",
+        gold_rows=gold_rows,
+    )
+
+    assert failures == ["expected_empty_extraction"]
+
+
+def test_empty_extraction_remains_failure_for_rule_gold():
+    gold_rows = [
+        {
+            "doc_id": "rule_doc",
+            "gold_behavior": "rule",
+            "gold_id": "gold_rule_doc",
+        }
+    ]
+
+    failures = smoke._research_failure_labels_for_empty_extraction(
+        doc_id="rule_doc",
+        gold_rows=gold_rows,
+    )
+
+    assert failures == ["no_rule_extracted"]
+
+
 def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path: Path):
     captured: dict[str, object] = {}
 
