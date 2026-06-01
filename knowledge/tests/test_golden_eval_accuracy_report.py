@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from knowledge.golden_eval_accuracy import (
+    _font_candidate_paths,
     build_golden_eval_accuracy_report,
     write_golden_eval_accuracy_artifacts,
 )
@@ -87,3 +88,9 @@ def test_write_golden_eval_accuracy_artifacts_preserves_layer_summaries(tmp_path
     persisted = json.loads(Path(result["report_path"]).read_text(encoding="utf-8"))
     assert persisted["layer_0_plausibility"]["pass"] == 1
     assert persisted["layer_1_grounding"]["avg_score"] == 1.0
+
+
+def test_font_candidates_include_linux_dejavu_fallback():
+    candidates = [str(path) for path in _font_candidate_paths()]
+
+    assert "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf" in candidates

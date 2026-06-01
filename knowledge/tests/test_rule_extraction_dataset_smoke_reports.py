@@ -117,6 +117,11 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
     assert report["golden_eval_accuracy"]["chart_path"].endswith("rule-extraction-v1-golden-eval-accuracy-chart.png")
     assert report["layer_0_plausibility"]["pass"] == 1
     assert report["layer_1_grounding"]["evaluated_observation_count"] == 1
+    assert report["source_text_diagnostics"] == {
+        "loaded_doc_count": 60,
+        "missing_path_doc_ids": [],
+        "missing_file_doc_ids": [],
+    }
     assert "plausibility" in report["observations"][0]["evaluator"]
     assert "grounding" in report["observations"][0]["evaluator"]
     assert report["evaluations"][0]["gold_id"] == "gold_zh_guideline_hypertension_food_therapy_2023_001"
@@ -265,6 +270,26 @@ def test_empty_extraction_remains_failure_for_rule_gold():
     )
 
     assert failures == ["no_rule_extracted"]
+
+
+def test_source_text_bundle_reports_missing_manifest_paths(tmp_path: Path):
+    existing_source = tmp_path / "existing.md"
+    existing_source.write_text("source text", encoding="utf-8")
+
+    source_text_bundle = smoke._load_source_text_bundle(
+        [
+            {"doc_id": "loaded_doc", "path": str(existing_source)},
+            {"doc_id": "missing_path_doc"},
+            {"doc_id": "missing_file_doc", "path": str(tmp_path / "missing.md")},
+        ]
+    )
+
+    assert source_text_bundle.source_text_by_doc_id == {"loaded_doc": "source text"}
+    assert source_text_bundle.diagnostics == {
+        "loaded_doc_count": 1,
+        "missing_path_doc_ids": ["missing_path_doc"],
+        "missing_file_doc_ids": ["missing_file_doc"],
+    }
 
 
 def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path: Path):

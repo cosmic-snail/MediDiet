@@ -143,10 +143,15 @@ def _write_accuracy_chart(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def _font(size: int) -> ImageFont.ImageFont:
-    for font_path in (
-        "/System/Library/Fonts/Supplemental/Arial.ttf",
-        "/Library/Fonts/Arial.ttf",
-    ):
+    for font_path in _font_candidate_paths():
         if Path(font_path).exists():
             return ImageFont.truetype(font_path, size=size)
     return ImageFont.load_default()
+
+
+def _font_candidate_paths() -> tuple[Path, ...]:
+    return (
+        Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+        Path("/Library/Fonts/Arial.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    )

@@ -5,6 +5,7 @@ import json
 import os
 import time
 from collections import Counter
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -302,13 +303,27 @@ def _summarize_suggested_concepts(observations: list[dict[str, Any]]) -> dict[st
     }
 
 
+@dataclass(frozen=True)
+class SourceTextBundle:
+    source_text_by_doc_id: dict[str, str]
+    missing_path_doc_ids: list[str]
+    missing_file_doc_ids: list[str]
+
+    @property
+    def diagnostics(self) -> dict[str, Any]:
+        return {
+            "loaded_doc_count": len(self.source_text_by_doc_id),
+            "missing_path_doc_ids": self.missing_path_doc_ids,
+            "missing_file_doc_ids": self.missing_file_doc_ids,
+        }
+
+
 def _attach_layer_0_1_evaluations(
     observations: list[dict[str, Any]],
-    dataset_dir: Path,
+    manifest_rows: list[dict[str, Any]],
+    source_text_bundle: SourceTextBundle,
 ) -> dict[str, Any]:
-    manifest_rows = _read_jsonl(dataset_dir / "manifest.jsonl")
     plausibility_context = build_plausibility_context(manifest_rows)
-    source_text_by_doc_id = _source_text_by_doc_id(manifest_rows)
     plausibility_counts: Counter[str] = Counter()
     grounding_scores: list[float] = []
     unsupported_observation_count = 0
@@ -318,7 +333,7 @@ def _attach_layer_0_1_evaluations(
             manifest_rows,
             plausibility_context,
         )
-        source_text = source_text_by_doc_id.get(str(observation.get("doc_id")), "")
+        source_text = source_text_bundle.source_text_by_doc_id.get(str(observation.get("doc_id")), "")
         grounding = evaluate_observation_grounding(observation, source_text)
         observation["evaluator"] = {
             **observation.get("evaluator", {}),
@@ -346,14 +361,13 @@ def _attach_layer_0_1_evaluations(
 def _attach_layer_2_judge_evaluations(
     observations: list[dict[str, Any]],
     dataset_dir: Path,
+    source_text_bundle: SourceTextBundle,
     judge_provider,
     gold_evaluations: list[dict[str, Any]],
     judge_max_rules: int | None = None,
 ) -> dict[str, Any]:
     if judge_provider is None or judge_max_rules == 0:
         return build_layer_2_judge_summary([], gold_evaluations)
-    manifest_rows = _read_jsonl(dataset_dir / "manifest.jsonl")
-    source_text_by_doc_id = _source_text_by_doc_id(manifest_rows)
     gold_rows = _load_gold(dataset_dir)
     gold_row_by_doc_id = {
         str(gold_row.get("doc_id")): gold_row
@@ -369,7 +383,7 @@ def _attach_layer_2_judge_evaluations(
     judge_results: list[dict[str, Any]] = []
     judged_rule_count = 0
     for observation in observations:
-        source_text = source_text_by_doc_id.get(str(observation.get("doc_id")), "")
+        source_text = source_text_bundle.source_text_by_doc_id.get(str(observation.get("doc_id")), "")
         doc_id = str(observation.get("doc_id") or "")
         gold_id = observation.get("gold_id") or gold_id_by_doc_id.get(doc_id)
         expected_gold_rule = gold_row_by_doc_id.get(doc_id)
@@ -411,19 +425,30 @@ def _attach_layer_2_judge_evaluations(
     return build_layer_2_judge_summary(judge_results, gold_evaluations)
 
 
-def _source_text_by_doc_id(manifest_rows: list[dict[str, Any]]) -> dict[str, str]:
-    result: dict[str, str] = {}
+def _load_source_text_bundle(manifest_rows: list[dict[str, Any]]) -> SourceTextBundle:
+    source_text_by_doc_id: dict[str, str] = {}
+    missing_path_doc_ids: list[str] = []
+    missing_file_doc_ids: list[str] = []
     for manifest_row in manifest_rows:
         doc_id = str(manifest_row.get("doc_id") or "")
         path = manifest_row.get("path") or manifest_row.get("source_card_path")
-        if not doc_id or not path:
+        if not doc_id:
+            continue
+        if not path:
+            missing_path_doc_ids.append(doc_id)
             continue
         source_path = Path(path)
         if not source_path.is_absolute():
             source_path = REPO_ROOT / source_path
-        if source_path.exists():
-            result[doc_id] = source_path.read_text(encoding="utf-8")
-    return result
+        if not source_path.exists():
+            missing_file_doc_ids.append(doc_id)
+            continue
+        source_text_by_doc_id[doc_id] = source_path.read_text(encoding="utf-8")
+    return SourceTextBundle(
+        source_text_by_doc_id=source_text_by_doc_id,
+        missing_path_doc_ids=missing_path_doc_ids,
+        missing_file_doc_ids=missing_file_doc_ids,
+    )
 
 
 def _metric_bar(value: float, width: int = 20) -> str:
@@ -615,6 +640,8 @@ def run_research_real_run(
     _load_default_dotenv()
     dataset_dir = _dataset_dir(dataset)
     gold_rows = _load_gold(dataset_dir)
+    manifest_rows = _read_jsonl(dataset_dir / "manifest.jsonl")
+    source_text_bundle = _load_source_text_bundle(manifest_rows)
     docs = load_dataset_documents(dataset_dir, _source_root())
     if max_docs is not None:
         docs = docs[:max_docs]
@@ -736,13 +763,18 @@ def run_research_real_run(
                 if inter_doc_delay_seconds > 0:
                     time.sleep(inter_doc_delay_seconds)
 
-    layer_0_1_summary = _attach_layer_0_1_evaluations(observations, dataset_dir)
+    layer_0_1_summary = _attach_layer_0_1_evaluations(
+        observations,
+        manifest_rows,
+        source_text_bundle,
+    )
     stability = summarize_stability(observations)
     evaluations = _evaluate_observations_against_gold(dataset_dir, observations)
     evaluation_summary = _summarize_evaluations(evaluations)
     layer_2_judge = _attach_layer_2_judge_evaluations(
         observations,
         dataset_dir,
+        source_text_bundle,
         judge_provider,
         evaluations,
         judge_max_rules,
@@ -764,6 +796,7 @@ def run_research_real_run(
         "effective_document_count": len(docs),
         "max_empty_retries": max_empty_retries,
         "inter_doc_delay_seconds": inter_doc_delay_seconds,
+        "source_text_diagnostics": source_text_bundle.diagnostics,
         "observation_count": len(observations),
         "operational_failure_count": len(operational_failures),
         "evaluation_summary": evaluation_summary,
