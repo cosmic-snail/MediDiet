@@ -29,6 +29,7 @@ from knowledge.extraction_stability import summarize_stability
 from knowledge.extractor import RuleExtractor
 from knowledge.golden_eval_accuracy import write_golden_eval_accuracy_artifacts
 from knowledge.judge_evaluator import JudgeLLMEvaluator, build_layer_2_judge_summary
+from knowledge.llm_run_control import CircuitBreaker, RunCheckpoint, classify_provider_failure
 from knowledge.public_benchmarks import BENCHMARK_PORTFOLIO
 from knowledge.research_registry import ResearchRegistry
 from knowledge.rule_plausibility import build_plausibility_context, evaluate_observation_plausibility
@@ -727,6 +728,10 @@ def run_research_real_run(
     max_empty_retries: int = 2,
     inter_doc_delay_seconds: float = 0.0,
     append_observations: bool = False,
+    resume: bool = False,
+    checkpoint_path: str | Path | None = None,
+    circuit_breaker_failures: int = 5,
+    circuit_breaker_cooldown_seconds: float = 300.0,
 ) -> dict[str, Any]:
     _load_default_dotenv()
     dataset_dir = _dataset_dir(dataset)
@@ -748,6 +753,15 @@ def run_research_real_run(
         registry=baseline_rule_pack.concepts,
     )
     extractor = RuleExtractor(llm_provider, baseline_rule_pack.concepts)
+    checkpoint = (
+        RunCheckpoint(Path(checkpoint_path))
+        if resume and checkpoint_path
+        else None
+    )
+    circuit_breaker = CircuitBreaker(
+        failure_threshold=circuit_breaker_failures,
+        cooldown_seconds=circuit_breaker_cooldown_seconds,
+    )
 
     observations: list[dict[str, Any]] = []
     operational_failures: list[dict[str, Any]] = []
@@ -757,6 +771,10 @@ def run_research_real_run(
             source_content_strategy = ARM_SOURCE_CONTENT_STRATEGIES.get(arm_id, EXTRACTABLE_CONTENT)
             importer = DocumentImporter()
             for doc in docs:
+                if checkpoint is not None and checkpoint.is_completed(experiment_id, arm_id, doc.doc_id):
+                    continue
+                if circuit_breaker.should_pause(now_seconds=time.monotonic()):
+                    time.sleep(circuit_breaker_cooldown_seconds)
                 raw_text = Path(doc.source).read_text(encoding="utf-8")
                 selected = select_document_content(raw_text, source_content_strategy)
                 selected_doc = importer.import_from_text(
@@ -783,12 +801,16 @@ def run_research_real_run(
                         failures = list(result.extraction_errors)
                         parse_status = "parsed"
                         finish_reason = "stop"
+                        circuit_breaker.record_success()
                     except Exception as exc:
                         parsed_rules = []
                         suggested = []
-                        failures = [f"provider_error:{type(exc).__name__}"]
+                        failure_label = f"provider_error:{type(exc).__name__}:{exc}"
+                        failure_class = classify_provider_failure(failure_label)
+                        failures = [failure_label, f"provider_failure_class:{failure_class}"]
                         parse_status = "provider_error"
                         finish_reason = "error"
+                        circuit_breaker.record_failure(now_seconds=time.monotonic())
                         break
                     if parsed_rules or suggested or empty_retries >= max_empty_retries:
                         break
@@ -806,6 +828,14 @@ def run_research_real_run(
                     chunk_hashes=tuple(chunk.metadata.get("chunk_hash", "") for chunk in selected_doc.chunks),
                 )
                 if _is_operational_llm_failure(failures, parsed_rules, suggested):
+                    provider_failure_class = next(
+                        (
+                            failure_label.removeprefix("provider_failure_class:")
+                            for failure_label in failures
+                            if str(failure_label).startswith("provider_failure_class:")
+                        ),
+                        classify_provider_failure(str(failures[0])) if failures else "provider_error",
+                    )
                     operational_failures.append(
                         {
                             "experiment_id": experiment_id,
@@ -816,6 +846,7 @@ def run_research_real_run(
                             "source_content_strategy": source_content_strategy,
                             "latency_ms": latency_ms,
                             "failures": failures,
+                            "provider_failure_class": provider_failure_class,
                             "parse_status": parse_status,
                             "finish_reason": finish_reason,
                             "excluded_from_research": True,
@@ -857,6 +888,8 @@ def run_research_real_run(
                 observations.append(observation)
                 if append_observations:
                     append_observation(observation_path, observation)
+                if checkpoint is not None:
+                    checkpoint.record_completed(experiment_id, arm_id, doc.doc_id)
                 if inter_doc_delay_seconds > 0:
                     time.sleep(inter_doc_delay_seconds)
 
@@ -895,6 +928,10 @@ def run_research_real_run(
         "effective_document_count": len(docs),
         "max_empty_retries": max_empty_retries,
         "inter_doc_delay_seconds": inter_doc_delay_seconds,
+        "resume": resume,
+        "checkpoint_path": str(checkpoint_path or ""),
+        "circuit_breaker_failures": circuit_breaker_failures,
+        "circuit_breaker_cooldown_seconds": circuit_breaker_cooldown_seconds,
         "source_text_diagnostics": source_text_bundle.diagnostics,
         "concept_coverage": concept_coverage,
         "observation_count": len(observations),
@@ -1382,6 +1419,10 @@ def main(argv: list[str] | None = None) -> int:
         default=5.0,
         help="Seconds to sleep after each successful observation in real-LLM mode.",
     )
+    parser.add_argument("--resume", action="store_true", help="Skip completed experiment/arm/doc rows from checkpoint.")
+    parser.add_argument("--checkpoint-path", default="", help="JSONL checkpoint path for real-LLM runs.")
+    parser.add_argument("--circuit-breaker-failures", type=int, default=5)
+    parser.add_argument("--circuit-breaker-cooldown-seconds", type=float, default=300.0)
     args = parser.parse_args(argv)
     arms = [item for item in args.arms.split(",") if item] or None
     experiments = [item for item in args.experiments.split(",") if item] or None
@@ -1403,6 +1444,10 @@ def main(argv: list[str] | None = None) -> int:
             max_empty_retries=args.max_empty_retries,
             inter_doc_delay_seconds=args.inter_doc_delay_seconds,
             append_observations=args.append_observations,
+            resume=args.resume,
+            checkpoint_path=args.checkpoint_path,
+            circuit_breaker_failures=args.circuit_breaker_failures,
+            circuit_breaker_cooldown_seconds=args.circuit_breaker_cooldown_seconds,
         )
     else:
         run_research_dry_run(args.dataset, Path(args.output_dir), arms=arms, experiments=experiments, chunk_strategies=strategies)

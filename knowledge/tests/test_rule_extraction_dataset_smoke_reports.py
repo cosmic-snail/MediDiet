@@ -237,6 +237,7 @@ def test_real_run_excludes_api_failures_from_research_observations(tmp_path: Pat
     )
     assert report["observations"] == []
     assert report["operational_failures"][0]["excluded_from_research"] is True
+    assert report["operational_failures"][0]["provider_failure_class"] == "timeout"
 
 
 def test_empty_extraction_is_expected_for_negative_gold():
@@ -349,6 +350,10 @@ def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path:
         max_empty_retries=2,
         inter_doc_delay_seconds=5.0,
         append_observations=False,
+        resume=False,
+        checkpoint_path="",
+        circuit_breaker_failures=5,
+        circuit_breaker_cooldown_seconds=300.0,
     ):
         captured.update(
             {
@@ -360,6 +365,10 @@ def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path:
                 "max_empty_retries": max_empty_retries,
                 "inter_doc_delay_seconds": inter_doc_delay_seconds,
                 "append_observations": append_observations,
+                "resume": resume,
+                "checkpoint_path": checkpoint_path,
+                "circuit_breaker_failures": circuit_breaker_failures,
+                "circuit_breaker_cooldown_seconds": circuit_breaker_cooldown_seconds,
                 "judge_provider": judge_provider,
                 "judge_max_rules": judge_max_rules,
             }
@@ -389,6 +398,13 @@ def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path:
             "3",
             "--inter-doc-delay-seconds",
             "1.5",
+            "--resume",
+            "--checkpoint-path",
+            str(tmp_path / "checkpoint.jsonl"),
+            "--circuit-breaker-failures",
+            "3",
+            "--circuit-breaker-cooldown-seconds",
+            "30",
             "--append-observations",
         ]
     )
@@ -400,6 +416,10 @@ def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path:
     assert captured["experiments"] == ["E1"]
     assert captured["max_empty_retries"] == 3
     assert captured["inter_doc_delay_seconds"] == 1.5
+    assert captured["resume"] is True
+    assert captured["checkpoint_path"] == str(tmp_path / "checkpoint.jsonl")
+    assert captured["circuit_breaker_failures"] == 3
+    assert captured["circuit_breaker_cooldown_seconds"] == 30.0
     assert captured["judge_provider"] == "judge-provider"
     assert captured["judge_max_rules"] == 7
 
