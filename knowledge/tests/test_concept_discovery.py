@@ -51,3 +51,36 @@ def test_discover_concept_candidates_outputs_registry_schema():
     assert candidates[0]["source_doc_ids"] == ["doc1"]
     assert candidates[0]["source_content_strategy"] == "extractable_content"
     assert candidates[0]["source_hash"] == "sha256:source"
+
+
+class NonNumericConfidenceProvider:
+    def complete(self, request):
+        return LLMResponse(
+            content=json.dumps(
+                {
+                    "candidates": [
+                        {
+                            "kind": "condition",
+                            "value": "diet_quality",
+                            "display_name": "Diet Quality",
+                            "confidence": "high",
+                        }
+                    ]
+                }
+            ),
+            provider_name="test",
+            model="test-model",
+        )
+
+
+def test_discover_concept_candidates_handles_non_numeric_confidence():
+    candidates = discover_concept_candidates(
+        provider=NonNumericConfidenceProvider(),
+        doc_id="doc1",
+        source_text="Diet quality guidance.",
+        known_condition_values=set(),
+        source_content_strategy="extractable_content",
+        source_hash="sha256:source",
+    )
+
+    assert candidates[0]["confidence"] == 0.0

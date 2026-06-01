@@ -46,7 +46,7 @@ def discover_concept_candidates(
         value = str(candidate_record.get("value") or "").strip()
         if not value or value in known_condition_values or value in seen_values:
             continue
-        confidence = float(candidate_record.get("confidence") or 0.0)
+        confidence = _safe_confidence(candidate_record.get("confidence"))
         if confidence < min_confidence:
             continue
         try:
@@ -73,3 +73,11 @@ def discover_concept_candidates(
             }
         )
     return candidates
+
+
+def _safe_confidence(value: Any) -> float:
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, min(1.0, confidence))
