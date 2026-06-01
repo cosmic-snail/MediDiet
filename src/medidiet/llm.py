@@ -53,27 +53,42 @@ class LLMConfig:
             raise ValueError("retry_backoff_seconds must be non-negative")
 
     @classmethod
-    def from_env(cls) -> "LLMConfig":
-        timeout_raw = os.getenv("MEDIDIET_LLM_TIMEOUT_SECONDS", "10")
+    def from_env(
+        cls,
+        *,
+        prefix: str = "MEDIDIET_LLM_",
+        fallback_prefix: str | None = None,
+    ) -> "LLMConfig":
+        def read_env(name: str, default: str | None = None) -> str | None:
+            primary = os.getenv(f"{prefix}{name}")
+            if primary is not None:
+                return primary
+            if fallback_prefix is not None:
+                fallback = os.getenv(f"{fallback_prefix}{name}")
+                if fallback is not None:
+                    return fallback
+            return default
+
+        timeout_raw = read_env("TIMEOUT_SECONDS", "10")
         try:
-            timeout_seconds = int(timeout_raw)
+            timeout_seconds = int(timeout_raw or "10")
         except ValueError as exc:
-            raise ValueError("MEDIDIET_LLM_TIMEOUT_SECONDS must be an integer") from exc
-        retry_attempts_raw = os.getenv("MEDIDIET_LLM_RETRY_ATTEMPTS", "3")
+            raise ValueError(f"{prefix}TIMEOUT_SECONDS must be an integer") from exc
+        retry_attempts_raw = read_env("RETRY_ATTEMPTS", "3")
         try:
-            retry_attempts = int(retry_attempts_raw)
+            retry_attempts = int(retry_attempts_raw or "3")
         except ValueError as exc:
-            raise ValueError("MEDIDIET_LLM_RETRY_ATTEMPTS must be an integer") from exc
-        retry_backoff_raw = os.getenv("MEDIDIET_LLM_RETRY_BACKOFF_SECONDS", "0.25")
+            raise ValueError(f"{prefix}RETRY_ATTEMPTS must be an integer") from exc
+        retry_backoff_raw = read_env("RETRY_BACKOFF_SECONDS", "0.25")
         try:
-            retry_backoff_seconds = float(retry_backoff_raw)
+            retry_backoff_seconds = float(retry_backoff_raw or "0.25")
         except ValueError as exc:
-            raise ValueError("MEDIDIET_LLM_RETRY_BACKOFF_SECONDS must be a number") from exc
+            raise ValueError(f"{prefix}RETRY_BACKOFF_SECONDS must be a number") from exc
         return cls(
-            provider=os.getenv("MEDIDIET_LLM_PROVIDER", "mock"),
-            base_url=os.getenv("MEDIDIET_LLM_BASE_URL"),
-            api_key=os.getenv("MEDIDIET_LLM_API_KEY"),
-            model=os.getenv("MEDIDIET_LLM_MODEL"),
+            provider=read_env("PROVIDER", "mock") or "mock",
+            base_url=read_env("BASE_URL"),
+            api_key=read_env("API_KEY"),
+            model=read_env("MODEL"),
             timeout_seconds=timeout_seconds,
             retry_attempts=retry_attempts,
             retry_backoff_seconds=retry_backoff_seconds,

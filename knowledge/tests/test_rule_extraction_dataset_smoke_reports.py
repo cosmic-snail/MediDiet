@@ -380,6 +380,28 @@ def test_cli_real_llm_defaults_to_all_docs_and_keeps_rate_limit_delay(monkeypatc
     assert captured["inter_doc_delay_seconds"] == 5.0
 
 
+def test_cli_uses_prefixed_judge_llm_config(monkeypatch, tmp_path: Path):
+    captured: dict[str, object] = {}
+
+    monkeypatch.setenv("MEDIDIET_LLM_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("MEDIDIET_LLM_BASE_URL", "https://api.deepseek.example")
+    monkeypatch.setenv("MEDIDIET_LLM_API_KEY", "shared-key")
+    monkeypatch.setenv("MEDIDIET_LLM_MODEL", "deepseek-v4-flash")
+    monkeypatch.setenv("MEDIDIET_JUDGE_LLM_MODEL", "deepseek-v4-pro")
+
+    def fake_real_run(dataset, output_dir, **kwargs):
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(smoke, "run_research_real_run", fake_real_run)
+
+    result = smoke.main(["--real-llm", "--judge-llm", "--output-dir", str(tmp_path)])
+
+    assert result == 0
+    judge_provider = captured["judge_provider"]
+    assert judge_provider.config.model == "deepseek-v4-pro"
+
+
 def test_rule_extraction_v1_gold_cards_write_chunking_report():
     report_path = REPORT_DIR / "rule-extraction-v1-chunking-report.json"
 

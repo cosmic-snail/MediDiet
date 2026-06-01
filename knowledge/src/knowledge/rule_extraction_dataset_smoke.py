@@ -650,7 +650,7 @@ def run_research_real_run(
     arms = arms or ["C1", "C2"]
     experiments = experiments or ["E1"]
     if llm_provider is None:
-        llm_provider = OpenAICompatibleLLMProvider(LLMConfig.from_env())
+        llm_provider = _build_default_extraction_provider()
     baseline_rule_pack = load_baseline_rule_pack()
     concept_coverage = audit_concept_coverage(
         manifest_rows=manifest_rows,
@@ -799,6 +799,8 @@ def run_research_real_run(
         "run_type": "real_llm",
         "model": observations[0]["model"] if observations else "",
         "provider": observations[0]["provider"] if observations else "",
+        "judge_model": getattr(getattr(judge_provider, "config", None), "model", None) if judge_provider else "",
+        "judge_provider": getattr(getattr(judge_provider, "config", None), "provider", None) if judge_provider else "",
         "requested_max_docs": max_docs,
         "effective_document_count": len(docs),
         "max_empty_retries": max_empty_retries,
@@ -1223,6 +1225,19 @@ def _safe_model_snapshot() -> dict[str, str | None]:
     }
 
 
+def _build_default_extraction_provider() -> OpenAICompatibleLLMProvider:
+    return OpenAICompatibleLLMProvider(LLMConfig.from_env(prefix="MEDIDIET_LLM_"))
+
+
+def _build_default_judge_provider() -> OpenAICompatibleLLMProvider:
+    return OpenAICompatibleLLMProvider(
+        LLMConfig.from_env(
+            prefix="MEDIDIET_JUDGE_LLM_",
+            fallback_prefix="MEDIDIET_LLM_",
+        )
+    )
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -1280,7 +1295,7 @@ def main(argv: list[str] | None = None) -> int:
         judge_provider = None
         if args.judge_llm:
             _load_default_dotenv()
-            judge_provider = OpenAICompatibleLLMProvider(LLMConfig.from_env())
+            judge_provider = _build_default_judge_provider()
         run_research_real_run(
             args.dataset,
             Path(args.output_dir),
