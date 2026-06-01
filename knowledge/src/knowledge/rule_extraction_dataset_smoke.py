@@ -401,6 +401,21 @@ def _summarize_paired_arm_rule_presence(
     }
 
 
+def _summarize_numeric_limit_failures(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
+    missing_numeric_limit_doc_ids = sorted(
+        {
+            str(evaluation.get("doc_id") or "")
+            for evaluation in evaluations
+            if "missing_numeric_limit" in (evaluation.get("failures", []) or [])
+            and evaluation.get("doc_id")
+        }
+    )
+    return {
+        "missing_numeric_limit_count": len(missing_numeric_limit_doc_ids),
+        "missing_numeric_limit_doc_ids": missing_numeric_limit_doc_ids,
+    }
+
+
 def run_concept_discovery_report(
     dataset: str,
     output_dir: Path,
@@ -1034,6 +1049,7 @@ def run_research_real_run(
             left_arm="C1",
             right_arm="C2",
         ),
+        "numeric_limit_summary": _summarize_numeric_limit_failures(evaluations),
         "evaluation_summary": evaluation_summary,
         "golden_eval_accuracy": golden_eval_accuracy,
         **layer_0_1_summary,

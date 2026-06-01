@@ -73,6 +73,9 @@ Important rules:
 - For nutrition_limits.scope, use one of: per_meal, daily, rolling_window
 - If you need a concept that does not exist in the registry, add it to a separate \
 "suggested_concepts" array in the output (NOT in the rules array)
+- If a source gives a numeric threshold for supported metrics, extract it in nutrition_limits; do not replace it with only a preferred_tag.
+- If a numeric threshold is stated as salt rather than sodium, convert only when the source explicitly provides the sodium/salt relationship or the gold metric uses sodium_mg in the dataset context.
+- If the source states a percentage threshold but no supported gram metric can be computed from the text, add the concept to suggested_concepts and explain the percentage in evidence_quotes.
 - Every claim MUST have an evidence_quote from the provided fragments
 - If a fragment does not contain extractable dietary rules, do not fabricate
 - Confidence should reflect how explicit and clear the source text is

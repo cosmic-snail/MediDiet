@@ -13,6 +13,7 @@ from medidiet.domain import (
 from medidiet.rules import NutrientMetric, NutrientLimit, LimitScope
 from knowledge.documents import DocumentChunk
 from knowledge.extractor import (
+    _EXTRACTION_SYSTEM_PROMPT,
     _serialize_concept_registry_for_prompt,
     _build_extraction_user_prompt,
     _build_verification_user_prompt,
@@ -63,6 +64,12 @@ def _make_chunk(chunk_id: str, text: str) -> DocumentChunk:
         text=text,
         chunk_index=0,
     )
+
+
+def test_extraction_system_prompt_requires_numeric_limits_when_present():
+    assert "nutrition_limits" in _EXTRACTION_SYSTEM_PROMPT
+    assert "If a source gives a numeric threshold" in _EXTRACTION_SYSTEM_PROMPT
+    assert "do not replace it with only a preferred_tag" in _EXTRACTION_SYSTEM_PROMPT
 
 
 class TestSerializeConceptRegistry:

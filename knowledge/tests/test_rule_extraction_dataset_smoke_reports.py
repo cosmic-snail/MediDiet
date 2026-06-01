@@ -351,6 +351,19 @@ def test_paired_arm_summary_counts_common_successful_docs():
     assert summary["unpaired_left_doc_count"] == 1
 
 
+def test_summarize_numeric_limit_failures_counts_missing_limits():
+    evaluations = [
+        {"doc_id": "doc1", "failures": ["missing_numeric_limit"]},
+        {"doc_id": "doc2", "failures": []},
+        {"doc_id": "doc3", "failures": ["missing_numeric_limit"]},
+    ]
+
+    summary = smoke._summarize_numeric_limit_failures(evaluations)
+
+    assert summary["missing_numeric_limit_count"] == 2
+    assert summary["missing_numeric_limit_doc_ids"] == ["doc1", "doc3"]
+
+
 def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path: Path):
     captured: dict[str, object] = {}
 
