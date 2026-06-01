@@ -245,6 +245,8 @@ def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path:
         arms=None,
         experiments=None,
         max_docs=None,
+        max_empty_retries=2,
+        inter_doc_delay_seconds=5.0,
         append_observations=False,
     ):
         captured.update(
@@ -254,6 +256,8 @@ def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path:
                 "arms": arms,
                 "experiments": experiments,
                 "max_docs": max_docs,
+                "max_empty_retries": max_empty_retries,
+                "inter_doc_delay_seconds": inter_doc_delay_seconds,
                 "append_observations": append_observations,
                 "judge_provider": judge_provider,
                 "judge_max_rules": judge_max_rules,
@@ -280,6 +284,10 @@ def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path:
             "--judge-llm",
             "--judge-max-rules",
             "7",
+            "--max-empty-retries",
+            "3",
+            "--inter-doc-delay-seconds",
+            "1.5",
             "--append-observations",
         ]
     )
@@ -289,8 +297,27 @@ def test_cli_exposes_real_llm_max_docs_and_judge_controls(monkeypatch, tmp_path:
     assert captured["append_observations"] is True
     assert captured["arms"] == ["C1", "C2"]
     assert captured["experiments"] == ["E1"]
+    assert captured["max_empty_retries"] == 3
+    assert captured["inter_doc_delay_seconds"] == 1.5
     assert captured["judge_provider"] == "judge-provider"
     assert captured["judge_max_rules"] == 7
+
+
+def test_cli_real_llm_defaults_to_all_docs_and_keeps_rate_limit_delay(monkeypatch, tmp_path: Path):
+    captured: dict[str, object] = {}
+
+    def fake_real_run(dataset, output_dir, **kwargs):
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(smoke, "run_research_real_run", fake_real_run)
+
+    result = smoke.main(["--real-llm", "--output-dir", str(tmp_path)])
+
+    assert result == 0
+    assert captured["max_docs"] is None
+    assert captured["max_empty_retries"] == 2
+    assert captured["inter_doc_delay_seconds"] == 5.0
 
 
 def test_rule_extraction_v1_gold_cards_write_chunking_report():

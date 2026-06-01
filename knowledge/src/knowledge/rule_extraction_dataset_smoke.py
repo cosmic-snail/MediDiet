@@ -586,6 +586,7 @@ def run_research_real_run(
     experiments: list[str] | None = None,
     max_docs: int | None = None,
     max_empty_retries: int = 2,
+    inter_doc_delay_seconds: float = 0.0,
     append_observations: bool = False,
 ) -> dict[str, Any]:
     _load_default_dotenv()
@@ -699,8 +700,8 @@ def run_research_real_run(
                 observations.append(observation)
                 if append_observations:
                     append_observation(observation_path, observation)
-                # Delay between docs to avoid DeepSeek rate limiting
-                time.sleep(5.0)
+                if inter_doc_delay_seconds > 0:
+                    time.sleep(inter_doc_delay_seconds)
 
     layer_0_1_summary = _attach_layer_0_1_evaluations(observations, dataset_dir)
     stability = summarize_stability(observations)
@@ -726,6 +727,10 @@ def run_research_real_run(
         "run_type": "real_llm",
         "model": observations[0]["model"] if observations else "",
         "provider": observations[0]["provider"] if observations else "",
+        "requested_max_docs": max_docs,
+        "effective_document_count": len(docs),
+        "max_empty_retries": max_empty_retries,
+        "inter_doc_delay_seconds": inter_doc_delay_seconds,
         "observation_count": len(observations),
         "operational_failure_count": len(operational_failures),
         "evaluation_summary": evaluation_summary,
@@ -1177,7 +1182,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--max-docs",
         type=int,
-        default=2,
+        default=0,
         help="Maximum source documents to run in real-LLM mode; use 0 for all documents.",
     )
     parser.add_argument(
@@ -1185,6 +1190,12 @@ def main(argv: list[str] | None = None) -> int:
         type=int,
         default=2,
         help="Retry extraction up to N times when LLM returns empty rules and no suggested concepts.",
+    )
+    parser.add_argument(
+        "--inter-doc-delay-seconds",
+        type=float,
+        default=5.0,
+        help="Seconds to sleep after each successful observation in real-LLM mode.",
     )
     args = parser.parse_args(argv)
     arms = [item for item in args.arms.split(",") if item] or None
@@ -1205,6 +1216,7 @@ def main(argv: list[str] | None = None) -> int:
             experiments=experiments,
             max_docs=max_docs,
             max_empty_retries=args.max_empty_retries,
+            inter_doc_delay_seconds=args.inter_doc_delay_seconds,
             append_observations=args.append_observations,
         )
     else:
