@@ -6,7 +6,7 @@
 
 **Architecture:** Keep the frozen `gold_evaluation_set.jsonl` unchanged while adding explicit per-track expectation files and centralized taxonomy enums. Evaluate each track with a focused scorer, then publish one stratified report that preserves the old mixed score for continuity and makes `clean_extraction_f1` the headline regression guard. Concept evaluation reuses the existing product `ConceptRegistry` JSONL schema so manually entered and LLM-proposed concepts share the same registration path.
 
-**Tech Stack:** Python standard library, pytest, JSONL dataset metadata, existing `medidiet.concept_registry`, existing `knowledge.rule_evaluation`, existing `knowledge.gold_audit`, existing real-LLM report pipeline in `knowledge.rule_extraction_dataset_smoke`.
+**Tech Stack:** Python standard library, pytest, JSONL dataset metadata, existing `medidiet.concept_registry`, existing `knowledge.rule_evaluation`, existing `knowledge.gold_audit`, existing real-LLM report pipeline in `knowledge.rule_extraction_dataset_smoke`, plus `networkx` and `matplotlib` for concept graph visualization.
 
 ---
 
@@ -81,6 +81,8 @@ Create or modify these files:
 - Create: `knowledge/tests/test_contextual_evaluation.py`
 - Create: `knowledge/src/knowledge/stratified_evaluation.py`
 - Create: `knowledge/tests/test_stratified_evaluation.py`
+- Create: `knowledge/src/knowledge/concept_graph_visualization.py`
+- Create: `knowledge/tests/test_concept_graph_visualization.py`
 - Modify: `knowledge/src/knowledge/gold_audit.py`
 - Modify: `knowledge/src/knowledge/rule_evaluation.py`
 - Modify: `knowledge/src/knowledge/rule_extraction_dataset_smoke.py`
@@ -88,6 +90,7 @@ Create or modify these files:
 - Modify: `knowledge/tests/test_rule_extraction_dataset.py`
 - Modify: `knowledge/tests/test_rule_extraction_dataset_smoke_reports.py`
 - Modify: `knowledge/datasets/rule_extraction_v1/README.zh.md`
+- Modify: `knowledge/pyproject.toml`
 - Modify: `docs/research/doc-rule-agent-research-protocol.md`
 - Modify: `reports/rule-extraction-v1-gold-audit-20260602.md`
 
@@ -224,6 +227,85 @@ Each row describes a source that has nutrition signal but should not be judged a
   "acceptance_policy": "Accept contextual/pattern extraction or no fixed rule. Reject invented numeric nutrient limits."
 }
 ```
+
+### Concept Graph Artifacts
+
+Every real experiment that evaluates concept discovery must write two graph pairs:
+
+| artifact | purpose |
+|---|---|
+| `rule-extraction-v1-extracted-concept-graph.json` | machine-readable graph of concepts extracted or proposed by the LLM in this experiment |
+| `rule-extraction-v1-extracted-concept-graph.png` | visual graph of the same extracted concepts |
+| `rule-extraction-v1-evaluation-concept-graph.json` | machine-readable comparison graph combining expected atomic concepts, extracted candidates, semantic links, umbrella mappings, and evaluation status |
+| `rule-extraction-v1-evaluation-concept-graph.png` | visual comparison graph for human review |
+
+Graph JSON must use this stable schema:
+
+```json
+{
+  "dataset_id": "rule_extraction_v1",
+  "run_type": "real_llm",
+  "graph_type": "evaluation_concept_graph",
+  "nodes": [
+    {
+      "id": "nutrition_tag:low_purine",
+      "label": "low_purine",
+      "kind": "nutrition_tag",
+      "node_type": "atomic_concept",
+      "status": "matched"
+    },
+    {
+      "id": "alias:limit_high_purine_foods",
+      "label": "limit high-purine foods",
+      "node_type": "alias"
+    },
+    {
+      "id": "umbrella:purine_alcohol_fructose_hydration",
+      "label": "purine_alcohol_fructose_hydration",
+      "node_type": "umbrella_concept",
+      "status": "decomposed"
+    }
+  ],
+  "edges": [
+    {
+      "source": "alias:limit_high_purine_foods",
+      "target": "nutrition_tag:low_purine",
+      "edge_type": "same_as"
+    },
+    {
+      "source": "umbrella:purine_alcohol_fructose_hydration",
+      "target": "nutrition_tag:low_purine",
+      "edge_type": "contains"
+    }
+  ]
+}
+```
+
+Required node types:
+
+- `atomic_concept`: canonical product-level concept.
+- `alias`: surface form or same-meaning expression linked to a canonical atomic concept.
+- `umbrella_concept`: broad concept that maps to multiple atomic concepts.
+- `extracted_candidate`: LLM-proposed concept not yet linked to a canonical expected concept.
+
+Required edge types:
+
+- `same_as`: alias or same-meaning concept expression points to one atomic concept.
+- `contains`: umbrella concept points to each atomic concept it contains.
+- `matched_to`: extracted candidate points to the expected atomic concept it matched.
+- `missing_expected`: evaluation graph marker from an expected atomic concept to a synthetic missing node when no extracted candidate matched it.
+
+Rendering requirements:
+
+- Use `networkx` for graph construction and `matplotlib` for PNG rendering.
+- Use stable deterministic layout seeds so repeated dry-runs are comparable.
+- Color nodes by evaluation status:
+  - matched atomic concepts: green
+  - missing expected atomic concepts: red
+  - aliases/same-meaning forms: light blue
+  - umbrella concepts: orange
+  - unmatched extracted candidates: gray
+- The report must include both graph JSON paths and PNG paths. The PNG is for fast human inspection; JSON is the canonical artifact for tests and downstream visualization.
 
 ## Task 1: Centralize Evaluation Taxonomy
 
@@ -1643,7 +1725,506 @@ git add knowledge/src/knowledge/stratified_evaluation.py knowledge/src/knowledge
 git commit -m "feat: connect stratified tracks to observations"
 ```
 
-## Task 8: Update Research Protocol And Audit Report
+## Task 8: Generate Concept Graph Visualizations Per Experiment
+
+**Files:**
+- Create: `knowledge/src/knowledge/concept_graph_visualization.py`
+- Create: `knowledge/tests/test_concept_graph_visualization.py`
+- Modify: `knowledge/src/knowledge/rule_extraction_dataset_smoke.py`
+- Modify: `knowledge/tests/test_rule_extraction_dataset_smoke_reports.py`
+- Modify: `knowledge/pyproject.toml`
+- Modify: `knowledge/datasets/rule_extraction_v1/README.zh.md`
+
+- [ ] **Step 1: Ensure graph dependencies are available**
+
+Run:
+
+```bash
+python -c "import networkx, matplotlib; print(networkx.__version__)"
+```
+
+Expected: PASS if dependencies are already installed.
+
+If the command fails, install the graph dependencies:
+
+```bash
+python3 -m pip install --user "networkx>=3,<4" "matplotlib>=3.8,<4"
+```
+
+Then rerun:
+
+```bash
+python -c "import networkx, matplotlib; print(networkx.__version__)"
+```
+
+Expected: PASS.
+
+- [ ] **Step 2: Add graph dependencies to `knowledge/pyproject.toml`**
+
+Modify `knowledge/pyproject.toml` dependencies:
+
+```toml
+dependencies = [
+    "chromadb>=0.4,<1.0",
+    "httpx>=0.27,<1.0",
+    "matplotlib>=3.8,<4",
+    "medidiet",
+    "networkx>=3,<4",
+    "pillow>=10,<13",
+]
+```
+
+- [ ] **Step 3: Write failing graph tests**
+
+Create `knowledge/tests/test_concept_graph_visualization.py`:
+
+```python
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from knowledge.concept_graph_visualization import (
+    build_evaluation_concept_graph,
+    build_extracted_concept_graph,
+    write_concept_graph_artifacts,
+)
+
+
+def _sample_expectation() -> dict:
+    return {
+        "gold_id": "gold-gout",
+        "doc_id": "gout-doc",
+        "expected_atomic_concepts": [
+            {
+                "kind": "nutrition_tag",
+                "value": "low_purine",
+                "aliases": ["limit high-purine foods"],
+            },
+            {
+                "kind": "contraindication",
+                "value": "alcohol",
+                "aliases": ["limit alcohol"],
+            },
+        ],
+        "semantic_groups": [
+            {
+                "canonical": {"kind": "nutrition_tag", "value": "low_purine"},
+                "equivalent_values": ["purine_restriction", "low_purine_diet"],
+            }
+        ],
+        "umbrella_mappings": [
+            {
+                "umbrella_value": "purine_and_alcohol_limits",
+                "maps_to": [
+                    {"kind": "nutrition_tag", "value": "low_purine"},
+                    {"kind": "contraindication", "value": "alcohol"},
+                ],
+            }
+        ],
+    }
+
+
+def test_extracted_concept_graph_links_aliases_and_umbrella_children():
+    extracted_rules = [
+        {
+            "doc_id": "gout-doc",
+            "suggested_concepts": [
+                {"kind": "nutrition_tag", "suggested_code": "purine_restriction"},
+                {"kind": "nutrition_tag", "suggested_code": "purine_and_alcohol_limits"},
+            ],
+        }
+    ]
+
+    graph = build_extracted_concept_graph(
+        dataset_id="rule_extraction_v1",
+        run_type="real_llm",
+        extracted_rules=extracted_rules,
+        concept_expectations=[_sample_expectation()],
+    )
+
+    edge_pairs = {(edge["source"], edge["target"], edge["edge_type"]) for edge in graph["edges"]}
+    assert ("alias:purine_restriction", "nutrition_tag:low_purine", "same_as") in edge_pairs
+    assert ("umbrella:purine_and_alcohol_limits", "nutrition_tag:low_purine", "contains") in edge_pairs
+    assert ("umbrella:purine_and_alcohol_limits", "contraindication:alcohol", "contains") in edge_pairs
+
+
+def test_evaluation_concept_graph_marks_matched_and_missing_atomic_concepts():
+    concept_evaluations = [
+        {
+            "gold_id": "gold-gout",
+            "matched_concepts": [{"kind": "nutrition_tag", "value": "low_purine"}],
+            "missing_concepts": [{"kind": "contraindication", "value": "alcohol"}],
+            "forbidden_umbrella_matches": ["purine_and_alcohol_limits"],
+        }
+    ]
+
+    graph = build_evaluation_concept_graph(
+        dataset_id="rule_extraction_v1",
+        run_type="real_llm",
+        concept_expectations=[_sample_expectation()],
+        concept_evaluations=concept_evaluations,
+    )
+
+    nodes_by_id = {node["id"]: node for node in graph["nodes"]}
+    edge_pairs = {(edge["source"], edge["target"], edge["edge_type"]) for edge in graph["edges"]}
+    assert nodes_by_id["nutrition_tag:low_purine"]["status"] == "matched"
+    assert nodes_by_id["contraindication:alcohol"]["status"] == "missing"
+    assert ("alias:limit_high_purine_foods", "nutrition_tag:low_purine", "same_as") in edge_pairs
+    assert ("umbrella:purine_and_alcohol_limits", "contraindication:alcohol", "contains") in edge_pairs
+
+
+def test_write_concept_graph_artifacts_writes_json_and_png(tmp_path: Path):
+    extracted_graph = {
+        "dataset_id": "rule_extraction_v1",
+        "run_type": "real_llm",
+        "graph_type": "extracted_concept_graph",
+        "nodes": [{"id": "nutrition_tag:low_purine", "label": "low_purine", "node_type": "atomic_concept", "status": "matched"}],
+        "edges": [],
+    }
+    evaluation_graph = {
+        "dataset_id": "rule_extraction_v1",
+        "run_type": "real_llm",
+        "graph_type": "evaluation_concept_graph",
+        "nodes": [{"id": "nutrition_tag:low_purine", "label": "low_purine", "node_type": "atomic_concept", "status": "matched"}],
+        "edges": [],
+    }
+
+    artifact_paths = write_concept_graph_artifacts(
+        output_dir=tmp_path,
+        extracted_graph=extracted_graph,
+        evaluation_graph=evaluation_graph,
+    )
+
+    assert Path(artifact_paths["extracted_concept_graph_json"]).exists()
+    assert Path(artifact_paths["extracted_concept_graph_png"]).exists()
+    assert Path(artifact_paths["evaluation_concept_graph_json"]).exists()
+    assert Path(artifact_paths["evaluation_concept_graph_png"]).exists()
+    saved_graph = json.loads(Path(artifact_paths["evaluation_concept_graph_json"]).read_text(encoding="utf-8"))
+    assert saved_graph["graph_type"] == "evaluation_concept_graph"
+```
+
+- [ ] **Step 4: Run graph tests and verify they fail**
+
+Run:
+
+```bash
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_concept_graph_visualization.py -q --rootdir=.
+```
+
+Expected: FAIL because `knowledge.concept_graph_visualization` does not exist.
+
+- [ ] **Step 5: Implement concept graph visualization**
+
+Create `knowledge/src/knowledge/concept_graph_visualization.py`:
+
+```python
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import networkx as nx
+
+
+def build_extracted_concept_graph(
+    *,
+    dataset_id: str,
+    run_type: str,
+    extracted_rules: list[dict[str, Any]],
+    concept_expectations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    graph = _empty_graph(dataset_id, run_type, "extracted_concept_graph")
+    canonical_by_surface_form = _build_canonical_surface_map(concept_expectations)
+    umbrella_mappings = _build_umbrella_mappings(concept_expectations)
+    for extracted_rule in extracted_rules:
+        for concept_record in extracted_rule.get("suggested_concepts", []) or []:
+            kind = str(concept_record.get("kind") or concept_record.get("suggested_kind") or "nutrition_tag")
+            raw_value = str(concept_record.get("suggested_code") or concept_record.get("value") or concept_record)
+            normalized_value = _normalize_surface_value(raw_value)
+            canonical_key = canonical_by_surface_form.get((kind, normalized_value))
+            if canonical_key is not None:
+                alias_node_id = f"alias:{normalized_value}"
+                atomic_node_id = _concept_node_id(*canonical_key)
+                _add_node(graph, alias_node_id, raw_value, "alias")
+                _add_node(graph, atomic_node_id, canonical_key[1], "atomic_concept", kind=canonical_key[0], status="matched")
+                _add_edge(graph, alias_node_id, atomic_node_id, "same_as")
+                continue
+            if normalized_value in umbrella_mappings:
+                umbrella_node_id = f"umbrella:{normalized_value}"
+                _add_node(graph, umbrella_node_id, normalized_value, "umbrella_concept", status="decomposed")
+                for child_key in sorted(umbrella_mappings[normalized_value]):
+                    child_node_id = _concept_node_id(*child_key)
+                    _add_node(graph, child_node_id, child_key[1], "atomic_concept", kind=child_key[0], status="mapped_from_umbrella")
+                    _add_edge(graph, umbrella_node_id, child_node_id, "contains")
+                continue
+            candidate_node_id = f"candidate:{kind}:{normalized_value}"
+            _add_node(graph, candidate_node_id, raw_value, "extracted_candidate", kind=kind, status="unmatched")
+    return _dedupe_graph(graph)
+
+
+def build_evaluation_concept_graph(
+    *,
+    dataset_id: str,
+    run_type: str,
+    concept_expectations: list[dict[str, Any]],
+    concept_evaluations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    graph = _empty_graph(dataset_id, run_type, "evaluation_concept_graph")
+    matched_keys = {
+        (concept_record["kind"], concept_record["value"])
+        for evaluation in concept_evaluations
+        for concept_record in evaluation.get("matched_concepts", []) or []
+    }
+    missing_keys = {
+        (concept_record["kind"], concept_record["value"])
+        for evaluation in concept_evaluations
+        for concept_record in evaluation.get("missing_concepts", []) or []
+    }
+    for expectation in concept_expectations:
+        for concept_record in expectation.get("expected_atomic_concepts", []) or []:
+            key = (str(concept_record["kind"]), str(concept_record["value"]))
+            status = "matched" if key in matched_keys else "missing" if key in missing_keys else "expected"
+            _add_node(graph, _concept_node_id(*key), key[1], "atomic_concept", kind=key[0], status=status)
+            if status == "missing":
+                missing_node_id = f"missing:{key[0]}:{key[1]}"
+                _add_node(graph, missing_node_id, f"missing {key[1]}", "missing_marker", status="missing")
+                _add_edge(graph, _concept_node_id(*key), missing_node_id, "missing_expected")
+            for alias in concept_record.get("aliases", []) or []:
+                alias_id = f"alias:{_normalize_surface_value(alias)}"
+                _add_node(graph, alias_id, str(alias), "alias")
+                _add_edge(graph, alias_id, _concept_node_id(*key), "same_as")
+        for semantic_group in expectation.get("semantic_groups", []) or []:
+            canonical = semantic_group["canonical"]
+            canonical_key = (str(canonical["kind"]), str(canonical["value"]))
+            for equivalent_value in semantic_group.get("equivalent_values", []) or []:
+                alias_id = f"alias:{_normalize_surface_value(equivalent_value)}"
+                _add_node(graph, alias_id, str(equivalent_value), "alias")
+                _add_edge(graph, alias_id, _concept_node_id(*canonical_key), "same_as")
+        for umbrella_mapping in expectation.get("umbrella_mappings", []) or []:
+            umbrella_value = _normalize_surface_value(umbrella_mapping["umbrella_value"])
+            umbrella_node_id = f"umbrella:{umbrella_value}"
+            _add_node(graph, umbrella_node_id, umbrella_value, "umbrella_concept", status="decomposed")
+            for concept_record in umbrella_mapping.get("maps_to", []) or []:
+                child_key = (str(concept_record["kind"]), str(concept_record["value"]))
+                _add_edge(graph, umbrella_node_id, _concept_node_id(*child_key), "contains")
+    return _dedupe_graph(graph)
+
+
+def write_concept_graph_artifacts(
+    *,
+    output_dir: Path,
+    extracted_graph: dict[str, Any],
+    evaluation_graph: dict[str, Any],
+) -> dict[str, str]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    extracted_json_path = output_dir / "rule-extraction-v1-extracted-concept-graph.json"
+    extracted_png_path = output_dir / "rule-extraction-v1-extracted-concept-graph.png"
+    evaluation_json_path = output_dir / "rule-extraction-v1-evaluation-concept-graph.json"
+    evaluation_png_path = output_dir / "rule-extraction-v1-evaluation-concept-graph.png"
+    _write_graph_json(extracted_json_path, extracted_graph)
+    _write_graph_json(evaluation_json_path, evaluation_graph)
+    _render_graph_png(extracted_png_path, extracted_graph)
+    _render_graph_png(evaluation_png_path, evaluation_graph)
+    return {
+        "extracted_concept_graph_json": str(extracted_json_path),
+        "extracted_concept_graph_png": str(extracted_png_path),
+        "evaluation_concept_graph_json": str(evaluation_json_path),
+        "evaluation_concept_graph_png": str(evaluation_png_path),
+    }
+
+
+def _empty_graph(dataset_id: str, run_type: str, graph_type: str) -> dict[str, Any]:
+    return {"dataset_id": dataset_id, "run_type": run_type, "graph_type": graph_type, "nodes": [], "edges": []}
+
+
+def _concept_node_id(kind: str, value: str) -> str:
+    return f"{kind}:{value}"
+
+
+def _add_node(graph: dict[str, Any], node_id: str, label: str, node_type: str, **extra: Any) -> None:
+    graph["nodes"].append({"id": node_id, "label": label, "node_type": node_type, **extra})
+
+
+def _add_edge(graph: dict[str, Any], source: str, target: str, edge_type: str) -> None:
+    graph["edges"].append({"source": source, "target": target, "edge_type": edge_type})
+
+
+def _dedupe_graph(graph: dict[str, Any]) -> dict[str, Any]:
+    nodes_by_id = {node["id"]: node for node in graph["nodes"]}
+    edge_keys = {(edge["source"], edge["target"], edge["edge_type"]) for edge in graph["edges"]}
+    return {**graph, "nodes": sorted(nodes_by_id.values(), key=lambda node: node["id"]), "edges": [{"source": source, "target": target, "edge_type": edge_type} for source, target, edge_type in sorted(edge_keys)]}
+
+
+def _write_graph_json(path: Path, graph: dict[str, Any]) -> None:
+    path.write_text(json.dumps(graph, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _render_graph_png(path: Path, graph: dict[str, Any]) -> None:
+    network = nx.DiGraph()
+    for node in graph["nodes"]:
+        network.add_node(node["id"], **node)
+    for edge in graph["edges"]:
+        network.add_edge(edge["source"], edge["target"], edge_type=edge["edge_type"])
+    plt.figure(figsize=(max(8, len(network.nodes) * 0.55), 6))
+    if network.nodes:
+        positions = nx.spring_layout(network, seed=17)
+        node_colors = [_node_color(network.nodes[node]) for node in network.nodes]
+        nx.draw_networkx_nodes(network, positions, node_color=node_colors, node_size=1600)
+        nx.draw_networkx_edges(network, positions, arrows=True, arrowstyle="-|>", width=1.4)
+        nx.draw_networkx_labels(network, positions, labels={node: network.nodes[node].get("label", node) for node in network.nodes}, font_size=8)
+    plt.axis("off")
+    plt.tight_layout()
+    plt.savefig(path, dpi=180)
+    plt.close()
+
+
+def _node_color(node: dict[str, Any]) -> str:
+    if node.get("status") == "matched":
+        return "#94d3a2"
+    if node.get("status") == "missing":
+        return "#f2a0a0"
+    if node.get("node_type") == "alias":
+        return "#9cc9f5"
+    if node.get("node_type") == "umbrella_concept":
+        return "#f0bd74"
+    return "#c8c8c8"
+
+
+def _build_canonical_surface_map(concept_expectations: list[dict[str, Any]]) -> dict[tuple[str, str], tuple[str, str]]:
+    mapping: dict[tuple[str, str], tuple[str, str]] = {}
+    for expectation in concept_expectations:
+        for concept_record in expectation.get("expected_atomic_concepts", []) or []:
+            key = (str(concept_record["kind"]), str(concept_record["value"]))
+            mapping[(key[0], _normalize_surface_value(key[1]))] = key
+            for alias in concept_record.get("aliases", []) or []:
+                mapping[(key[0], _normalize_surface_value(alias))] = key
+        for semantic_group in expectation.get("semantic_groups", []) or []:
+            canonical = semantic_group["canonical"]
+            key = (str(canonical["kind"]), str(canonical["value"]))
+            for equivalent_value in semantic_group.get("equivalent_values", []) or []:
+                mapping[(key[0], _normalize_surface_value(equivalent_value))] = key
+    return mapping
+
+
+def _build_umbrella_mappings(concept_expectations: list[dict[str, Any]]) -> dict[str, set[tuple[str, str]]]:
+    mappings: dict[str, set[tuple[str, str]]] = {}
+    for expectation in concept_expectations:
+        for umbrella_mapping in expectation.get("umbrella_mappings", []) or []:
+            mappings[_normalize_surface_value(umbrella_mapping["umbrella_value"])] = {
+                (str(concept_record["kind"]), str(concept_record["value"]))
+                for concept_record in umbrella_mapping.get("maps_to", []) or []
+            }
+    return mappings
+
+
+def _normalize_surface_value(value: Any) -> str:
+    return str(value).strip().lower().replace(" ", "_").replace("-", "_")
+```
+
+- [ ] **Step 6: Run graph tests and verify they pass**
+
+Run:
+
+```bash
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_concept_graph_visualization.py -q --rootdir=.
+```
+
+Expected: PASS.
+
+- [ ] **Step 7: Wire graph artifacts into real-run reports**
+
+Modify `knowledge/src/knowledge/rule_extraction_dataset_smoke.py` imports:
+
+```python
+from knowledge.concept_graph_visualization import (
+    build_evaluation_concept_graph,
+    build_extracted_concept_graph,
+    write_concept_graph_artifacts,
+)
+```
+
+After `concept_evaluations` are built, add:
+
+```python
+extracted_concept_graph = build_extracted_concept_graph(
+    dataset_id=dataset,
+    run_type="real_llm",
+    extracted_rules=[rule for observation in observations for rule in observation.get("parsed_rules", []) or []],
+    concept_expectations=track_expectations["concept_discovery"],
+)
+evaluation_concept_graph = build_evaluation_concept_graph(
+    dataset_id=dataset,
+    run_type="real_llm",
+    concept_expectations=track_expectations["concept_discovery"],
+    concept_evaluations=concept_evaluations,
+)
+concept_graph_artifacts = write_concept_graph_artifacts(
+    output_dir=output_dir,
+    extracted_graph=extracted_concept_graph,
+    evaluation_graph=evaluation_concept_graph,
+)
+```
+
+Add to the main report:
+
+```python
+"concept_graphs": concept_graph_artifacts,
+```
+
+Add to `stratified_evaluation` before writing the stratified JSON artifact:
+
+```python
+stratified_evaluation["concept_graphs"] = concept_graph_artifacts
+```
+
+- [ ] **Step 8: Extend smoke report tests**
+
+In `knowledge/tests/test_rule_extraction_dataset_smoke_reports.py`, add:
+
+```python
+concept_graphs = report["concept_graphs"]
+assert Path(concept_graphs["extracted_concept_graph_json"]).exists()
+assert Path(concept_graphs["extracted_concept_graph_png"]).exists()
+assert Path(concept_graphs["evaluation_concept_graph_json"]).exists()
+assert Path(concept_graphs["evaluation_concept_graph_png"]).exists()
+assert report["stratified_evaluation"]["concept_graphs"] == concept_graphs
+```
+
+- [ ] **Step 9: Add README report paths**
+
+Modify `knowledge/datasets/rule_extraction_v1/README.zh.md` real LLM report list:
+
+```markdown
+- `reports/rule-extraction-v1-extracted-concept-graph.json`
+- `reports/rule-extraction-v1-extracted-concept-graph.png`
+- `reports/rule-extraction-v1-evaluation-concept-graph.json`
+- `reports/rule-extraction-v1-evaluation-concept-graph.png`
+```
+
+- [ ] **Step 10: Run focused tests**
+
+Run:
+
+```bash
+PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_concept_graph_visualization.py knowledge/tests/test_rule_extraction_dataset_smoke_reports.py -q --rootdir=.
+```
+
+Expected: PASS.
+
+- [ ] **Step 11: Commit**
+
+```bash
+git add knowledge/pyproject.toml knowledge/src/knowledge/concept_graph_visualization.py knowledge/src/knowledge/rule_extraction_dataset_smoke.py knowledge/tests/test_concept_graph_visualization.py knowledge/tests/test_rule_extraction_dataset_smoke_reports.py knowledge/datasets/rule_extraction_v1/README.zh.md
+git commit -m "feat: add concept graph visualizations"
+```
+
+## Task 9: Update Research Protocol And Audit Report
 
 **Files:**
 - Modify: `docs/research/doc-rule-agent-research-protocol.md`
@@ -1661,7 +2242,7 @@ Primary metrics include field-level precision, recall, F1, numeric-limit exact m
 with:
 
 ```markdown
-Primary metrics are reported by evaluation track. `clean_extraction_f1` is the headline regression metric for source-card-direct and trusted-negative rows. `contextual_handling` reports contextual accept rate and overclaim rate. `conversion` reports conversion accuracy and missing-assumption rate. `concept_discovery` reports three sublayers: atomic concept precision/recall/F1, semantic-linking linked/unlinked counts, and umbrella-decomposition coverage. The legacy mixed precision/recall/F1 is retained only for continuity and must not be used as the sole headline score after gold audit metadata is available.
+Primary metrics are reported by evaluation track. `clean_extraction_f1` is the headline regression metric for source-card-direct and trusted-negative rows. `contextual_handling` reports contextual accept rate and overclaim rate. `conversion` reports conversion accuracy and missing-assumption rate. `concept_discovery` reports three sublayers: atomic concept precision/recall/F1, semantic-linking linked/unlinked counts, and umbrella-decomposition coverage. Every experiment with concept discovery also writes an extracted concept graph and an evaluation concept graph, each as JSON plus PNG. The legacy mixed precision/recall/F1 is retained only for continuity and must not be used as the sole headline score after gold audit metadata is available.
 ```
 
 - [ ] **Step 2: Update manual audit report**
@@ -1675,6 +2256,7 @@ In `reports/rule-extraction-v1-gold-audit-20260602.md`, add a section after `## 
 - `contextual_handling`: sources with nutrition signal but no fixed numeric disease rule; evaluate context preservation and overclaim avoidance.
 - `conversion`: sources that require unit or energy-reference conversion; evaluate formula, assumptions, and converted value separately.
 - `concept_discovery`: schema-gap sources; evaluate atomic product concepts, same-meaning links, and umbrella-to-atomic decomposition instead of treating umbrella ids as direct gold.
+- `concept_graphs`: every run writes an extracted concept graph and an evaluation concept graph. Both graphs must connect same-meaning concepts with `same_as` edges and connect umbrella concepts to contained atomic concepts with `contains` edges.
 - `mixed_legacy`: all frozen gold rows; retained only for continuity with earlier reports.
 ```
 
@@ -1684,6 +2266,10 @@ In `knowledge/datasets/rule_extraction_v1/README.zh.md`, under real LLM report l
 
 ```markdown
 - `reports/rule-extraction-v1-stratified-evaluation-report.json`
+- `reports/rule-extraction-v1-extracted-concept-graph.json`
+- `reports/rule-extraction-v1-extracted-concept-graph.png`
+- `reports/rule-extraction-v1-evaluation-concept-graph.json`
+- `reports/rule-extraction-v1-evaluation-concept-graph.png`
 ```
 
 - [ ] **Step 4: Run documentation diff check**
@@ -1703,7 +2289,7 @@ git add docs/research/doc-rule-agent-research-protocol.md reports/rule-extractio
 git commit -m "docs: define stratified evaluation protocol"
 ```
 
-## Task 9: Final Verification And Experiment Run
+## Task 10: Final Verification And Experiment Run
 
 **Files:**
 - No new source files.
@@ -1720,6 +2306,7 @@ PYTHONPATH=src:knowledge/src pytest \
   knowledge/tests/test_concept_expectations.py \
   knowledge/tests/test_concept_evaluation.py \
   knowledge/tests/test_conversion_evaluation.py \
+  knowledge/tests/test_concept_graph_visualization.py \
   knowledge/tests/test_contextual_evaluation.py \
   knowledge/tests/test_stratified_evaluation.py \
   knowledge/tests/test_rule_extraction_dataset.py \
@@ -1754,6 +2341,10 @@ PYTHONPATH=src:knowledge/src python -m knowledge.rule_extraction_dataset_smoke \
 Expected:
 
 - `reports/rule-extraction-stratified-eval-dry-run-20260602/rule-extraction-v1-stratified-evaluation-report.json` exists.
+- `reports/rule-extraction-stratified-eval-dry-run-20260602/rule-extraction-v1-extracted-concept-graph.json` exists.
+- `reports/rule-extraction-stratified-eval-dry-run-20260602/rule-extraction-v1-extracted-concept-graph.png` exists.
+- `reports/rule-extraction-stratified-eval-dry-run-20260602/rule-extraction-v1-evaluation-concept-graph.json` exists.
+- `reports/rule-extraction-stratified-eval-dry-run-20260602/rule-extraction-v1-evaluation-concept-graph.png` exists.
 - Report has `headline_metric: clean_extraction_f1`.
 - Report has all five track keys.
 
@@ -1777,13 +2368,15 @@ Expected:
 - Real run completes or checkpoint/resume reports operational failures separately.
 - `rule-extraction-v1-real-llm-report.json` includes `stratified_evaluation`.
 - `rule-extraction-v1-stratified-evaluation-report.json` includes all tracks.
+- `rule-extraction-v1-real-llm-report.json` includes `concept_graphs`.
+- Extracted and evaluation concept graph PNGs are non-empty files.
 
 - [ ] **Step 5: Summarize metrics**
 
 Generate the PR comment body from the stratified report so every metric line has a concrete value:
 
 ```bash
-python -c "import json, pathlib; p=pathlib.Path('reports/rule-extraction-stratified-eval-full-c2-20260602/rule-extraction-v1-stratified-evaluation-report.json'); r=json.loads(p.read_text(encoding='utf-8')); tracks=r['tracks']; clean=tracks['clean_extraction']['overall']; contextual=tracks['contextual_handling']['overall']; conversion=tracks['conversion']['overall']; concept=tracks['concept_discovery']['overall']; atomic=concept['atomic']; semantic=concept['semantic_linking']; umbrella=concept['umbrella_decomposition']; legacy=tracks['mixed_legacy']['overall']; print('Stratified evaluation full C2 result:'); print(f'- clean_extraction_f1: {clean.get(\"f1\", 0):.3f}'); print(f'- contextual_handling accuracy: {contextual.get(\"accuracy\", 0):.3f}'); print(f'- conversion accuracy: {conversion.get(\"accuracy\", 0):.3f}'); print(f'- concept_discovery atomic P/R/F1: {atomic.get(\"precision\", 0):.3f} / {atomic.get(\"recall\", 0):.3f} / {atomic.get(\"f1\", 0):.3f}'); print(f'- concept_discovery semantic linked/unlinked: {semantic.get(\"linked_count\", 0)} / {semantic.get(\"unlinked_count\", 0)}'); print(f'- concept_discovery umbrella average coverage: {umbrella.get(\"average_coverage\", 0):.3f}'); print(f'- mixed_legacy P/R/F1: {legacy.get(\"precision\", 0):.3f} / {legacy.get(\"recall\", 0):.3f} / {legacy.get(\"f1\", 0):.3f}'); print('\\nInterpretation: clean extraction is the direct-evidence headline score; conversion, concept discovery, and contextual handling are separate capabilities, not direct-extraction misses.')"
+python -c "import json, pathlib; p=pathlib.Path('reports/rule-extraction-stratified-eval-full-c2-20260602/rule-extraction-v1-stratified-evaluation-report.json'); r=json.loads(p.read_text(encoding='utf-8')); tracks=r['tracks']; clean=tracks['clean_extraction']['overall']; contextual=tracks['contextual_handling']['overall']; conversion=tracks['conversion']['overall']; concept=tracks['concept_discovery']['overall']; atomic=concept['atomic']; semantic=concept['semantic_linking']; umbrella=concept['umbrella_decomposition']; legacy=tracks['mixed_legacy']['overall']; graphs=r.get('concept_graphs', {}); print('Stratified evaluation full C2 result:'); print(f'- clean_extraction_f1: {clean.get(\"f1\", 0):.3f}'); print(f'- contextual_handling accuracy: {contextual.get(\"accuracy\", 0):.3f}'); print(f'- conversion accuracy: {conversion.get(\"accuracy\", 0):.3f}'); print(f'- concept_discovery atomic P/R/F1: {atomic.get(\"precision\", 0):.3f} / {atomic.get(\"recall\", 0):.3f} / {atomic.get(\"f1\", 0):.3f}'); print(f'- concept_discovery semantic linked/unlinked: {semantic.get(\"linked_count\", 0)} / {semantic.get(\"unlinked_count\", 0)}'); print(f'- concept_discovery umbrella average coverage: {umbrella.get(\"average_coverage\", 0):.3f}'); print(f'- mixed_legacy P/R/F1: {legacy.get(\"precision\", 0):.3f} / {legacy.get(\"recall\", 0):.3f} / {legacy.get(\"f1\", 0):.3f}'); print(f'- extracted concept graph: {graphs.get(\"extracted_concept_graph_png\", \"missing\")}'); print(f'- evaluation concept graph: {graphs.get(\"evaluation_concept_graph_png\", \"missing\")}'); print('\\nInterpretation: clean extraction is the direct-evidence headline score; conversion, concept discovery, and contextual handling are separate capabilities, not direct-extraction misses.')"
 ```
 
 Expected: the command prints a complete comment body with numeric values copied from the generated report.
@@ -1796,11 +2389,13 @@ Do not commit bulky run output directories unless the PR convention requires the
 git status --short
 git add \
   docs/research/doc-rule-agent-research-protocol.md \
+  knowledge/pyproject.toml \
   knowledge/datasets/rule_extraction_v1/README.zh.md \
   knowledge/datasets/rule_extraction_v1/concept_expectations.jsonl \
   knowledge/datasets/rule_extraction_v1/contextual_expectations.jsonl \
   knowledge/datasets/rule_extraction_v1/conversion_expectations.jsonl \
   knowledge/src/knowledge/concept_evaluation.py \
+  knowledge/src/knowledge/concept_graph_visualization.py \
   knowledge/src/knowledge/contextual_evaluation.py \
   knowledge/src/knowledge/conversion_evaluation.py \
   knowledge/src/knowledge/evaluation_taxonomy.py \
@@ -1810,6 +2405,7 @@ git add \
   knowledge/src/knowledge/stratified_evaluation.py \
   knowledge/tests/test_concept_evaluation.py \
   knowledge/tests/test_concept_expectations.py \
+  knowledge/tests/test_concept_graph_visualization.py \
   knowledge/tests/test_contextual_evaluation.py \
   knowledge/tests/test_conversion_evaluation.py \
   knowledge/tests/test_evaluation_taxonomy.py \
@@ -1833,6 +2429,9 @@ The plan is complete when:
 - Conversion rows are evaluated through explicit formulas and assumptions.
 - Contextual rows are evaluated for context preservation and overclaim avoidance.
 - Real-LLM reports include `stratified_evaluation` and a separate stratified JSON artifact.
+- Every real experiment includes `concept_graphs` paths for extracted/evaluation graph JSON and PNG artifacts.
+- Extracted concept graphs connect same-meaning concept names with `same_as` edges.
+- Evaluation concept graphs connect umbrella concepts to all mapped atomic concepts with `contains` edges and mark matched/missing atomic concepts.
 - Full pytest passes.
 - PR #11 and issue #12 are updated with the plan execution result and latest metrics.
 
@@ -1843,6 +2442,8 @@ The plan is complete when:
 - Do not average track metrics into one score.
 - Do not allow LLM-generated concept candidates to become product-approved automatically; they stay `status=candidate` until product review.
 - Do not treat MedlinePlus low-sodium numeric gold as a conversion case unless the current source input exposes a numeric expression to convert.
+- Do not rely on PNG inspection for automated correctness; tests should assert graph JSON nodes and edges, then verify PNG files are written.
+- Use deterministic graph layout seeds so run-to-run graph changes reflect data changes, not random layout drift.
 - Keep full generated experiment output unstaged unless explicitly requested.
 
 ## Recommended Execution Order
@@ -1854,7 +2455,8 @@ The plan is complete when:
 5. Task 5: contextual scorer and negative failure labels.
 6. Task 6: stratified report builder.
 7. Task 7: real observation integration.
-8. Task 8: protocol/docs update.
-9. Task 9: full verification and real-LLM experiment.
+8. Task 8: concept graph visualization.
+9. Task 9: protocol/docs update.
+10. Task 10: full verification and real-LLM experiment.
 
 This order keeps each step testable and avoids changing product-facing behavior before the evaluation data contract is explicit.
