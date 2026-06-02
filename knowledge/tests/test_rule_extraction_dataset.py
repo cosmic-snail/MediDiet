@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
-from knowledge.documents import select_document_content
 from knowledge.loader import KnowledgeLoader
 
 
@@ -252,24 +252,22 @@ def test_gold_evaluation_set_is_small_frozen_and_offline_only():
         assert "evidence_requirement" in row
 
 
-def test_gold_numeric_limits_have_extractable_source_numeric_signals():
-    gold_rows = _read_jsonl(DATASET_DIR / "gold_evaluation_set.jsonl")
-    manifest_by_doc_id = {row["doc_id"]: row for row in _manifest_rows()}
+def test_source_cards_do_not_expose_benchmark_gold_answer_language():
+    manifest_rows = _manifest_rows()
+    leakage_patterns = [
+        re.compile(r"\bbenchmark card\b", re.IGNORECASE),
+        re.compile(r"\bfrozen gold\b", re.IGNORECASE),
+        re.compile(r"\bgold metric\b", re.IGNORECASE),
+        re.compile(r"\bgold (?:requires|expects|uses)\b", re.IGNORECASE),
+    ]
 
-    for gold_evaluation_row in gold_rows:
-        numeric_limits = gold_evaluation_row.get("nutrition_limits") or []
-        if not numeric_limits:
-            continue
-        source_document_path = REPO_ROOT / manifest_by_doc_id[gold_evaluation_row["doc_id"]]["path"]
-        source_extractable_content = select_document_content(
-            source_document_path.read_text(encoding="utf-8"),
-            strategy="extractable_content",
-        ).lower()
-        for numeric_limit in numeric_limits:
-            limit_value = str(int(numeric_limit["max_value"]))
-            assert limit_value in source_extractable_content, (
-                f"{gold_evaluation_row['doc_id']} gold limit {numeric_limit['metric']}="
-                f"{limit_value} is not present in extractable source content"
+    for manifest_row in manifest_rows:
+        source_document_path = REPO_ROOT / manifest_row["path"]
+        source_text = source_document_path.read_text(encoding="utf-8")
+        for leakage_pattern in leakage_patterns:
+            assert not leakage_pattern.search(source_text), (
+                f"{manifest_row['doc_id']} source card contains benchmark/gold answer language: "
+                f"{leakage_pattern.pattern}"
             )
 
 

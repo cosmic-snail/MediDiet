@@ -76,7 +76,7 @@ Important rules:
 - If a source gives a numeric threshold for supported metrics, extract it in nutrition_limits; do not replace it with only a preferred_tag.
 - Treat explicit daily sodium limit statements as nutrition_limits entries. Example: "2000 mg sodium per day" -> {"metric": "sodium_mg", "scope": "daily", "max_value": 2000, "window_hours": null}.
 - Treat an explicit "5 g salt per day" statement as equivalent to about "2000 mg sodium per day" when the source card states that conversion.
-- If a numeric threshold is stated as salt rather than sodium, convert only when the source explicitly provides the sodium/salt relationship or the gold metric uses sodium_mg in the dataset context.
+- If a numeric threshold is stated as salt rather than sodium, convert only when the source explicitly provides the sodium/salt relationship.
 - If the source states a percentage threshold but no supported gram metric can be computed from the text, add the concept to suggested_concepts and explain the percentage in evidence_quotes.
 - Every claim MUST have an evidence_quote from the provided fragments
 - If a fragment does not contain extractable dietary rules, do not fabricate

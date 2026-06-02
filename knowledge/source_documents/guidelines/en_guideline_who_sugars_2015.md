@@ -29,7 +29,6 @@ This source card tests extraction of free-sugar percentage thresholds from an En
 
 - WHO recommends reducing free sugars intake across the life course.
 - The guideline expresses the main target as a percentage of total energy intake.
-- For this benchmark card, the 10% of total energy target is represented as about 50 g free sugars per day for a 2000 kcal/day diet.
 - It connects free sugars with unhealthy weight gain and dental caries risk.
 
 ## Copyright Handling
