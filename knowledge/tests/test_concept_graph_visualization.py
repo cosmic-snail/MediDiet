@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from knowledge.concept_graph_visualization import (
+    _render_graph_with_pillow,
     build_evaluation_concept_graph,
     build_extracted_concept_graph,
     write_concept_graph_artifacts,
@@ -135,3 +136,35 @@ def test_write_concept_graph_artifacts_writes_json_and_png(tmp_path: Path):
     assert Path(artifact_paths["evaluation_concept_graph_png"]).exists()
     saved_graph = json.loads(Path(artifact_paths["evaluation_concept_graph_json"]).read_text(encoding="utf-8"))
     assert saved_graph["graph_type"] == "evaluation_concept_graph"
+
+
+def test_pillow_fallback_draws_edge_lines_between_nodes(tmp_path: Path):
+    graph = {
+        "dataset_id": "rule_extraction_v1",
+        "run_type": "real_llm",
+        "graph_type": "extracted_concept_graph",
+        "nodes": [
+            {"id": "alias:low_purine", "label": "low_purine", "node_type": "alias"},
+            {
+                "id": "nutrition_tag:low_purine",
+                "label": "low_purine",
+                "node_type": "atomic_concept",
+                "status": "matched",
+            },
+        ],
+        "edges": [
+            {
+                "source": "alias:low_purine",
+                "target": "nutrition_tag:low_purine",
+                "edge_type": "same_as",
+            }
+        ],
+    }
+    output_path = tmp_path / "fallback-graph.png"
+
+    _render_graph_with_pillow(output_path, graph)
+
+    from PIL import Image
+
+    image = Image.open(output_path)
+    assert image.getpixel((520, 91)) != (255, 255, 255)

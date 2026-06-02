@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -213,19 +214,31 @@ def _render_graph_with_pillow(path: Path, graph: dict[str, Any]) -> None:
 
     nodes = graph.get("nodes", []) or []
     edges = graph.get("edges", []) or []
+    node_width = 420
+    node_height = 38
     width = 1200
     height = max(360, 120 + len(nodes) * 52 + len(edges) * 26)
     image = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(image)
     draw.text((24, 20), f"{graph.get('graph_type', 'concept_graph')} ({graph.get('run_type', '')})", fill="#222222")
 
-    node_positions: dict[str, tuple[int, int]] = {}
+    node_boxes: dict[str, tuple[int, int, int, int]] = {}
     for index, node in enumerate(nodes):
         x = 48 + (index % 2) * 520
         y = 72 + (index // 2) * 82
-        node_positions[str(node["id"])] = (x, y)
+        node_boxes[str(node["id"])] = (x, y, x + node_width, y + node_height)
+
+    for edge in edges:
+        source_box = node_boxes.get(str(edge["source"]))
+        target_box = node_boxes.get(str(edge["target"]))
+        if source_box is None or target_box is None:
+            continue
+        _draw_pillow_edge(draw, source_box, target_box, str(edge["edge_type"]))
+
+    for node in nodes:
+        x, y, right, bottom = node_boxes[str(node["id"])]
         color = _node_color(node)
-        draw.rounded_rectangle((x, y, x + 420, y + 38), radius=8, fill=color, outline="#555555")
+        draw.rounded_rectangle((x, y, right, bottom), radius=8, fill=color, outline="#555555")
         label = str(node.get("label") or node["id"])[:46]
         draw.text((x + 12, y + 10), label, fill="#111111")
 
@@ -236,6 +249,60 @@ def _render_graph_with_pillow(path: Path, graph: dict[str, Any]) -> None:
         draw.text((48, y), edge_label[:150], fill="#333333")
 
     image.save(path, format="PNG")
+
+
+def _draw_pillow_edge(
+    draw: Any,
+    source_box: tuple[int, int, int, int],
+    target_box: tuple[int, int, int, int],
+    edge_type: str,
+) -> None:
+    source_center = ((source_box[0] + source_box[2]) // 2, (source_box[1] + source_box[3]) // 2)
+    target_center = ((target_box[0] + target_box[2]) // 2, (target_box[1] + target_box[3]) // 2)
+    start = _edge_endpoint(source_center, target_center, source_box)
+    end = _edge_endpoint(target_center, source_center, target_box)
+    color = "#555555" if edge_type == "same_as" else "#8a5a16"
+    draw.line((start, end), fill=color, width=3)
+    _draw_arrowhead(draw, start, end, color)
+    midpoint = ((start[0] + end[0]) // 2, (start[1] + end[1]) // 2)
+    draw.text((midpoint[0] - 24, midpoint[1] - 14), edge_type, fill=color)
+
+
+def _edge_endpoint(
+    from_center: tuple[int, int],
+    to_center: tuple[int, int],
+    box: tuple[int, int, int, int],
+) -> tuple[int, int]:
+    x0, y0 = from_center
+    x1, y1 = to_center
+    dx = x1 - x0
+    dy = y1 - y0
+    if dx == 0 and dy == 0:
+        return from_center
+    half_width = (box[2] - box[0]) / 2
+    half_height = (box[3] - box[1]) / 2
+    scale = min(half_width / abs(dx) if dx else float("inf"), half_height / abs(dy) if dy else float("inf"))
+    return (int(x0 + dx * scale), int(y0 + dy * scale))
+
+
+def _draw_arrowhead(
+    draw: Any,
+    start: tuple[int, int],
+    end: tuple[int, int],
+    color: str,
+) -> None:
+    angle = math.atan2(end[1] - start[1], end[0] - start[0])
+    arrow_length = 12
+    arrow_angle = math.pi / 7
+    points = [end]
+    for direction in (angle + math.pi - arrow_angle, angle + math.pi + arrow_angle):
+        points.append(
+            (
+                int(end[0] + arrow_length * math.cos(direction)),
+                int(end[1] + arrow_length * math.sin(direction)),
+            )
+        )
+    draw.polygon(points, fill=color)
 
 
 def _node_color(node: dict[str, Any]) -> str:
