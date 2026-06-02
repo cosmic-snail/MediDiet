@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 
 from knowledge.concept_graph_visualization import (
+    _build_graphviz_dot,
+    _layout_pillow_node_boxes,
     _render_graph_with_pillow,
     build_evaluation_concept_graph,
     build_extracted_concept_graph,
@@ -167,4 +169,87 @@ def test_pillow_fallback_draws_edge_lines_between_nodes(tmp_path: Path):
     from PIL import Image
 
     image = Image.open(output_path)
-    assert image.getpixel((520, 91)) != (255, 255, 255)
+    node_boxes = _layout_pillow_node_boxes(graph["nodes"], graph["edges"])
+    source_box = node_boxes["alias:low_purine"]
+    line_sample_x = source_box[2] + 24
+    line_sample_y = (source_box[1] + source_box[3]) // 2
+    assert image.getpixel((line_sample_x, line_sample_y)) != (251, 251, 248)
+
+
+def test_graphviz_dot_uses_layered_knowledge_graph_styling():
+    graph = {
+        "dataset_id": "rule_extraction_v1",
+        "run_type": "real_llm",
+        "graph_type": "extracted_concept_graph",
+        "nodes": [
+            {"id": "alias:low_purine", "label": "low_purine", "node_type": "alias"},
+            {"id": "umbrella:diet_limits", "label": "diet_limits", "node_type": "umbrella_concept"},
+            {
+                "id": "nutrition_tag:low_purine",
+                "label": "low_purine",
+                "node_type": "atomic_concept",
+                "status": "matched",
+            },
+        ],
+        "edges": [
+            {
+                "source": "alias:low_purine",
+                "target": "nutrition_tag:low_purine",
+                "edge_type": "same_as",
+            },
+            {
+                "source": "umbrella:diet_limits",
+                "target": "nutrition_tag:low_purine",
+                "edge_type": "contains",
+            },
+        ],
+    }
+
+    dot_source = _build_graphviz_dot(graph)
+
+    assert "rankdir=LR" in dot_source
+    assert "splines=ortho" in dot_source
+    assert '"alias:low_purine"' in dot_source
+    assert 'label=""' in dot_source
+    assert 'color="#9b6418"' in dot_source
+
+
+def test_pillow_layout_places_graph_roles_in_columns_without_overlaps():
+    nodes = [
+        {"id": "alias:low_purine", "label": "low_purine", "node_type": "alias"},
+        {"id": "umbrella:diet_limits", "label": "diet_limits", "node_type": "umbrella_concept"},
+        {
+            "id": "nutrition_tag:low_purine",
+            "label": "low_purine",
+            "node_type": "atomic_concept",
+            "status": "matched",
+        },
+        {"id": "missing:nutrition_tag:sodium_limit", "label": "missing sodium_limit", "node_type": "missing_marker"},
+    ]
+    edges = [
+        {"source": "alias:low_purine", "target": "nutrition_tag:low_purine", "edge_type": "same_as"},
+        {"source": "umbrella:diet_limits", "target": "nutrition_tag:low_purine", "edge_type": "contains"},
+        {
+            "source": "nutrition_tag:low_purine",
+            "target": "missing:nutrition_tag:sodium_limit",
+            "edge_type": "missing_expected",
+        },
+    ]
+
+    node_boxes = _layout_pillow_node_boxes(nodes, edges)
+
+    assert node_boxes["alias:low_purine"][0] < node_boxes["umbrella:diet_limits"][0]
+    assert node_boxes["umbrella:diet_limits"][0] < node_boxes["nutrition_tag:low_purine"][0]
+    assert node_boxes["nutrition_tag:low_purine"][0] < node_boxes["missing:nutrition_tag:sodium_limit"][0]
+    for node_id, node_box in node_boxes.items():
+        other_boxes = {key: box for key, box in node_boxes.items() if key != node_id}
+        assert all(not _boxes_overlap(node_box, other_box) for other_box in other_boxes.values())
+
+
+def _boxes_overlap(first_box: tuple[int, int, int, int], second_box: tuple[int, int, int, int]) -> bool:
+    return not (
+        first_box[2] <= second_box[0]
+        or second_box[2] <= first_box[0]
+        or first_box[3] <= second_box[1]
+        or second_box[3] <= first_box[1]
+    )
