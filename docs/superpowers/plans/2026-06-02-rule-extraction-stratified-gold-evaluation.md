@@ -52,7 +52,7 @@ If a source does not directly provide the value required by gold, move the case 
 | `clean_extraction` | source card directly supports the expected rule, or trusted negative | Did the extractor directly recover a supported structured rule or avoid hallucinating one? | precision / recall / F1 |
 | `contextual_handling` | source has nutrition signal but not a fixed disease-specific numeric rule | Did the extractor preserve context without over-claiming a hard rule? | contextual accept rate and overclaim rate |
 | `conversion` | source gives a different unit or expression such as percent of energy | Did the system declare the needed conversion, formula, assumptions, and output value correctly? | conversion accuracy |
-| `concept_discovery` | source contains concepts not yet represented by supported rule fields | Did the system propose or match product-ready atomic concepts and aliases? | atomic concept recall / precision |
+| `concept_discovery` | source contains concepts not yet represented by supported rule fields | Did the system discover atomic concepts, link same-meaning expressions, and decompose umbrella concepts? | atomic recall / semantic linking / umbrella decomposition |
 | `mixed_legacy` | all frozen gold rows | Backward-compatible score only; not the main headline | legacy precision / recall / F1 |
 
 The headline number after this plan should be:
@@ -130,11 +130,38 @@ Each row describes atomic expected concepts for one schema-gap gold row.
     }
   ],
   "source_support": "Source card states CKD eating plans may require attention to sodium, protein, potassium, and phosphorus.",
+  "semantic_groups": [
+    {
+      "canonical": {"kind": "nutrition_tag", "value": "potassium_management"},
+      "equivalent_values": ["potassium_restriction", "low_potassium", "limit_potassium"]
+    },
+    {
+      "canonical": {"kind": "nutrition_tag", "value": "phosphorus_management"},
+      "equivalent_values": ["phosphorus_restriction", "low_phosphorus", "limit_phosphorus"]
+    }
+  ],
+  "umbrella_mappings": [
+    {
+      "umbrella_value": "potassium_phosphorus_management",
+      "maps_to": [
+        {"kind": "nutrition_tag", "value": "potassium_management"},
+        {"kind": "nutrition_tag", "value": "phosphorus_management"}
+      ]
+    }
+  ],
   "do_not_score_as": ["potassium_phosphorus_management"]
 }
 ```
 
 Use `kind` values supported by `medidiet.domain.CodeKind`. Keep concept `value` in normalized snake_case.
+
+Concept discovery has three validation layers:
+
+1. `atomic_recall`: whether every expected atomic concept was discovered directly or via a recognized alias.
+2. `semantic_linking`: whether same-meaning concept expressions resolve to the same canonical atomic concept. For example, `low_purine`, `purine_restriction`, and `limit_high_purine_foods` should be linked instead of treated as unrelated discoveries.
+3. `umbrella_decomposition`: whether a broad concept can be associated with the complete expected atomic set. For example, `potassium_phosphorus_management` should map to both `potassium_management` and `phosphorus_management`.
+
+Umbrella decomposition must be reported separately from direct atomic recall. A broad concept can receive decomposition credit only when its mapping covers all required atomic concepts; it must not silently hide missing atomic candidates in the main atomic discovery score.
 
 ### `conversion_expectations.jsonl`
 
@@ -484,6 +511,29 @@ def test_concept_expectations_use_atomic_product_concepts():
             assert concept_record["aliases"]
         for umbrella_code in expectation_row.get("do_not_score_as", []):
             assert umbrella_code not in {value for _, value in seen_codes}
+
+
+def test_concept_expectations_define_linking_and_umbrella_layers():
+    expectation_rows = _read_jsonl(DATASET_DIR / "concept_expectations.jsonl")
+    for expectation_row in expectation_rows:
+        atomic_keys = {
+            (concept_record["kind"], concept_record["value"])
+            for concept_record in expectation_row["expected_atomic_concepts"]
+        }
+        assert expectation_row["semantic_groups"]
+        for semantic_group in expectation_row["semantic_groups"]:
+            canonical = semantic_group["canonical"]
+            assert (canonical["kind"], canonical["value"]) in atomic_keys
+            assert semantic_group["equivalent_values"]
+        assert expectation_row["umbrella_mappings"]
+        for umbrella_mapping in expectation_row["umbrella_mappings"]:
+            assert umbrella_mapping["umbrella_value"]
+            mapped_atomic_keys = {
+                (concept_record["kind"], concept_record["value"])
+                for concept_record in umbrella_mapping["maps_to"]
+            }
+            assert mapped_atomic_keys <= atomic_keys
+            assert mapped_atomic_keys
 ```
 
 - [ ] **Step 2: Run the test and verify it fails**
@@ -501,9 +551,9 @@ Expected: FAIL because `concept_expectations.jsonl` does not exist.
 Create `knowledge/datasets/rule_extraction_v1/concept_expectations.jsonl` with exactly three rows:
 
 ```jsonl
-{"gold_id":"gold_en_manual_niddk_ckd_eating_right_001","doc_id":"en_manual_niddk_ckd_eating_right","track":"concept_discovery","expected_atomic_concepts":[{"kind":"nutrition_tag","value":"low_sodium","aliases":["sodium restriction","limit sodium","low-sodium diet","低钠"]},{"kind":"nutrition_tag","value":"potassium_management","aliases":["potassium restriction","limit potassium","potassium control","钾管理"]},{"kind":"nutrition_tag","value":"phosphorus_management","aliases":["phosphorus restriction","limit phosphorus","phosphorus control","磷管理"]},{"kind":"nutrition_tag","value":"controlled_protein","aliases":["protein management","protein control","controlled protein","蛋白质控制"]}],"source_support":"Source card states CKD eating plans may require attention to sodium, protein, potassium, and phosphorus.","do_not_score_as":["potassium_phosphorus_management"]}
-{"gold_id":"gold_en_manual_mayo_gout_diet_001","doc_id":"en_manual_mayo_gout_diet","track":"concept_discovery","expected_atomic_concepts":[{"kind":"nutrition_tag","value":"low_purine","aliases":["purine restriction","limit high-purine foods","low purine diet","限制高嘌呤"]},{"kind":"contraindication","value":"alcohol","aliases":["limit alcohol","avoid alcohol","alcohol restriction","限制饮酒"]},{"kind":"contraindication","value":"high_fructose","aliases":["limit fructose","avoid sweetened drinks","high-fructose drinks","限制果糖"]},{"kind":"nutrition_tag","value":"hydration_support","aliases":["adequate hydration","drink enough fluids","fluid intake","充足饮水"]}],"source_support":"Source card discusses high-purine foods, alcohol, sweetened drinks, and hydration in gout diet advice.","do_not_score_as":["purine_alcohol_fructose_hydration"]}
-{"gold_id":"gold_zh_guideline_gout_food_therapy_2024_001","doc_id":"zh_guideline_gout_food_therapy_2024","track":"concept_discovery","expected_atomic_concepts":[{"kind":"nutrition_tag","value":"low_purine","aliases":["purine restriction","limit high-purine foods","低嘌呤","限制高嘌呤"]},{"kind":"contraindication","value":"alcohol","aliases":["limit alcohol","avoid alcohol","限制饮酒","戒酒"]},{"kind":"nutrition_tag","value":"hydration_support","aliases":["adequate hydration","drink enough fluids","多饮水","充足饮水"]}],"source_support":"Source card raises purine exposure, alcohol control, and hydration as disease-relevant nutrition concepts.","do_not_score_as":["purine_and_alcohol_limits"]}
+{"gold_id":"gold_en_manual_niddk_ckd_eating_right_001","doc_id":"en_manual_niddk_ckd_eating_right","track":"concept_discovery","expected_atomic_concepts":[{"kind":"nutrition_tag","value":"low_sodium","aliases":["sodium restriction","limit sodium","low-sodium diet","低钠"]},{"kind":"nutrition_tag","value":"potassium_management","aliases":["potassium restriction","limit potassium","potassium control","钾管理"]},{"kind":"nutrition_tag","value":"phosphorus_management","aliases":["phosphorus restriction","limit phosphorus","phosphorus control","磷管理"]},{"kind":"nutrition_tag","value":"controlled_protein","aliases":["protein management","protein control","controlled protein","蛋白质控制"]}],"semantic_groups":[{"canonical":{"kind":"nutrition_tag","value":"low_sodium"},"equivalent_values":["sodium_restriction","low_salt","limit_sodium"]},{"canonical":{"kind":"nutrition_tag","value":"potassium_management"},"equivalent_values":["potassium_restriction","low_potassium","limit_potassium"]},{"canonical":{"kind":"nutrition_tag","value":"phosphorus_management"},"equivalent_values":["phosphorus_restriction","low_phosphorus","limit_phosphorus"]},{"canonical":{"kind":"nutrition_tag","value":"controlled_protein"},"equivalent_values":["protein_management","protein_control"]}],"umbrella_mappings":[{"umbrella_value":"potassium_phosphorus_management","maps_to":[{"kind":"nutrition_tag","value":"potassium_management"},{"kind":"nutrition_tag","value":"phosphorus_management"}]},{"umbrella_value":"ckd_nutrient_management","maps_to":[{"kind":"nutrition_tag","value":"low_sodium"},{"kind":"nutrition_tag","value":"potassium_management"},{"kind":"nutrition_tag","value":"phosphorus_management"},{"kind":"nutrition_tag","value":"controlled_protein"}]}],"source_support":"Source card states CKD eating plans may require attention to sodium, protein, potassium, and phosphorus.","do_not_score_as":["potassium_phosphorus_management","ckd_nutrient_management"]}
+{"gold_id":"gold_en_manual_mayo_gout_diet_001","doc_id":"en_manual_mayo_gout_diet","track":"concept_discovery","expected_atomic_concepts":[{"kind":"nutrition_tag","value":"low_purine","aliases":["purine restriction","limit high-purine foods","low purine diet","限制高嘌呤"]},{"kind":"contraindication","value":"alcohol","aliases":["limit alcohol","avoid alcohol","alcohol restriction","限制饮酒"]},{"kind":"contraindication","value":"high_fructose","aliases":["limit fructose","avoid sweetened drinks","high-fructose drinks","限制果糖"]},{"kind":"nutrition_tag","value":"hydration_support","aliases":["adequate hydration","drink enough fluids","fluid intake","充足饮水"]}],"semantic_groups":[{"canonical":{"kind":"nutrition_tag","value":"low_purine"},"equivalent_values":["purine_restriction","limit_high_purine_foods","low_purine_diet"]},{"canonical":{"kind":"contraindication","value":"alcohol"},"equivalent_values":["alcohol_limit","avoid_alcohol","alcohol_restriction"]},{"canonical":{"kind":"contraindication","value":"high_fructose"},"equivalent_values":["fructose_limit","sweetened_drink_limit","avoid_sweetened_drinks"]},{"canonical":{"kind":"nutrition_tag","value":"hydration_support"},"equivalent_values":["adequate_hydration","fluid_intake","drink_enough_fluids"]}],"umbrella_mappings":[{"umbrella_value":"purine_alcohol_fructose_hydration","maps_to":[{"kind":"nutrition_tag","value":"low_purine"},{"kind":"contraindication","value":"alcohol"},{"kind":"contraindication","value":"high_fructose"},{"kind":"nutrition_tag","value":"hydration_support"}]}],"source_support":"Source card discusses high-purine foods, alcohol, sweetened drinks, and hydration in gout diet advice.","do_not_score_as":["purine_alcohol_fructose_hydration"]}
+{"gold_id":"gold_zh_guideline_gout_food_therapy_2024_001","doc_id":"zh_guideline_gout_food_therapy_2024","track":"concept_discovery","expected_atomic_concepts":[{"kind":"nutrition_tag","value":"low_purine","aliases":["purine restriction","limit high-purine foods","低嘌呤","限制高嘌呤"]},{"kind":"contraindication","value":"alcohol","aliases":["limit alcohol","avoid alcohol","限制饮酒","戒酒"]},{"kind":"nutrition_tag","value":"hydration_support","aliases":["adequate hydration","drink enough fluids","多饮水","充足饮水"]}],"semantic_groups":[{"canonical":{"kind":"nutrition_tag","value":"low_purine"},"equivalent_values":["purine_restriction","limit_high_purine_foods","低嘌呤"]},{"canonical":{"kind":"contraindication","value":"alcohol"},"equivalent_values":["alcohol_limit","avoid_alcohol","限制饮酒","戒酒"]},{"canonical":{"kind":"nutrition_tag","value":"hydration_support"},"equivalent_values":["adequate_hydration","drink_enough_fluids","多饮水"]}],"umbrella_mappings":[{"umbrella_value":"purine_and_alcohol_limits","maps_to":[{"kind":"nutrition_tag","value":"low_purine"},{"kind":"contraindication","value":"alcohol"}]},{"umbrella_value":"gout_diet_context","maps_to":[{"kind":"nutrition_tag","value":"low_purine"},{"kind":"contraindication","value":"alcohol"},{"kind":"nutrition_tag","value":"hydration_support"}]}],"source_support":"Source card raises purine exposure, alcohol control, and hydration as disease-relevant nutrition concepts.","do_not_score_as":["purine_and_alcohol_limits","gout_diet_context"]}
 ```
 
 - [ ] **Step 4: Add README description**
@@ -544,7 +594,11 @@ git commit -m "data: add atomic concept expectations"
 Create `knowledge/tests/test_concept_evaluation.py`:
 
 ```python
-from knowledge.concept_evaluation import evaluate_concept_expectation, precision_recall_f1_for_concepts
+from knowledge.concept_evaluation import (
+    evaluate_concept_expectation,
+    precision_recall_f1_for_concepts,
+    summarize_concept_evaluations,
+)
 
 
 def test_evaluate_concept_expectation_matches_atomic_values_and_aliases():
@@ -574,7 +628,29 @@ def test_evaluate_concept_expectation_matches_atomic_values_and_aliases():
     assert evaluation["missing_concepts"] == []
 
 
-def test_evaluate_concept_expectation_penalizes_umbrella_only_match():
+def test_evaluate_concept_expectation_links_same_meaning_atomic_concepts():
+    expectation = {
+        "gold_id": "gold-gout",
+        "expected_atomic_concepts": [
+            {"kind": "nutrition_tag", "value": "low_purine", "aliases": ["limit high-purine foods"]},
+        ],
+        "semantic_groups": [
+            {
+                "canonical": {"kind": "nutrition_tag", "value": "low_purine"},
+                "equivalent_values": ["purine_restriction", "low_purine_diet"],
+            }
+        ],
+    }
+    extracted_rules = [{"suggested_concepts": [{"kind": "nutrition_tag", "suggested_code": "purine_restriction"}]}]
+
+    evaluation = evaluate_concept_expectation(expectation, extracted_rules)
+
+    assert evaluation["overall"] == "match"
+    assert evaluation["semantic_linking"]["linked_count"] == 1
+    assert evaluation["semantic_linking"]["unlinked_values"] == []
+
+
+def test_evaluate_concept_expectation_reports_umbrella_decomposition_separately():
     expectation = {
         "gold_id": "gold-ckd",
         "expected_atomic_concepts": [
@@ -582,6 +658,15 @@ def test_evaluate_concept_expectation_penalizes_umbrella_only_match():
             {"kind": "nutrition_tag", "value": "phosphorus_management", "aliases": ["phosphorus restriction"]},
         ],
         "do_not_score_as": ["potassium_phosphorus_management"],
+        "umbrella_mappings": [
+            {
+                "umbrella_value": "potassium_phosphorus_management",
+                "maps_to": [
+                    {"kind": "nutrition_tag", "value": "potassium_management"},
+                    {"kind": "nutrition_tag", "value": "phosphorus_management"},
+                ],
+            }
+        ],
     }
     extracted_rules = [
         {
@@ -598,6 +683,11 @@ def test_evaluate_concept_expectation_penalizes_umbrella_only_match():
         {"kind": "nutrition_tag", "value": "potassium_management"},
         {"kind": "nutrition_tag", "value": "phosphorus_management"},
     ]
+    assert evaluation["umbrella_decomposition"]["coverage"] == 1.0
+    assert evaluation["umbrella_decomposition"]["covered_atomic_concepts"] == [
+        {"kind": "nutrition_tag", "value": "phosphorus_management"},
+        {"kind": "nutrition_tag", "value": "potassium_management"},
+    ]
 
 
 def test_precision_recall_f1_for_concepts_counts_extra_atomic_concepts():
@@ -611,6 +701,32 @@ def test_precision_recall_f1_for_concepts_counts_extra_atomic_concepts():
         "recall": 0.75,
         "f1": 0.75,
     }
+
+
+def test_summarize_concept_evaluations_reports_three_validation_layers():
+    evaluations = [
+        {
+            "true_positive_count": 2,
+            "false_negative_count": 1,
+            "false_positive_count": 0,
+            "semantic_linking": {"linked_count": 2, "unlinked_values": []},
+            "umbrella_decomposition": {"coverage": 1.0},
+        },
+        {
+            "true_positive_count": 1,
+            "false_negative_count": 0,
+            "false_positive_count": 1,
+            "semantic_linking": {"linked_count": 0, "unlinked_values": [{"kind": "nutrition_tag", "value": "duplicate"}]},
+            "umbrella_decomposition": {"coverage": 0.5},
+        },
+    ]
+
+    summary = summarize_concept_evaluations(evaluations)
+
+    assert summary["atomic"]["recall"] == 0.75
+    assert summary["semantic_linking"]["linked_count"] == 2
+    assert summary["semantic_linking"]["unlinked_count"] == 1
+    assert summary["umbrella_decomposition"]["average_coverage"] == 0.75
 ```
 
 - [ ] **Step 2: Run the concept evaluation tests and verify they fail**
@@ -635,38 +751,43 @@ from typing import Any
 
 def evaluate_concept_expectation(expectation: dict[str, Any], extracted_rules: list[dict[str, Any]]) -> dict[str, Any]:
     expected_records = expectation.get("expected_atomic_concepts", []) or []
-    expected_by_alias: dict[tuple[str, str], tuple[str, str]] = {}
     expected_keys: set[tuple[str, str]] = set()
-    forbidden_values = {str(value) for value in expectation.get("do_not_score_as", []) or []}
+    canonical_by_surface_form = _build_canonical_surface_map(expectation)
+    umbrella_mappings = _build_umbrella_mappings(expectation)
+    forbidden_values = {_normalize_surface_value(value) for value in expectation.get("do_not_score_as", []) or []}
 
     for expected_record in expected_records:
         kind = str(expected_record["kind"])
         value = str(expected_record["value"])
         expected_key = (kind, value)
         expected_keys.add(expected_key)
-        expected_by_alias[(kind, value.lower())] = expected_key
-        for alias in expected_record.get("aliases", []) or []:
-            expected_by_alias[(kind, str(alias).strip().lower())] = expected_key
 
     extracted_keys: set[tuple[str, str]] = set()
     forbidden_matches: set[str] = set()
+    linked_surface_forms: set[tuple[str, str]] = set()
+    unlinked_surface_forms: set[tuple[str, str]] = set()
+    umbrella_covered_keys: set[tuple[str, str]] = set()
     for extracted_rule in extracted_rules:
         for concept_record in extracted_rule.get("suggested_concepts", []) or []:
             kind = str(concept_record.get("kind") or concept_record.get("suggested_kind") or "nutrition_tag")
             raw_value = str(concept_record.get("suggested_code") or concept_record.get("value") or concept_record)
-            normalized_value = raw_value.strip().lower()
+            normalized_value = _normalize_surface_value(raw_value)
             if normalized_value in forbidden_values:
                 forbidden_matches.add(normalized_value)
+                umbrella_covered_keys.update(umbrella_mappings.get(normalized_value, set()))
                 continue
-            matched_key = expected_by_alias.get((kind, normalized_value))
+            matched_key = canonical_by_surface_form.get((kind, normalized_value))
             if matched_key is not None:
                 extracted_keys.add(matched_key)
+                linked_surface_forms.add((kind, normalized_value))
             elif raw_value:
                 extracted_keys.add((kind, normalized_value))
+                unlinked_surface_forms.add((kind, normalized_value))
 
     true_positive_keys = expected_keys & extracted_keys
     false_negative_keys = expected_keys - extracted_keys
     false_positive_keys = extracted_keys - expected_keys
+    umbrella_coverage = len(expected_keys & umbrella_covered_keys) / len(expected_keys) if expected_keys else 0.0
 
     return {
         "gold_id": expectation.get("gold_id"),
@@ -676,6 +797,21 @@ def evaluate_concept_expectation(expectation: dict[str, Any], extracted_rules: l
         "missing_concepts": _sorted_concepts(false_negative_keys),
         "extra_concepts": _sorted_concepts(false_positive_keys),
         "forbidden_umbrella_matches": sorted(forbidden_matches),
+        "atomic_recall": {
+            "expected_count": len(expected_keys),
+            "matched_count": len(true_positive_keys),
+            "missing_count": len(false_negative_keys),
+            "recall": len(true_positive_keys) / len(expected_keys) if expected_keys else 0.0,
+        },
+        "semantic_linking": {
+            "linked_count": len(linked_surface_forms),
+            "unlinked_values": _sorted_concepts(unlinked_surface_forms),
+        },
+        "umbrella_decomposition": {
+            "coverage": umbrella_coverage,
+            "covered_atomic_concepts": _sorted_concepts(expected_keys & umbrella_covered_keys),
+            "missing_atomic_concepts": _sorted_concepts(expected_keys - umbrella_covered_keys) if forbidden_matches else [],
+        },
         "true_positive_count": len(true_positive_keys),
         "false_negative_count": len(false_negative_keys),
         "false_positive_count": len(false_positive_keys),
@@ -692,8 +828,62 @@ def precision_recall_f1_for_concepts(evaluations: list[dict[str, Any]]) -> dict[
     return {"precision": precision, "recall": recall, "f1": f1}
 
 
+def summarize_concept_evaluations(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
+    linked_count = sum(int((evaluation.get("semantic_linking") or {}).get("linked_count", 0)) for evaluation in evaluations)
+    unlinked_count = sum(
+        len((evaluation.get("semantic_linking") or {}).get("unlinked_values", []) or []) for evaluation in evaluations
+    )
+    umbrella_coverages = [
+        float((evaluation.get("umbrella_decomposition") or {}).get("coverage", 0.0)) for evaluation in evaluations
+    ]
+    average_umbrella_coverage = sum(umbrella_coverages) / len(umbrella_coverages) if umbrella_coverages else 0.0
+    return {
+        "atomic": precision_recall_f1_for_concepts(evaluations),
+        "semantic_linking": {
+            "linked_count": linked_count,
+            "unlinked_count": unlinked_count,
+        },
+        "umbrella_decomposition": {
+            "average_coverage": average_umbrella_coverage,
+        },
+    }
+
+
 def _sorted_concepts(keys: set[tuple[str, str]]) -> list[dict[str, str]]:
     return [{"kind": kind, "value": value} for kind, value in sorted(keys)]
+
+
+def _build_canonical_surface_map(expectation: dict[str, Any]) -> dict[tuple[str, str], tuple[str, str]]:
+    canonical_by_surface_form: dict[tuple[str, str], tuple[str, str]] = {}
+    for expected_record in expectation.get("expected_atomic_concepts", []) or []:
+        kind = str(expected_record["kind"])
+        value = str(expected_record["value"])
+        canonical_key = (kind, value)
+        canonical_by_surface_form[(kind, value.lower())] = canonical_key
+        for alias in expected_record.get("aliases", []) or []:
+            canonical_by_surface_form[(kind, _normalize_surface_value(alias))] = canonical_key
+    for semantic_group in expectation.get("semantic_groups", []) or []:
+        canonical = semantic_group["canonical"]
+        canonical_key = (str(canonical["kind"]), str(canonical["value"]))
+        canonical_by_surface_form[(canonical_key[0], canonical_key[1].lower())] = canonical_key
+        for equivalent_value in semantic_group.get("equivalent_values", []) or []:
+            canonical_by_surface_form[(canonical_key[0], _normalize_surface_value(equivalent_value))] = canonical_key
+    return canonical_by_surface_form
+
+
+def _build_umbrella_mappings(expectation: dict[str, Any]) -> dict[str, set[tuple[str, str]]]:
+    umbrella_mappings: dict[str, set[tuple[str, str]]] = {}
+    for umbrella_mapping in expectation.get("umbrella_mappings", []) or []:
+        umbrella_value = _normalize_surface_value(umbrella_mapping["umbrella_value"])
+        umbrella_mappings[umbrella_value] = {
+            (str(concept_record["kind"]), str(concept_record["value"]))
+            for concept_record in umbrella_mapping.get("maps_to", []) or []
+        }
+    return umbrella_mappings
+
+
+def _normalize_surface_value(value: Any) -> str:
+    return str(value).strip().lower().replace(" ", "_").replace("-", "_")
 ```
 
 - [ ] **Step 4: Remove reporting-only umbrella alias logic from `rule_evaluation.py`**
@@ -1166,7 +1356,7 @@ def test_stratified_report_exposes_track_summaries_without_averaging_them():
 
     assert report["headline_metric"] == "clean_extraction_f1"
     assert report["tracks"]["clean_extraction"]["overall"]["f1"] == 1.0
-    assert report["tracks"]["concept_discovery"]["overall"]["f1"] == 1.0
+    assert report["tracks"]["concept_discovery"]["overall"]["atomic"]["f1"] == 1.0
     assert report["tracks"]["mixed_legacy"]["overall"]["recall"] < 1.0
 ```
 
@@ -1189,7 +1379,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from knowledge.concept_evaluation import precision_recall_f1_for_concepts
+from knowledge.concept_evaluation import summarize_concept_evaluations
 from knowledge.evaluation_taxonomy import EvaluationTrack
 from knowledge.gold_audit import annotate_evaluations_with_gold_audit, build_gold_audit_report
 from knowledge.rule_evaluation import precision_recall_f1
@@ -1232,7 +1422,7 @@ def build_stratified_evaluation_report(
             },
             EvaluationTrack.CONCEPT_DISCOVERY.value: {
                 "evaluated_record_count": len(concept_evaluations),
-                "overall": precision_recall_f1_for_concepts(concept_evaluations),
+                "overall": summarize_concept_evaluations(concept_evaluations),
             },
             EvaluationTrack.CONVERSION.value: {
                 "evaluated_record_count": len(conversion_evaluations),
@@ -1471,7 +1661,7 @@ Primary metrics include field-level precision, recall, F1, numeric-limit exact m
 with:
 
 ```markdown
-Primary metrics are reported by evaluation track. `clean_extraction_f1` is the headline regression metric for source-card-direct and trusted-negative rows. `contextual_handling` reports contextual accept rate and overclaim rate. `conversion` reports conversion accuracy and missing-assumption rate. `concept_discovery` reports atomic concept precision, recall, F1, and duplicate/umbrella rate. The legacy mixed precision/recall/F1 is retained only for continuity and must not be used as the sole headline score after gold audit metadata is available.
+Primary metrics are reported by evaluation track. `clean_extraction_f1` is the headline regression metric for source-card-direct and trusted-negative rows. `contextual_handling` reports contextual accept rate and overclaim rate. `conversion` reports conversion accuracy and missing-assumption rate. `concept_discovery` reports three sublayers: atomic concept precision/recall/F1, semantic-linking linked/unlinked counts, and umbrella-decomposition coverage. The legacy mixed precision/recall/F1 is retained only for continuity and must not be used as the sole headline score after gold audit metadata is available.
 ```
 
 - [ ] **Step 2: Update manual audit report**
@@ -1484,7 +1674,7 @@ In `reports/rule-extraction-v1-gold-audit-20260602.md`, add a section after `## 
 - `clean_extraction`: source-card-direct rules and trusted negatives; headline F1.
 - `contextual_handling`: sources with nutrition signal but no fixed numeric disease rule; evaluate context preservation and overclaim avoidance.
 - `conversion`: sources that require unit or energy-reference conversion; evaluate formula, assumptions, and converted value separately.
-- `concept_discovery`: schema-gap sources; evaluate atomic product concepts and aliases instead of umbrella ids.
+- `concept_discovery`: schema-gap sources; evaluate atomic product concepts, same-meaning links, and umbrella-to-atomic decomposition instead of treating umbrella ids as direct gold.
 - `mixed_legacy`: all frozen gold rows; retained only for continuity with earlier reports.
 ```
 
@@ -1593,7 +1783,7 @@ Expected:
 Generate the PR comment body from the stratified report so every metric line has a concrete value:
 
 ```bash
-python -c "import json, pathlib; p=pathlib.Path('reports/rule-extraction-stratified-eval-full-c2-20260602/rule-extraction-v1-stratified-evaluation-report.json'); r=json.loads(p.read_text(encoding='utf-8')); tracks=r['tracks']; clean=tracks['clean_extraction']['overall']; contextual=tracks['contextual_handling']['overall']; conversion=tracks['conversion']['overall']; concept=tracks['concept_discovery']['overall']; legacy=tracks['mixed_legacy']['overall']; print('Stratified evaluation full C2 result:'); print(f'- clean_extraction_f1: {clean.get(\"f1\", 0):.3f}'); print(f'- contextual_handling accuracy: {contextual.get(\"accuracy\", 0):.3f}'); print(f'- conversion accuracy: {conversion.get(\"accuracy\", 0):.3f}'); print(f'- concept_discovery P/R/F1: {concept.get(\"precision\", 0):.3f} / {concept.get(\"recall\", 0):.3f} / {concept.get(\"f1\", 0):.3f}'); print(f'- mixed_legacy P/R/F1: {legacy.get(\"precision\", 0):.3f} / {legacy.get(\"recall\", 0):.3f} / {legacy.get(\"f1\", 0):.3f}'); print('\\nInterpretation: clean extraction is the direct-evidence headline score; conversion, concept discovery, and contextual handling are separate capabilities, not direct-extraction misses.')"
+python -c "import json, pathlib; p=pathlib.Path('reports/rule-extraction-stratified-eval-full-c2-20260602/rule-extraction-v1-stratified-evaluation-report.json'); r=json.loads(p.read_text(encoding='utf-8')); tracks=r['tracks']; clean=tracks['clean_extraction']['overall']; contextual=tracks['contextual_handling']['overall']; conversion=tracks['conversion']['overall']; concept=tracks['concept_discovery']['overall']; atomic=concept['atomic']; semantic=concept['semantic_linking']; umbrella=concept['umbrella_decomposition']; legacy=tracks['mixed_legacy']['overall']; print('Stratified evaluation full C2 result:'); print(f'- clean_extraction_f1: {clean.get(\"f1\", 0):.3f}'); print(f'- contextual_handling accuracy: {contextual.get(\"accuracy\", 0):.3f}'); print(f'- conversion accuracy: {conversion.get(\"accuracy\", 0):.3f}'); print(f'- concept_discovery atomic P/R/F1: {atomic.get(\"precision\", 0):.3f} / {atomic.get(\"recall\", 0):.3f} / {atomic.get(\"f1\", 0):.3f}'); print(f'- concept_discovery semantic linked/unlinked: {semantic.get(\"linked_count\", 0)} / {semantic.get(\"unlinked_count\", 0)}'); print(f'- concept_discovery umbrella average coverage: {umbrella.get(\"average_coverage\", 0):.3f}'); print(f'- mixed_legacy P/R/F1: {legacy.get(\"precision\", 0):.3f} / {legacy.get(\"recall\", 0):.3f} / {legacy.get(\"f1\", 0):.3f}'); print('\\nInterpretation: clean extraction is the direct-evidence headline score; conversion, concept discovery, and contextual handling are separate capabilities, not direct-extraction misses.')"
 ```
 
 Expected: the command prints a complete comment body with numeric values copied from the generated report.
@@ -1639,7 +1829,7 @@ The plan is complete when:
 - `gold_evaluation_set.jsonl` remains unchanged.
 - `gold_audit.jsonl` remains a one-to-one audit layer over frozen gold.
 - Clean headline rows are selected through centralized taxonomy, not scattered string comparisons.
-- Schema-gap rows are evaluated against atomic concepts and aliases, not umbrella ids.
+- Schema-gap rows are evaluated against atomic concepts, semantic links, and umbrella-to-atomic mappings, not one opaque umbrella id.
 - Conversion rows are evaluated through explicit formulas and assumptions.
 - Contextual rows are evaluated for context preservation and overclaim avoidance.
 - Real-LLM reports include `stratified_evaluation` and a separate stratified JSON artifact.
