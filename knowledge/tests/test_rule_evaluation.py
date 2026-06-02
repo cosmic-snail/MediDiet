@@ -11,6 +11,38 @@ def test_evaluate_numeric_rule_match():
     assert result["overall"] == "match"
 
 
+def test_numeric_limit_metric_mismatch_is_reported_separately():
+    gold = {"gold_id": "gold-sodium", "should_extract": True, "condition": "hypertension", "hard_exclusions": [], "preferred_tags": ["low_sodium"], "nutrition_limits": [{"metric": "sodium_mg", "scope": "daily", "max_value": 2000, "window_hours": 24}]}
+    extracted = [{"condition": "hypertension", "hard_exclusions": [], "preferred_tags": ["low_sodium"], "nutrition_limits": [{"metric": "sugar_g", "scope": "daily", "max_value": 50, "window_hours": 24}], "evidence_quote": "less than 2 g/day"}]
+
+    result = evaluate_rule(gold, extracted)
+
+    assert result["field_scores"]["nutrition_limits"] == "partial"
+    assert "numeric_limit_metric_mismatch" in result["failures"]
+    assert "missing_numeric_limit" not in result["failures"]
+
+
+def test_numeric_limit_value_mismatch_is_reported_separately():
+    gold = {"gold_id": "gold-sodium", "should_extract": True, "condition": "hypertension", "hard_exclusions": [], "preferred_tags": ["low_sodium"], "nutrition_limits": [{"metric": "sodium_mg", "scope": "daily", "max_value": 2000, "window_hours": 24}]}
+    extracted = [{"condition": "hypertension", "hard_exclusions": [], "preferred_tags": ["low_sodium"], "nutrition_limits": [{"metric": "sodium_mg", "scope": "daily", "max_value": 1500, "window_hours": 24}], "evidence_quote": "less than 1.5 g/day"}]
+
+    result = evaluate_rule(gold, extracted)
+
+    assert result["field_scores"]["nutrition_limits"] == "partial"
+    assert "numeric_limit_value_mismatch" in result["failures"]
+    assert "missing_numeric_limit" not in result["failures"]
+
+
+def test_daily_numeric_limit_matches_null_or_24_hour_window():
+    gold = {"gold_id": "gold-sodium", "should_extract": True, "condition": "hypertension", "hard_exclusions": [], "preferred_tags": ["low_sodium"], "nutrition_limits": [{"metric": "sodium_mg", "scope": "daily", "max_value": 2000, "window_hours": None}]}
+    extracted = [{"condition": "hypertension", "hard_exclusions": [], "preferred_tags": ["low_sodium"], "nutrition_limits": [{"metric": "sodium_mg", "scope": "daily", "max_value": 2000, "window_hours": 24}], "evidence_quote": "2000 mg sodium per day"}]
+
+    result = evaluate_rule(gold, extracted)
+
+    assert result["field_scores"]["nutrition_limits"] == "match"
+    assert "numeric_limit_value_mismatch" not in result["failures"]
+
+
 def test_no_rule_expected_example():
     result = evaluate_rule({"gold_id": "none", "should_extract": False}, [])
     assert result["overall"] == "match"

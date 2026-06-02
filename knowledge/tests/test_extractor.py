@@ -70,6 +70,9 @@ def test_extraction_system_prompt_requires_numeric_limits_when_present():
     assert "nutrition_limits" in _EXTRACTION_SYSTEM_PROMPT
     assert "If a source gives a numeric threshold" in _EXTRACTION_SYSTEM_PROMPT
     assert "do not replace it with only a preferred_tag" in _EXTRACTION_SYSTEM_PROMPT
+    assert "daily sodium limit" in _EXTRACTION_SYSTEM_PROMPT
+    assert "5 g salt" in _EXTRACTION_SYSTEM_PROMPT
+    assert "2000 mg sodium" in _EXTRACTION_SYSTEM_PROMPT
 
 
 class TestSerializeConceptRegistry:
@@ -197,6 +200,42 @@ class TestParseExtractionResponse:
         assert rules[0].extraction_method == "llm"
         assert rules[0].status == "draft"
         assert len(suggestions) == 0
+
+    def test_parse_daily_limit_treats_24_hour_window_as_daily_scope(self):
+        registry = _sample_registry()
+        raw = json.dumps({
+            "rules": [
+                {
+                    "condition": {"kind": "condition", "value": "hypertension"},
+                    "hard_exclusions": [],
+                    "preferred_tags": [],
+                    "nutrition_limits": [
+                        {
+                            "metric": "sodium_mg",
+                            "scope": "daily",
+                            "max_value": 2000.0,
+                            "window_hours": 24,
+                        }
+                    ],
+                    "confidence": 0.9,
+                    "evidence_quotes": {
+                        "nutrition_limits": "2000 mg sodium per day"
+                    },
+                }
+            ],
+            "suggested_concepts": [],
+        })
+
+        rules, _ = _parse_extraction_response(
+            raw, registry, "test", ["chunk-001"], ["doc-001"]
+        )
+
+        assert len(rules) == 1
+        nutrition_limit = next(iter(rules[0].nutrition_limits))
+        assert nutrition_limit.metric is NutrientMetric.SODIUM_MG
+        assert nutrition_limit.scope is LimitScope.DAILY
+        assert nutrition_limit.max_value == 2000.0
+        assert nutrition_limit.window_hours is None
 
     def test_parse_with_evidence_quotes_creates_verification(self):
         registry = _sample_registry()

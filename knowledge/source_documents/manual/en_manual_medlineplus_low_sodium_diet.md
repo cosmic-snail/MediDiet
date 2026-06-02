@@ -28,6 +28,7 @@ This patient instruction card tests whether sodium advice can be extracted acros
 ## Extractable Source Content
 
 - The page explains low-salt eating as relevant to conditions such as blood pressure, heart, and kidney disease.
+- It describes low-sodium diet targets using a daily sodium limit around 2000 mg.
 - It gives practical strategies for reducing sodium from packaged and prepared foods.
 - The source is expected to support sodium-related rule extraction.
 

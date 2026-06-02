@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from knowledge.documents import select_document_content
 from knowledge.loader import KnowledgeLoader
 
 
@@ -249,6 +250,27 @@ def test_gold_evaluation_set_is_small_frozen_and_offline_only():
         assert row["created_for"] == "offline_evaluation_only"
         assert row["frozen"] is True
         assert "evidence_requirement" in row
+
+
+def test_gold_numeric_limits_have_extractable_source_numeric_signals():
+    gold_rows = _read_jsonl(DATASET_DIR / "gold_evaluation_set.jsonl")
+    manifest_by_doc_id = {row["doc_id"]: row for row in _manifest_rows()}
+
+    for gold_evaluation_row in gold_rows:
+        numeric_limits = gold_evaluation_row.get("nutrition_limits") or []
+        if not numeric_limits:
+            continue
+        source_document_path = REPO_ROOT / manifest_by_doc_id[gold_evaluation_row["doc_id"]]["path"]
+        source_extractable_content = select_document_content(
+            source_document_path.read_text(encoding="utf-8"),
+            strategy="extractable_content",
+        ).lower()
+        for numeric_limit in numeric_limits:
+            limit_value = str(int(numeric_limit["max_value"]))
+            assert limit_value in source_extractable_content, (
+                f"{gold_evaluation_row['doc_id']} gold limit {numeric_limit['metric']}="
+                f"{limit_value} is not present in extractable source content"
+            )
 
 
 def test_challenge_set_references_manifest_docs_and_uses_known_failure_taxonomy():

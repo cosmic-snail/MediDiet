@@ -28,7 +28,8 @@ This source card tests extraction of explicit sodium limits from an English WHO 
 ## Extractable Source Content
 
 - WHO recommends lowering sodium intake to reduce blood pressure and cardiovascular risk.
-- For adults, the guideline uses a numeric sodium limit that can be converted to an approximate salt limit.
+- For adults, the guideline recommends a daily sodium limit below 2000 mg.
+- This corresponds to roughly 5 g salt per day when expressed as a salt-intake limit.
 - The recommendation is population-facing and can support cross-language comparison with Chinese salt guidance.
 
 ## Copyright Handling

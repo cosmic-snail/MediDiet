@@ -74,6 +74,8 @@ Important rules:
 - If you need a concept that does not exist in the registry, add it to a separate \
 "suggested_concepts" array in the output (NOT in the rules array)
 - If a source gives a numeric threshold for supported metrics, extract it in nutrition_limits; do not replace it with only a preferred_tag.
+- Treat explicit daily sodium limit statements as nutrition_limits entries. Example: "2000 mg sodium per day" -> {"metric": "sodium_mg", "scope": "daily", "max_value": 2000, "window_hours": null}.
+- Treat an explicit "5 g salt per day" statement as equivalent to about "2000 mg sodium per day" when the source card states that conversion.
 - If a numeric threshold is stated as salt rather than sodium, convert only when the source explicitly provides the sodium/salt relationship or the gold metric uses sodium_mg in the dataset context.
 - If the source states a percentage threshold but no supported gram metric can be computed from the text, add the concept to suggested_concepts and explain the percentage in evidence_quotes.
 - Every claim MUST have an evidence_quote from the provided fragments
@@ -310,6 +312,8 @@ def _parse_extraction_response(
                 window_hours: int | None = None
                 if window_hours_raw is not None:
                     window_hours = int(window_hours_raw)
+                if scope != LimitScope.ROLLING_WINDOW:
+                    window_hours = None
                 nutrition_limits.add(
                     NutrientLimit(
                         metric=metric,

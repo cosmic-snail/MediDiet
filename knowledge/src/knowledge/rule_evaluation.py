@@ -10,9 +10,39 @@ SUGGESTED_CONCEPT_ALIASES = {
 
 def _limits(rule: dict[str, Any]) -> set[tuple]:
     return {
-        (item.get("metric"), item.get("scope"), float(item.get("max_value", 0)), item.get("window_hours"))
+        (
+            item.get("metric"),
+            item.get("scope"),
+            float(item.get("max_value", 0)),
+            _normalized_limit_window(item.get("scope"), item.get("window_hours")),
+        )
         for item in rule.get("nutrition_limits", []) or []
     }
+
+
+def _normalized_limit_window(scope: Any, window_hours: Any) -> Any:
+    if scope == "daily" and window_hours in {None, 24, "24"}:
+        return 24
+    return window_hours
+
+
+def _numeric_limit_failure_labels(gold_limits: set[tuple], extracted_limits: set[tuple]) -> list[str]:
+    if not gold_limits:
+        return []
+    if not extracted_limits:
+        return ["missing_numeric_limit"]
+
+    gold_metrics = {item[0] for item in gold_limits}
+    extracted_metrics = {item[0] for item in extracted_limits}
+    if not gold_metrics & extracted_metrics:
+        return ["numeric_limit_metric_mismatch"]
+
+    gold_metric_scopes = {(item[0], item[1]) for item in gold_limits}
+    extracted_metric_scopes = {(item[0], item[1]) for item in extracted_limits}
+    if not gold_metric_scopes & extracted_metric_scopes:
+        return ["numeric_limit_scope_mismatch"]
+
+    return ["numeric_limit_value_mismatch"]
 
 
 def _code_value(item: Any) -> Any:
@@ -68,6 +98,7 @@ def evaluate_rule(gold: dict[str, Any], extracted: list[dict[str, Any]], include
         failures.append("missing_numeric_limit")
     else:
         fields["nutrition_limits"] = "partial"
+        failures.extend(_numeric_limit_failure_labels(gold_limits, extracted_limits))
     quote = best.get("evidence_quote", "") or best.get("evidence_quotes", "")
     fields["evidence_quote"] = "partial" if quote else "missing"
     concepts = _soft_concepts(best.get("suggested_concepts", []) or [])

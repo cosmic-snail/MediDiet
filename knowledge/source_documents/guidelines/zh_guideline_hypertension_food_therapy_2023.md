@@ -29,6 +29,7 @@ This source card tests extraction of Chinese hypertension nutrition guidance fro
 
 - The guideline frames dietary intervention as an important non-drug measure for blood pressure control.
 - It emphasizes a balanced diet with salt reduction and attention to high-sodium foods.
+- The card treats the hypertension salt-reduction target as about 5 g salt per day, equivalent to about 2000 mg sodium per day.
 - It also treats alcohol control and overall lifestyle as contextual factors for hypertension management.
 
 ## Copyright Handling
