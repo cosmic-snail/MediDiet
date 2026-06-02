@@ -6,11 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from knowledge.evaluation_taxonomy import clean_headline_filter
 from knowledge.rule_evaluation import precision_recall_f1
-
-
-CLEAN_HEADLINE_EVIDENCE_LEVELS = {"source_card_direct", "original_source_direct", "contextual_negative"}
-CLEAN_HEADLINE_AUDIT_STATUSES = {"keep"}
 
 
 def load_gold_audit_rows(dataset_dir: Path) -> list[dict[str, Any]]:
@@ -65,8 +62,12 @@ def build_gold_audit_report(
     clean_evaluations = [
         evaluation
         for evaluation in annotated_evaluations
-        if evaluation.get("evidence_level") in CLEAN_HEADLINE_EVIDENCE_LEVELS
-        and evaluation.get("audit_status") in CLEAN_HEADLINE_AUDIT_STATUSES
+        if evaluation.get("evidence_level") is not None
+        and evaluation.get("audit_status") is not None
+        and clean_headline_filter(
+            evidence_level=str(evaluation["evidence_level"]),
+            audit_status=str(evaluation["audit_status"]),
+        )
     ]
     audit_status_counts = Counter(str(gold_audit_row.get("audit_status") or "missing") for gold_audit_row in audit_rows)
     evidence_level_counts = Counter(
@@ -89,8 +90,12 @@ def build_gold_audit_report(
                 [
                     gold_audit_row
                     for gold_audit_row in audit_rows
-                    if gold_audit_row.get("evidence_level") in CLEAN_HEADLINE_EVIDENCE_LEVELS
-                    and gold_audit_row.get("audit_status") in CLEAN_HEADLINE_AUDIT_STATUSES
+                    if gold_audit_row.get("evidence_level") is not None
+                    and gold_audit_row.get("audit_status") is not None
+                    and clean_headline_filter(
+                        evidence_level=str(gold_audit_row["evidence_level"]),
+                        audit_status=str(gold_audit_row["audit_status"]),
+                    )
                 ]
             ),
             "audit_status_counts": dict(sorted(audit_status_counts.items())),

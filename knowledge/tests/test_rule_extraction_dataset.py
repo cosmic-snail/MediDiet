@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 
+from knowledge.evaluation_taxonomy import AuditStatus, EvidenceLevel, RecommendedAction
 from knowledge.loader import KnowledgeLoader
 
 
@@ -201,29 +202,9 @@ def test_manifest_records_have_required_fields_and_existing_markdown_paths():
 
 ALLOWED_EXPECTED_BEHAVIORS = {"rule", "suggested_concept", "negative", "contextual", "conflict"}
 ALLOWED_GOLD_BEHAVIORS = {"rule", "suggested_concept", "negative"}
-ALLOWED_GOLD_AUDIT_EVIDENCE_LEVELS = {
-    "source_card_direct",
-    "original_source_direct",
-    "derived_conversion",
-    "schema_gap",
-    "contextual_negative",
-}
-ALLOWED_GOLD_AUDIT_STATUSES = {
-    "keep",
-    "borderline",
-    "revise_gold",
-    "revise_schema_or_gold",
-    "review_negative",
-}
-ALLOWED_GOLD_AUDIT_ACTIONS = {
-    "keep",
-    "review_condition_scope",
-    "remove_numeric_limit",
-    "add_percent_energy_schema",
-    "replace_umbrella_concept",
-    "mark_contextual",
-    "fix_negative_failure_label",
-}
+ALLOWED_GOLD_AUDIT_EVIDENCE_LEVELS = {evidence_level.value for evidence_level in EvidenceLevel}
+ALLOWED_GOLD_AUDIT_STATUSES = {audit_status.value for audit_status in AuditStatus}
+ALLOWED_GOLD_AUDIT_ACTIONS = {recommended_action.value for recommended_action in RecommendedAction}
 ALLOWED_FAILURE_TYPES = {
     "unsupported_nutrient_metric",
     "unknown_condition",
