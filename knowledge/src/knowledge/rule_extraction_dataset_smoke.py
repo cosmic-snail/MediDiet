@@ -33,6 +33,11 @@ from knowledge.extraction_experiments import BENCHMARK_EXPERIMENT_MATRIX, COMPAR
 from knowledge.extraction_observations import append_observation
 from knowledge.extraction_stability import summarize_stability
 from knowledge.extractor import RuleExtractor
+from knowledge.gold_audit import (
+    annotate_evaluations_with_gold_audit,
+    load_gold_audit_rows,
+    write_gold_audit_report,
+)
 from knowledge.golden_eval_accuracy import write_golden_eval_accuracy_artifacts
 from knowledge.judge_evaluator import JudgeLLMEvaluator, build_layer_2_judge_summary
 from knowledge.llm_run_control import CircuitBreaker, RunCheckpoint, classify_provider_failure
@@ -1040,8 +1045,21 @@ def run_research_real_run(
         source_text_bundle,
     )
     stability = summarize_stability(observations)
-    evaluations = _evaluate_observations_against_gold(dataset_dir, observations)
+    gold_rows = _load_gold(dataset_dir)
+    audit_rows = load_gold_audit_rows(dataset_dir)
+    evaluations = annotate_evaluations_with_gold_audit(
+        _evaluate_observations_against_gold(dataset_dir, observations),
+        audit_rows,
+    )
     evaluation_summary = _summarize_evaluations(evaluations)
+    gold_audit_report = write_gold_audit_report(
+        output_dir=output_dir,
+        dataset_id=dataset,
+        run_type="real_llm",
+        gold_rows=gold_rows,
+        evaluations=evaluations,
+        audit_rows=audit_rows,
+    )
     judge_call_limit = None
     if judge_provider is not None and judge_max_rules == 0:
         judge_observations = []
@@ -1106,6 +1124,8 @@ def run_research_real_run(
         "numeric_limit_summary": _summarize_numeric_limit_failures(evaluations),
         "judge_sampling": judge_sampling,
         "evaluation_summary": evaluation_summary,
+        "clean_evaluation_summary": gold_audit_report["clean_evaluation_summary"],
+        "gold_audit": gold_audit_report,
         "golden_eval_accuracy": golden_eval_accuracy,
         **layer_0_1_summary,
         "layer_2_judge": layer_2_judge,

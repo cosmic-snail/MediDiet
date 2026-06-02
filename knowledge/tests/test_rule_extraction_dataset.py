@@ -201,6 +201,29 @@ def test_manifest_records_have_required_fields_and_existing_markdown_paths():
 
 ALLOWED_EXPECTED_BEHAVIORS = {"rule", "suggested_concept", "negative", "contextual", "conflict"}
 ALLOWED_GOLD_BEHAVIORS = {"rule", "suggested_concept", "negative"}
+ALLOWED_GOLD_AUDIT_EVIDENCE_LEVELS = {
+    "source_card_direct",
+    "original_source_direct",
+    "derived_conversion",
+    "schema_gap",
+    "contextual_negative",
+}
+ALLOWED_GOLD_AUDIT_STATUSES = {
+    "keep",
+    "borderline",
+    "revise_gold",
+    "revise_schema_or_gold",
+    "review_negative",
+}
+ALLOWED_GOLD_AUDIT_ACTIONS = {
+    "keep",
+    "review_condition_scope",
+    "remove_numeric_limit",
+    "add_percent_energy_schema",
+    "replace_umbrella_concept",
+    "mark_contextual",
+    "fix_negative_failure_label",
+}
 ALLOWED_FAILURE_TYPES = {
     "unsupported_nutrient_metric",
     "unknown_condition",
@@ -250,6 +273,20 @@ def test_gold_evaluation_set_is_small_frozen_and_offline_only():
         assert row["created_for"] == "offline_evaluation_only"
         assert row["frozen"] is True
         assert "evidence_requirement" in row
+
+
+def test_gold_audit_metadata_covers_every_frozen_gold_row():
+    gold_rows = _read_jsonl(DATASET_DIR / "gold_evaluation_set.jsonl")
+    audit_rows = _read_jsonl(DATASET_DIR / "gold_audit.jsonl")
+    gold_ids = {row["gold_id"] for row in gold_rows}
+    audit_gold_ids = {row["gold_id"] for row in audit_rows}
+
+    assert audit_gold_ids == gold_ids
+    for audit_row in audit_rows:
+        assert audit_row["evidence_level"] in ALLOWED_GOLD_AUDIT_EVIDENCE_LEVELS
+        assert audit_row["audit_status"] in ALLOWED_GOLD_AUDIT_STATUSES
+        assert audit_row["recommended_action"] in ALLOWED_GOLD_AUDIT_ACTIONS
+        assert audit_row["audit_notes"]
 
 
 def test_source_cards_do_not_expose_benchmark_gold_answer_language():

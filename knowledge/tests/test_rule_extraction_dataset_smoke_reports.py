@@ -143,6 +143,11 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
     assert "grounding" in report["observations"][0]["evaluator"]
     assert report["evaluations"][0]["gold_id"] == "gold_zh_guideline_hypertension_food_therapy_2023_001"
     assert report["evaluations"][0]["arm_id"] == "C2"
+    assert report["evaluations"][0]["evidence_level"] == "source_card_direct"
+    assert report["evaluations"][0]["audit_status"] == "keep"
+    assert report["gold_audit"]["summary"]["audit_coverage_count"] == 14
+    assert report["gold_audit"]["clean_evaluation_summary"]["evaluated_record_count"] == 1
+    assert report["clean_evaluation_summary"]["evaluated_record_count"] == 1
 
 
 def test_real_run_can_include_layer_2_judge_summary(tmp_path: Path):
