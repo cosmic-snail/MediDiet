@@ -11,6 +11,7 @@
 - `extraction_observations.jsonl`：无人闭环抽取运行后的 append-only 观察结果。
 - `gold_evaluation_set.jsonl`：冻结的离线评测真值子集，只用于计算指标，不用于更新 prompt、标签或规则。
 - `gold_audit.jsonl`：冻结 gold 的证据分层与审计建议，用于区分 clean headline score 与 exploratory/schema-gap/contextual rows，不修改 `gold_evaluation_set.jsonl`。
+- `concept_expectations.jsonl`：schema-gap gold 的 atomic concept 期望与 alias group，用于产品概念注册和实验概念评估。
 - `challenge_set.jsonl`：上下文复杂或当前 schema 不支持的样本，用于失败分析，不强制纳入 F1。
 
 ## 研究协议
