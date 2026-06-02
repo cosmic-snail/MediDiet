@@ -812,6 +812,22 @@ def _write_layered_evaluation_summary(output_dir: Path, report: dict[str, Any]) 
     return summary_path
 
 
+def _concept_records_by_doc_id(observations: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    concept_records_by_doc_id: dict[str, list[dict[str, Any]]] = {}
+    for observation in observations:
+        doc_id = str(observation["doc_id"])
+        concept_records_by_doc_id.setdefault(doc_id, []).extend(observation.get("parsed_rules", []) or [])
+        suggested_concepts = observation.get("suggested_concepts", []) or []
+        if suggested_concepts:
+            concept_records_by_doc_id[doc_id].append(
+                {
+                    "doc_id": doc_id,
+                    "suggested_concepts": suggested_concepts,
+                }
+            )
+    return concept_records_by_doc_id
+
+
 def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None = None, experiments: list[str] | None = None, chunk_strategies: list[str] | None = None) -> dict[str, Any]:
     dataset_dir = _dataset_dir(dataset)
     docs = load_dataset_documents(dataset_dir, _source_root())
@@ -838,12 +854,13 @@ def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None 
         extracted = doc_observations[0]["parsed_rules"] if doc_observations else []
         evaluations.append(evaluate_rule(gold_row, extracted))
     audit_rows = load_gold_audit_rows(dataset_dir)
-    rules_by_doc_id: dict[str, list[dict[str, Any]]] = {}
-    for observation in observations:
-        rules_by_doc_id.setdefault(str(observation["doc_id"]), []).extend(observation.get("parsed_rules", []) or [])
+    concept_records_by_doc_id = _concept_records_by_doc_id(observations)
     track_expectations = load_track_expectations(dataset_dir)
     concept_evaluations = [
-        evaluate_concept_expectation(track_expectation, rules_by_doc_id.get(str(track_expectation["doc_id"]), []))
+        evaluate_concept_expectation(
+            track_expectation,
+            concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
         for track_expectation in track_expectations["concept_discovery"]
     ]
     conversion_evaluations = [
@@ -851,13 +868,20 @@ def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None 
         for track_expectation in track_expectations["conversion"]
     ]
     contextual_evaluations = [
-        evaluate_contextual_expectation(track_expectation, rules_by_doc_id.get(str(track_expectation["doc_id"]), []))
+        evaluate_contextual_expectation(
+            track_expectation,
+            concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
         for track_expectation in track_expectations["contextual_handling"]
     ]
     extracted_concept_graph = build_extracted_concept_graph(
         dataset_id=dataset,
         run_type="dry_run",
-        extracted_rules=[parsed_rule for rules in rules_by_doc_id.values() for parsed_rule in rules],
+        extracted_rules=[
+            concept_record
+            for concept_records in concept_records_by_doc_id.values()
+            for concept_record in concept_records
+        ],
         concept_expectations=track_expectations["concept_discovery"],
     )
     evaluation_concept_graph = build_evaluation_concept_graph(
@@ -1119,13 +1143,13 @@ def run_research_real_run(
         evaluations=evaluations,
         audit_rows=audit_rows,
     )
-    rules_by_doc_id = {
-        str(observation["doc_id"]): observation.get("parsed_rules", []) or []
-        for observation in observations
-    }
+    concept_records_by_doc_id = _concept_records_by_doc_id(observations)
     track_expectations = load_track_expectations(dataset_dir)
     concept_evaluations = [
-        evaluate_concept_expectation(track_expectation, rules_by_doc_id.get(str(track_expectation["doc_id"]), []))
+        evaluate_concept_expectation(
+            track_expectation,
+            concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
         for track_expectation in track_expectations["concept_discovery"]
     ]
     conversion_evaluations = [
@@ -1133,16 +1157,19 @@ def run_research_real_run(
         for track_expectation in track_expectations["conversion"]
     ]
     contextual_evaluations = [
-        evaluate_contextual_expectation(track_expectation, rules_by_doc_id.get(str(track_expectation["doc_id"]), []))
+        evaluate_contextual_expectation(
+            track_expectation,
+            concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
         for track_expectation in track_expectations["contextual_handling"]
     ]
     extracted_concept_graph = build_extracted_concept_graph(
         dataset_id=dataset,
         run_type="real_llm",
         extracted_rules=[
-            parsed_rule
-            for observation in observations
-            for parsed_rule in observation.get("parsed_rules", []) or []
+            concept_record
+            for concept_records in concept_records_by_doc_id.values()
+            for concept_record in concept_records
         ],
         concept_expectations=track_expectations["concept_discovery"],
     )

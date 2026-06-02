@@ -10,6 +10,7 @@ from medidiet.llm import LLMResponse, LLMTask
 from medidiet.rules import LimitScope, NutrientLimit, NutrientMetric
 import knowledge.rule_extraction_dataset_smoke as smoke
 from knowledge.rule_extraction_dataset_smoke import (
+    _concept_records_by_doc_id,
     _limit_key,
     _rule_limit_key,
     build_chunking_report,
@@ -47,6 +48,29 @@ def test_dry_run_generates_summary_reports(tmp_path: Path):
     run_research_dry_run("rule_extraction_v1", tmp_path, arms=["C2"], experiments=["E1"])
     assert (tmp_path / "doc-rule-agent-error-taxonomy.md").exists()
     assert (tmp_path / "doc-rule-agent-experiment-summary.md").exists()
+
+
+def test_concept_records_include_top_level_suggested_concepts():
+    observations = [
+        {
+            "doc_id": "gout-doc",
+            "parsed_rules": [],
+            "suggested_concepts": [
+                {"kind": "nutrition_tag", "suggested_code": "hydration_support"},
+            ],
+        }
+    ]
+
+    concept_records_by_doc_id = _concept_records_by_doc_id(observations)
+
+    assert concept_records_by_doc_id["gout-doc"] == [
+        {
+            "doc_id": "gout-doc",
+            "suggested_concepts": [
+                {"kind": "nutrition_tag", "suggested_code": "hydration_support"},
+            ],
+        }
+    ]
 
 
 class RecordingRuleLLMProvider:
