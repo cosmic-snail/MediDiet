@@ -373,6 +373,51 @@ class TestParseExtractionResponse:
         assert low_purine.evidence_quotes == ("Limit high-purine foods.",)
         assert low_purine.confidence == 0.82
 
+    def test_duplicate_legacy_and_concept_graph_suggestions_are_merged(self):
+        registry = _sample_registry()
+        raw = json.dumps({
+            "rules": [],
+            "suggested_concepts": [
+                {
+                    "kind": "nutrition_tag",
+                    "value": "low_purine",
+                    "definition": "Low-purine diet",
+                    "display_name": "Low Purine",
+                }
+            ],
+            "concept_graph": {
+                "atomic_concepts": [
+                    {
+                        "kind": "nutrition_tag",
+                        "value": "low_purine",
+                        "definition": "Diet low in purines for gout management",
+                        "display_name": "Low Purine",
+                        "aliases": ["purine restriction"],
+                        "polarity": "prefer",
+                        "evidence_quotes": ["Limit high-purine foods."],
+                        "confidence": 0.82,
+                    }
+                ],
+                "umbrella_concepts": [{"value": "gout_diet_context"}],
+                "relations": [
+                    {"source": "gout_diet_context", "target": "low_purine", "type": "contains"},
+                    {"source": "low_purine", "target": "high_purine", "type": "polarity_pair"},
+                ],
+            },
+        })
+
+        _, suggestions = _parse_extraction_response(raw, registry, "test", ["chunk-001"], ["doc-001"])
+
+        assert len(suggestions) == 1
+        low_purine = suggestions[0]
+        assert low_purine.suggested_code.value == "low_purine"
+        assert low_purine.definition == "Diet low in purines for gout management"
+        assert low_purine.aliases == ("purine restriction",)
+        assert low_purine.parent_concepts == ("gout_diet_context",)
+        assert low_purine.related_concepts == ({"target": "high_purine", "relation": "polarity_pair"},)
+        assert low_purine.evidence_quotes == ("Limit high-purine foods.",)
+        assert low_purine.confidence == 0.82
+
     def test_empty_rules_array(self):
         registry = _sample_registry()
         raw = json.dumps({"rules": [], "suggested_concepts": []})

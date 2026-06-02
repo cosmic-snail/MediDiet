@@ -403,7 +403,7 @@ def _parse_extraction_response(
         if suggestion is not None:
             suggestions.append(suggestion)
 
-    return rules, suggestions
+    return rules, _merge_duplicate_suggestions(suggestions)
 
 
 def _iter_suggested_concept_records(data: dict[str, object]) -> list[dict[str, object]]:
@@ -453,6 +453,81 @@ def _parse_suggested_concept_record(
         )
     except (ValueError, TypeError):
         return None
+
+
+def _merge_duplicate_suggestions(suggestions: list[SuggestedConcept]) -> list[SuggestedConcept]:
+    merged_suggestions_by_code: dict[tuple[CodeKind, str], SuggestedConcept] = {}
+    merged_order: list[tuple[CodeKind, str]] = []
+    for suggestion in suggestions:
+        key = (suggestion.suggested_code.kind, suggestion.suggested_code.value)
+        existing_suggestion = merged_suggestions_by_code.get(key)
+        if existing_suggestion is None:
+            merged_suggestions_by_code[key] = suggestion
+            merged_order.append(key)
+            continue
+        merged_suggestions_by_code[key] = _merge_suggestion_pair(existing_suggestion, suggestion)
+    return [merged_suggestions_by_code[key] for key in merged_order]
+
+
+def _merge_suggestion_pair(left: SuggestedConcept, right: SuggestedConcept) -> SuggestedConcept:
+    return SuggestedConcept(
+        suggest_id=left.suggest_id,
+        candidate_rule_id=left.candidate_rule_id or right.candidate_rule_id,
+        suggested_code=left.suggested_code,
+        definition=_prefer_longer_text(left.definition, right.definition),
+        source_chunk_ids=_merge_string_list(left.source_chunk_ids, right.source_chunk_ids),
+        display_name=left.display_name or right.display_name,
+        aliases=_merge_string_tuple(left.aliases, right.aliases),
+        polarity=left.polarity or right.polarity,
+        parent_concepts=_merge_string_tuple(left.parent_concepts, right.parent_concepts),
+        related_concepts=_merge_related_concepts(left.related_concepts, right.related_concepts),
+        evidence_quotes=_merge_string_tuple(left.evidence_quotes, right.evidence_quotes),
+        confidence=_max_optional_confidence(left.confidence, right.confidence),
+    )
+
+
+def _prefer_longer_text(left: str, right: str) -> str:
+    return right if len(right) > len(left) else left
+
+
+def _merge_string_tuple(left: tuple[str, ...], right: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(_merge_string_list(list(left), list(right)))
+
+
+def _merge_string_list(left: list[str], right: list[str]) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for value in [*left, *right]:
+        if not value or value in seen:
+            continue
+        merged.append(value)
+        seen.add(value)
+    return merged
+
+
+def _merge_related_concepts(
+    left: tuple[dict[str, str], ...],
+    right: tuple[dict[str, str], ...],
+) -> tuple[dict[str, str], ...]:
+    merged: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for relation in [*left, *right]:
+        target = str(relation.get("target", ""))
+        relation_type = str(relation.get("relation", ""))
+        key = (target, relation_type)
+        if not target or not relation_type or key in seen:
+            continue
+        merged.append({"target": target, "relation": relation_type})
+        seen.add(key)
+    return tuple(merged)
+
+
+def _max_optional_confidence(left: float | None, right: float | None) -> float | None:
+    if left is None:
+        return right
+    if right is None:
+        return left
+    return max(left, right)
 
 
 def _parent_concepts_by_value(data: dict[str, object]) -> dict[str, tuple[str, ...]]:
