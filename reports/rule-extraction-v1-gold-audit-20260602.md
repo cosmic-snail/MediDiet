@@ -86,6 +86,15 @@ The current gold set uses umbrella concept ids for CKD and gout. Product-facing 
    - strict score on clean gold rows
    - exploratory score on schema-gap/contextual rows
 
+## Planned Evaluation Tracks
+
+- `clean_extraction`: source-card-direct rules and trusted negatives; headline F1.
+- `contextual_handling`: sources with nutrition signal but no fixed numeric disease rule; evaluate context preservation and overclaim avoidance.
+- `conversion`: sources that require unit or energy-reference conversion; evaluate formula, assumptions, and converted value separately.
+- `concept_discovery`: schema-gap sources; evaluate atomic product concepts, same-meaning links, and umbrella-to-atomic decomposition instead of treating umbrella ids as direct gold.
+- `concept_graphs`: every run writes an extracted concept graph and an evaluation concept graph. Both graphs must connect same-meaning concepts with `same_as` edges and connect umbrella concepts to contained atomic concepts with `contains` edges.
+- `mixed_legacy`: all frozen gold rows; retained only for continuity with earlier reports.
+
 ## External Source Notes
 
 - WHO sodium guidance directly supports less than 2000 mg/day sodium, equivalent to less than 5 g/day salt.

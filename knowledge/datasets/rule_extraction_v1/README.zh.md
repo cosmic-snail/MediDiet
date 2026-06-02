@@ -12,6 +12,8 @@
 - `gold_evaluation_set.jsonl`：冻结的离线评测真值子集，只用于计算指标，不用于更新 prompt、标签或规则。
 - `gold_audit.jsonl`：冻结 gold 的证据分层与审计建议，用于区分 clean headline score 与 exploratory/schema-gap/contextual rows，不修改 `gold_evaluation_set.jsonl`。
 - `concept_expectations.jsonl`：schema-gap gold 的 atomic concept 期望与 alias group，用于产品概念注册和实验概念评估。
+- `conversion_expectations.jsonl`：百分比、单位、能量口径等转换评估样本；不进入 clean extraction F1。
+- `contextual_expectations.jsonl`：上下文/膳食模式样本，用于评估模型是否避免过度生成固定数值规则。
 - `challenge_set.jsonl`：上下文复杂或当前 schema 不支持的样本，用于失败分析，不强制纳入 F1。
 
 ## 研究协议
@@ -88,6 +90,11 @@ PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_rule_extraction_dataset
 - `reports/rule-extraction-v1-real-llm-report.json`
 - `reports/rule-extraction-v1-real-llm-field-evaluation-report.json`
 - `reports/rule-extraction-v1-real-llm-summary.md`
+- `reports/rule-extraction-v1-stratified-evaluation-report.json`
+- `reports/rule-extraction-v1-extracted-concept-graph.json`
+- `reports/rule-extraction-v1-extracted-concept-graph.png`
+- `reports/rule-extraction-v1-evaluation-concept-graph.json`
+- `reports/rule-extraction-v1-evaluation-concept-graph.png`
 
 ## 研究管线 dry-run / real-run
 

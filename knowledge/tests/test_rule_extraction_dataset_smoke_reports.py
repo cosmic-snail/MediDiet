@@ -127,6 +127,24 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
     assert result["golden_eval_accuracy_chart_path"].endswith("rule-extraction-v1-golden-eval-accuracy-chart.png")
     report = json.loads((tmp_path / "rule-extraction-v1-real-llm-report.json").read_text(encoding="utf-8"))
     assert report["evaluation_summary"]["evaluated_record_count"] == 1
+    assert report["stratified_evaluation"]["headline_metric"] == "clean_extraction_f1"
+    assert "clean_extraction" in report["stratified_evaluation"]["tracks"]
+    assert "mixed_legacy" in report["stratified_evaluation"]["tracks"]
+    tracks = report["stratified_evaluation"]["tracks"]
+    assert set(tracks) >= {
+        "clean_extraction",
+        "concept_discovery",
+        "conversion",
+        "contextual_handling",
+        "mixed_legacy",
+    }
+    assert Path(report["stratified_evaluation_report_path"]).exists()
+    concept_graphs = report["concept_graphs"]
+    assert Path(concept_graphs["extracted_concept_graph_json"]).exists()
+    assert Path(concept_graphs["extracted_concept_graph_png"]).exists()
+    assert Path(concept_graphs["evaluation_concept_graph_json"]).exists()
+    assert Path(concept_graphs["evaluation_concept_graph_png"]).exists()
+    assert report["stratified_evaluation"]["concept_graphs"] == concept_graphs
     assert report["golden_eval_accuracy"]["chart_path"].endswith("rule-extraction-v1-golden-eval-accuracy-chart.png")
     assert report["layer_0_plausibility"]["pass"] == 1
     assert report["layer_1_grounding"]["evaluated_observation_count"] == 1

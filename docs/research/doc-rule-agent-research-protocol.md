@@ -42,7 +42,7 @@ Use KDOQI, KDIGO, ADA, and dialysis nutrition source families. Build 100-200 rul
 
 ## Primary And Secondary Metrics
 
-Primary metrics include field-level precision, recall, F1, numeric-limit exact match, numeric tolerance match, parse success, stability, conflict accuracy, and citation completeness. Secondary metrics include latency, retry count, empty-output rate, chunk contamination, and unsupported concept clusters.
+Primary metrics are reported by evaluation track. `clean_extraction_f1` is the headline regression metric for source-card-direct and trusted-negative rows. `contextual_handling` reports contextual accept rate and overclaim rate. `conversion` reports conversion accuracy and missing-assumption rate. `concept_discovery` reports three sublayers: atomic concept precision/recall/F1, semantic-linking linked/unlinked counts, and umbrella-decomposition coverage. Every experiment with concept discovery also writes an extracted concept graph and an evaluation concept graph, each as JSON plus PNG. The legacy mixed precision/recall/F1 is retained only for continuity and must not be used as the sole headline score after gold audit metadata is available. Secondary metrics include latency, retry count, empty-output rate, chunk contamination, and unsupported concept clusters.
 
 ## Failure Policy
 

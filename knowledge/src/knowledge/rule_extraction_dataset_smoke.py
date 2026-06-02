@@ -21,6 +21,14 @@ from medidiet.rules import load_baseline_rule_pack
 from knowledge.dataset_manifest import load_dataset_documents, snapshot_source_hashes
 from knowledge.concept_coverage import audit_concept_coverage
 from knowledge.concept_discovery import discover_concept_candidates
+from knowledge.concept_evaluation import evaluate_concept_expectation
+from knowledge.concept_graph_visualization import (
+    build_evaluation_concept_graph,
+    build_extracted_concept_graph,
+    write_concept_graph_artifacts,
+)
+from knowledge.contextual_evaluation import evaluate_contextual_expectation
+from knowledge.conversion_evaluation import evaluate_conversion_expectation
 from knowledge.documents import (
     EXTRACTABLE_CONTENT,
     RAW_CARD,
@@ -49,6 +57,7 @@ from knowledge.rule_identity import canonical_rule_identity
 from knowledge.semantic_grounding import evaluate_observation_grounding
 from knowledge.schema import DocumentChunk, ExtractedConditionRule, SuggestedConcept
 from knowledge.source_governance import detect_conflicts
+from knowledge.stratified_evaluation import build_stratified_evaluation_report, load_track_expectations
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -828,6 +837,55 @@ def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None 
         doc_observations = [row for row in observations if row["doc_id"] == gold_row.get("doc_id")]
         extracted = doc_observations[0]["parsed_rules"] if doc_observations else []
         evaluations.append(evaluate_rule(gold_row, extracted))
+    audit_rows = load_gold_audit_rows(dataset_dir)
+    rules_by_doc_id: dict[str, list[dict[str, Any]]] = {}
+    for observation in observations:
+        rules_by_doc_id.setdefault(str(observation["doc_id"]), []).extend(observation.get("parsed_rules", []) or [])
+    track_expectations = load_track_expectations(dataset_dir)
+    concept_evaluations = [
+        evaluate_concept_expectation(track_expectation, rules_by_doc_id.get(str(track_expectation["doc_id"]), []))
+        for track_expectation in track_expectations["concept_discovery"]
+    ]
+    conversion_evaluations = [
+        evaluate_conversion_expectation(track_expectation, None)
+        for track_expectation in track_expectations["conversion"]
+    ]
+    contextual_evaluations = [
+        evaluate_contextual_expectation(track_expectation, rules_by_doc_id.get(str(track_expectation["doc_id"]), []))
+        for track_expectation in track_expectations["contextual_handling"]
+    ]
+    extracted_concept_graph = build_extracted_concept_graph(
+        dataset_id=dataset,
+        run_type="dry_run",
+        extracted_rules=[parsed_rule for rules in rules_by_doc_id.values() for parsed_rule in rules],
+        concept_expectations=track_expectations["concept_discovery"],
+    )
+    evaluation_concept_graph = build_evaluation_concept_graph(
+        dataset_id=dataset,
+        run_type="dry_run",
+        concept_expectations=track_expectations["concept_discovery"],
+        concept_evaluations=concept_evaluations,
+    )
+    concept_graph_artifacts = write_concept_graph_artifacts(
+        output_dir=output_dir,
+        extracted_graph=extracted_concept_graph,
+        evaluation_graph=evaluation_concept_graph,
+    )
+    stratified_evaluation = build_stratified_evaluation_report(
+        dataset_id=dataset,
+        run_type="dry_run",
+        gold_rows=gold,
+        audit_rows=audit_rows,
+        rule_evaluations=evaluations,
+        concept_evaluations=concept_evaluations,
+        conversion_evaluations=conversion_evaluations,
+        contextual_evaluations=contextual_evaluations,
+    )
+    stratified_evaluation["concept_graphs"] = concept_graph_artifacts
+    (output_dir / "rule-extraction-v1-stratified-evaluation-report.json").write_text(
+        json.dumps(stratified_evaluation, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     stability = summarize_stability(observations[: min(10, len(observations))])
     candidates = []
     for observation in observations:
@@ -846,6 +904,7 @@ def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None 
         "rule-extraction-v1-observation-coverage-report.json": {"dataset_id": dataset, "observation_points": OBSERVATION_POINTS, "covered": sorted({point for row in observations for point in row.get("observation_points", {})}), "rows": observations[:5]},
         "rule-extraction-v1-field-evaluation-report.json": {"dataset_id": dataset, "evaluations": evaluations, "summary": precision_recall_f1(evaluations), "rows": evaluations},
         "rule-extraction-v1-stability-report.json": {"dataset_id": dataset, "summary": stability, "runs": observations[:10], "rows": observations[:10]},
+        "rule-extraction-v1-stratified-evaluation-report.json": stratified_evaluation,
     }
     for filename, data in reports.items():
         (output_dir / filename).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1060,6 +1119,60 @@ def run_research_real_run(
         evaluations=evaluations,
         audit_rows=audit_rows,
     )
+    rules_by_doc_id = {
+        str(observation["doc_id"]): observation.get("parsed_rules", []) or []
+        for observation in observations
+    }
+    track_expectations = load_track_expectations(dataset_dir)
+    concept_evaluations = [
+        evaluate_concept_expectation(track_expectation, rules_by_doc_id.get(str(track_expectation["doc_id"]), []))
+        for track_expectation in track_expectations["concept_discovery"]
+    ]
+    conversion_evaluations = [
+        evaluate_conversion_expectation(track_expectation, None)
+        for track_expectation in track_expectations["conversion"]
+    ]
+    contextual_evaluations = [
+        evaluate_contextual_expectation(track_expectation, rules_by_doc_id.get(str(track_expectation["doc_id"]), []))
+        for track_expectation in track_expectations["contextual_handling"]
+    ]
+    extracted_concept_graph = build_extracted_concept_graph(
+        dataset_id=dataset,
+        run_type="real_llm",
+        extracted_rules=[
+            parsed_rule
+            for observation in observations
+            for parsed_rule in observation.get("parsed_rules", []) or []
+        ],
+        concept_expectations=track_expectations["concept_discovery"],
+    )
+    evaluation_concept_graph = build_evaluation_concept_graph(
+        dataset_id=dataset,
+        run_type="real_llm",
+        concept_expectations=track_expectations["concept_discovery"],
+        concept_evaluations=concept_evaluations,
+    )
+    concept_graph_artifacts = write_concept_graph_artifacts(
+        output_dir=output_dir,
+        extracted_graph=extracted_concept_graph,
+        evaluation_graph=evaluation_concept_graph,
+    )
+    stratified_evaluation = build_stratified_evaluation_report(
+        dataset_id=dataset,
+        run_type="real_llm",
+        gold_rows=gold_rows,
+        audit_rows=audit_rows,
+        rule_evaluations=evaluations,
+        concept_evaluations=concept_evaluations,
+        conversion_evaluations=conversion_evaluations,
+        contextual_evaluations=contextual_evaluations,
+    )
+    stratified_evaluation["concept_graphs"] = concept_graph_artifacts
+    stratified_evaluation_report_path = output_dir / "rule-extraction-v1-stratified-evaluation-report.json"
+    stratified_evaluation_report_path.write_text(
+        json.dumps(stratified_evaluation, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     judge_call_limit = None
     if judge_provider is not None and judge_max_rules == 0:
         judge_observations = []
@@ -1126,6 +1239,9 @@ def run_research_real_run(
         "evaluation_summary": evaluation_summary,
         "clean_evaluation_summary": gold_audit_report["clean_evaluation_summary"],
         "gold_audit": gold_audit_report,
+        "stratified_evaluation": stratified_evaluation,
+        "stratified_evaluation_report_path": str(stratified_evaluation_report_path),
+        "concept_graphs": concept_graph_artifacts,
         "golden_eval_accuracy": golden_eval_accuracy,
         **layer_0_1_summary,
         "layer_2_judge": layer_2_judge,
