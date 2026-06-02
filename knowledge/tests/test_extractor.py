@@ -75,6 +75,16 @@ def test_extraction_system_prompt_requires_numeric_limits_when_present():
     assert "2000 mg sodium" in _EXTRACTION_SYSTEM_PROMPT
 
 
+def test_extraction_system_prompt_requests_structured_concept_graph():
+    assert "concept_graph" in _EXTRACTION_SYSTEM_PROMPT
+    assert "atomic_concepts" in _EXTRACTION_SYSTEM_PROMPT
+    assert "umbrella_concepts" in _EXTRACTION_SYSTEM_PROMPT
+    assert "relations" in _EXTRACTION_SYSTEM_PROMPT
+    assert "same_as" in _EXTRACTION_SYSTEM_PROMPT
+    assert "contains" in _EXTRACTION_SYSTEM_PROMPT
+    assert "polarity_pair" in _EXTRACTION_SYSTEM_PROMPT
+
+
 class TestSerializeConceptRegistry:
     def test_serialize_groups_by_kind(self):
         registry = _sample_registry()
@@ -310,6 +320,58 @@ class TestParseExtractionResponse:
         assert len(suggestions) == 1
         assert suggestions[0].suggested_code.value == "high_purine"
         assert suggestions[0].definition == "Foods high in purines that may trigger gout"
+
+    def test_concept_graph_atomic_concepts_and_relations_are_parsed_as_suggestions(self):
+        registry = _sample_registry()
+        raw = json.dumps({
+            "rules": [],
+            "suggested_concepts": [],
+            "concept_graph": {
+                "atomic_concepts": [
+                    {
+                        "kind": "nutrition_tag",
+                        "value": "low_purine",
+                        "definition": "Foods low in purines for gout management",
+                        "display_name": "Low Purine",
+                        "aliases": ["purine_restriction", "limit_high_purine_foods"],
+                        "polarity": "prefer",
+                        "evidence_quotes": ["Limit high-purine foods."],
+                        "confidence": 0.82,
+                    },
+                    {
+                        "kind": "contraindication",
+                        "value": "high_purine",
+                        "definition": "High-purine foods to avoid",
+                        "display_name": "High Purine",
+                        "polarity": "avoid",
+                        "evidence_quotes": ["Avoid high-purine foods."],
+                        "confidence": 0.8,
+                    },
+                ],
+                "umbrella_concepts": [
+                    {
+                        "value": "gout_diet_context",
+                        "display_name": "Gout Diet Context",
+                        "definition": "Diet concepts relevant to gout",
+                    }
+                ],
+                "relations": [
+                    {"source": "gout_diet_context", "target": "low_purine", "type": "contains"},
+                    {"source": "low_purine", "target": "high_purine", "type": "polarity_pair"},
+                ],
+            },
+        })
+
+        _, suggestions = _parse_extraction_response(raw, registry, "test", ["chunk-001"], ["doc-001"])
+
+        assert len(suggestions) == 2
+        low_purine = next(item for item in suggestions if item.suggested_code.value == "low_purine")
+        assert low_purine.aliases == ("purine_restriction", "limit_high_purine_foods")
+        assert low_purine.polarity == "prefer"
+        assert low_purine.parent_concepts == ("gout_diet_context",)
+        assert low_purine.related_concepts == ({"target": "high_purine", "relation": "polarity_pair"},)
+        assert low_purine.evidence_quotes == ("Limit high-purine foods.",)
+        assert low_purine.confidence == 0.82
 
     def test_empty_rules_array(self):
         registry = _sample_registry()

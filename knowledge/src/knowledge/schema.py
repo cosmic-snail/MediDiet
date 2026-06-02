@@ -128,6 +128,12 @@ class SuggestedConcept:
     definition: str
     source_chunk_ids: list[str]
     display_name: str
+    aliases: tuple[str, ...] = ()
+    polarity: str | None = None
+    parent_concepts: tuple[str, ...] = ()
+    related_concepts: tuple[dict[str, str], ...] = ()
+    evidence_quotes: tuple[str, ...] = ()
+    confidence: float | None = None
 
 
 @dataclass

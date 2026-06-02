@@ -141,6 +141,60 @@ def test_evaluate_concept_expectation_reports_surface_and_polarity_diagnostics()
     ]
 
 
+def test_evaluate_concept_expectation_uses_structured_relations_from_concept_graph_metadata():
+    expectation = {
+        "gold_id": "gold-gout",
+        "expected_atomic_concepts": [
+            {"kind": "nutrition_tag", "value": "low_purine", "aliases": []},
+            {"kind": "contraindication", "value": "alcohol", "aliases": []},
+        ],
+        "do_not_score_as": ["gout_diet_context"],
+        "umbrella_mappings": [
+            {
+                "umbrella_value": "gout_diet_context",
+                "maps_to": [
+                    {"kind": "nutrition_tag", "value": "low_purine"},
+                    {"kind": "contraindication", "value": "alcohol"},
+                ],
+            }
+        ],
+    }
+    extracted_rules = [
+        {
+            "suggested_concepts": [
+                {
+                    "kind": "nutrition_tag",
+                    "suggested_code": "low_purine",
+                    "parent_concepts": ["gout_diet_context"],
+                    "related_concepts": [{"target": "high_purine", "relation": "polarity_pair"}],
+                },
+                {
+                    "kind": "contraindication",
+                    "suggested_code": "alcohol",
+                    "parent_concepts": ["gout_diet_context"],
+                },
+            ]
+        }
+    ]
+
+    evaluation = evaluate_concept_expectation(expectation, extracted_rules)
+
+    assert evaluation["overall"] == "match"
+    assert evaluation["umbrella_decomposition"]["coverage"] == 1.0
+    assert evaluation["umbrella_decomposition"]["covered_atomic_concepts"] == [
+        {"kind": "contraindication", "value": "alcohol"},
+        {"kind": "nutrition_tag", "value": "low_purine"},
+    ]
+    assert evaluation["polarity_mapping"]["mapped_count"] == 1
+    assert evaluation["polarity_mapping"]["mapped_pairs"] == [
+        {
+            "expected": {"kind": "nutrition_tag", "value": "low_purine"},
+            "surface": {"kind": "contraindication", "value": "high_purine"},
+            "relation": "polarity_pair",
+        }
+    ]
+
+
 def test_precision_recall_f1_for_concepts_counts_extra_atomic_concepts():
     evaluations = [
         {"true_positive_count": 2, "false_negative_count": 0, "false_positive_count": 1},

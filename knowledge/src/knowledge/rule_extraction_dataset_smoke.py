@@ -133,6 +133,12 @@ def _suggestion_to_dict(suggestion) -> dict[str, Any]:
         "kind": suggestion.suggested_code.kind.value,
         "definition": suggestion.definition,
         "display_name": suggestion.display_name,
+        "aliases": list(getattr(suggestion, "aliases", ()) or ()),
+        "polarity": getattr(suggestion, "polarity", None),
+        "parent_concepts": list(getattr(suggestion, "parent_concepts", ()) or ()),
+        "related_concepts": list(getattr(suggestion, "related_concepts", ()) or ()),
+        "evidence_quotes": list(getattr(suggestion, "evidence_quotes", ()) or ()),
+        "confidence": getattr(suggestion, "confidence", None),
     }
 
 
@@ -1603,6 +1609,12 @@ def _serialize_suggestion(suggestion: SuggestedConcept) -> dict[str, Any]:
         "definition": suggestion.definition,
         "source_chunk_ids": suggestion.source_chunk_ids,
         "display_name": suggestion.display_name,
+        "aliases": list(suggestion.aliases),
+        "polarity": suggestion.polarity,
+        "parent_concepts": list(suggestion.parent_concepts),
+        "related_concepts": list(suggestion.related_concepts),
+        "evidence_quotes": list(suggestion.evidence_quotes),
+        "confidence": suggestion.confidence,
     }
 
 

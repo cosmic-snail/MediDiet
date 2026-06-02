@@ -7,7 +7,9 @@ from pathlib import Path
 import pytest
 
 from medidiet.llm import LLMResponse, LLMTask
+from medidiet.domain import CodeKind, ConceptCode
 from medidiet.rules import LimitScope, NutrientLimit, NutrientMetric
+from knowledge.schema import SuggestedConcept
 import knowledge.rule_extraction_dataset_smoke as smoke
 from knowledge.rule_extraction_dataset_smoke import (
     _concept_records_by_doc_id,
@@ -72,6 +74,33 @@ def test_concept_records_include_top_level_suggested_concepts():
             ],
         }
     ]
+
+
+def test_suggestion_to_dict_preserves_concept_graph_metadata():
+    suggestion = SuggestedConcept(
+        suggest_id="sug-001",
+        candidate_rule_id="cand-001",
+        suggested_code=ConceptCode(CodeKind.NUTRITION_TAG, "low_purine"),
+        definition="Foods low in purines for gout management",
+        source_chunk_ids=["chunk-001"],
+        display_name="Low Purine",
+        aliases=("purine_restriction",),
+        polarity="prefer",
+        parent_concepts=("gout_diet_context",),
+        related_concepts=({"target": "high_purine", "relation": "polarity_pair"},),
+        evidence_quotes=("Limit high-purine foods.",),
+        confidence=0.82,
+    )
+
+    serialized = smoke._suggestion_to_dict(suggestion)
+
+    assert serialized["suggested_code"] == "low_purine"
+    assert serialized["aliases"] == ["purine_restriction"]
+    assert serialized["polarity"] == "prefer"
+    assert serialized["parent_concepts"] == ["gout_diet_context"]
+    assert serialized["related_concepts"] == [{"target": "high_purine", "relation": "polarity_pair"}]
+    assert serialized["evidence_quotes"] == ["Limit high-purine foods."]
+    assert serialized["confidence"] == 0.82
 
 
 def test_layered_summary_includes_concept_discovery_diagnostics(tmp_path: Path):

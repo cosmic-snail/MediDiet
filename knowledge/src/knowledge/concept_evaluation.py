@@ -23,6 +23,7 @@ def evaluate_concept_expectation(
     unlinked_surface_forms: set[tuple[str, str]] = set()
     umbrella_covered_keys: set[tuple[str, str]] = set()
     raw_extracted_concept_keys: set[tuple[str, str]] = set()
+    structured_polarity_pairs: list[dict[str, Any]] = []
     for extracted_rule in extracted_rules:
         for concept_record in extracted_rule.get("suggested_concepts", []) or []:
             if isinstance(concept_record, dict):
@@ -33,6 +34,18 @@ def evaluate_concept_expectation(
                 raw_value = str(concept_record)
             normalized_value = _normalize_surface_value(raw_value)
             raw_extracted_concept_keys.add((kind, normalized_value))
+            matched_key_for_relations = canonical_by_surface_form.get((kind, normalized_value), (kind, normalized_value))
+            if isinstance(concept_record, dict):
+                for parent_concept in concept_record.get("parent_concepts", []) or []:
+                    parent_value = _normalize_surface_value(parent_concept)
+                    if parent_value in umbrella_mappings:
+                        umbrella_covered_keys.add(matched_key_for_relations)
+                structured_polarity_pairs.extend(
+                    _structured_polarity_pairs(
+                        source_key=matched_key_for_relations,
+                        related_concepts=concept_record.get("related_concepts", []) or [],
+                    )
+                )
             if normalized_value in forbidden_values:
                 forbidden_matches.add(normalized_value)
                 umbrella_covered_keys.update(umbrella_mappings.get(normalized_value, set()))
@@ -61,6 +74,7 @@ def evaluate_concept_expectation(
     polarity_mapping = _evaluate_polarity_mapping(
         expected_concept_keys=expected_concept_keys,
         extracted_concept_keys=raw_extracted_concept_keys,
+        structured_polarity_pairs=structured_polarity_pairs,
     )
 
     return {
@@ -213,12 +227,35 @@ def _evaluate_polarity_mapping(
     *,
     expected_concept_keys: set[tuple[str, str]],
     extracted_concept_keys: set[tuple[str, str]],
+    structured_polarity_pairs: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     mapped_pairs: list[dict[str, Any]] = []
+    seen_pairs: set[tuple[str, str, str, str, str]] = set()
+    for structured_pair in structured_polarity_pairs or []:
+        expected_record = structured_pair.get("expected", {})
+        surface_record = structured_pair.get("surface", {})
+        expected_key = (str(expected_record.get("kind", "")), str(expected_record.get("value", "")))
+        if expected_key not in expected_concept_keys:
+            continue
+        pair_key = (
+            expected_key[0],
+            expected_key[1],
+            str(surface_record.get("kind", "")),
+            str(surface_record.get("value", "")),
+            str(structured_pair.get("relation", "")),
+        )
+        if pair_key in seen_pairs:
+            continue
+        seen_pairs.add(pair_key)
+        mapped_pairs.append(structured_pair)
     for expected_key in sorted(expected_concept_keys):
         for extracted_key in sorted(extracted_concept_keys):
             if not _is_polarity_pair(expected_key, extracted_key):
                 continue
+            pair_key = (expected_key[0], expected_key[1], extracted_key[0], extracted_key[1], "avoid_high_to_prefer_low")
+            if pair_key in seen_pairs:
+                break
+            seen_pairs.add(pair_key)
             mapped_pairs.append(
                 {
                     "expected": _concept_record(expected_key),
@@ -228,6 +265,28 @@ def _evaluate_polarity_mapping(
             )
             break
     return {"mapped_count": len(mapped_pairs), "mapped_pairs": mapped_pairs}
+
+
+def _structured_polarity_pairs(
+    *,
+    source_key: tuple[str, str],
+    related_concepts: list[Any],
+) -> list[dict[str, Any]]:
+    mapped_pairs: list[dict[str, Any]] = []
+    for related_concept in related_concepts:
+        if not isinstance(related_concept, dict) or related_concept.get("relation") != "polarity_pair":
+            continue
+        target_value = _normalize_surface_value(related_concept.get("target", ""))
+        if not target_value:
+            continue
+        mapped_pairs.append(
+            {
+                "expected": _concept_record(source_key),
+                "surface": {"kind": "contraindication", "value": target_value},
+                "relation": "polarity_pair",
+            }
+        )
+    return mapped_pairs
 
 
 def _best_surface_match(

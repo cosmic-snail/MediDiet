@@ -34,7 +34,7 @@ You are a clinical nutrition knowledge extraction specialist. Your task is to \
 read document fragments from medical dietary guidelines and extract structured \
 dietary constraint rules for patients with specific health conditions.
 
-Output a JSON object with two fields:
+Output a JSON object with these fields:
 
 	{
 	  "rules": [
@@ -51,7 +51,27 @@ Output a JSON object with two fields:
 	  ],
 	  "suggested_concepts": [
 	    {"kind": "<CodeKind>", "value": "<snake_case>", "definition": "<description>", "display_name": "<Human Name>"}
-	  ]
+	  ],
+	  "concept_graph": {
+	    "atomic_concepts": [
+	      {
+	        "kind": "<CodeKind>",
+	        "value": "<snake_case>",
+	        "display_name": "<Human Name>",
+	        "definition": "<description>",
+	        "aliases": ["<same meaning surface form>", ...],
+	        "polarity": "prefer" | "avoid" | "neutral",
+	        "evidence_quotes": ["<exact source text>", ...],
+	        "confidence": <float 0-1>
+	      }
+	    ],
+	    "umbrella_concepts": [
+	      {"value": "<snake_case>", "display_name": "<Human Name>", "definition": "<description>"}
+	    ],
+	    "relations": [
+	      {"source": "<concept value>", "target": "<concept value>", "type": "same_as" | "contains" | "polarity_pair"}
+	    ]
+	  }
 	}
 
 	Rule object fields:
@@ -73,6 +93,9 @@ Important rules:
 - For nutrition_limits.scope, use one of: per_meal, daily, rolling_window
 - If you need a concept that does not exist in the registry, add it to a separate \
 "suggested_concepts" array in the output (NOT in the rules array)
+- Also populate concept_graph for concept gaps: list atomic_concepts, same-meaning aliases, umbrella concepts, and relations.
+- Do not output only a broad umbrella concept when the source supports smaller atomic concepts. Include the atomic concepts and connect the umbrella to them with "contains" relations.
+- Use "polarity_pair" for paired concepts such as avoiding high-purine foods and preferring low-purine diets.
 - If a source gives a numeric threshold for supported metrics, extract it in nutrition_limits; do not replace it with only a preferred_tag.
 - Treat explicit daily sodium limit statements as nutrition_limits entries. Example: "2000 mg sodium per day" -> {"metric": "sodium_mg", "scope": "daily", "max_value": 2000, "window_hours": null}.
 - Treat an explicit "5 g salt per day" statement as equivalent to about "2000 mg sodium per day" when the source card states that conversion.
@@ -368,30 +391,133 @@ def _parse_extraction_response(
                 revised_rule=None,
             )
 
-    # Parse suggested_concepts
-    for sc in data.get("suggested_concepts", []) or []:
-        if not isinstance(sc, dict):
-            continue
-        try:
-            kind = CodeKind(sc.get("kind", ""))
-            value = str(sc.get("value", ""))
-            definition = str(sc.get("definition", ""))
-            display_name = str(sc.get("display_name", value))
-            suggest_id = f"suggest-{uuid.uuid4().hex[:8]}"
-            suggestions.append(
-                SuggestedConcept(
-                    suggest_id=suggest_id,
-                    candidate_rule_id=rules[0].candidate_id if rules else "",
-                    suggested_code=ConceptCode(kind, value),
-                    definition=definition,
-                    source_chunk_ids=list(source_chunk_ids),
-                    display_name=display_name,
-                )
-            )
-        except (ValueError, TypeError):
-            continue
+    # Parse suggested_concepts and the richer concept_graph format.
+    for suggestion_record in _iter_suggested_concept_records(data):
+        suggestion = _parse_suggested_concept_record(
+            suggestion_record,
+            candidate_rule_id=rules[0].candidate_id if rules else "",
+            source_chunk_ids=source_chunk_ids,
+            parent_concepts_by_value=_parent_concepts_by_value(data),
+            related_concepts_by_value=_related_concepts_by_value(data),
+        )
+        if suggestion is not None:
+            suggestions.append(suggestion)
 
     return rules, suggestions
+
+
+def _iter_suggested_concept_records(data: dict[str, object]) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    for suggested_concept_record in data.get("suggested_concepts", []) or []:
+        if isinstance(suggested_concept_record, dict):
+            records.append(suggested_concept_record)
+    concept_graph = data.get("concept_graph")
+    if isinstance(concept_graph, dict):
+        for atomic_concept_record in concept_graph.get("atomic_concepts", []) or []:
+            if isinstance(atomic_concept_record, dict):
+                records.append(atomic_concept_record)
+    return records
+
+
+def _parse_suggested_concept_record(
+    suggestion_record: dict[str, object],
+    *,
+    candidate_rule_id: str,
+    source_chunk_ids: list[str],
+    parent_concepts_by_value: dict[str, tuple[str, ...]],
+    related_concepts_by_value: dict[str, tuple[dict[str, str], ...]],
+) -> SuggestedConcept | None:
+    try:
+        kind = CodeKind(str(suggestion_record.get("kind", "")))
+        value = str(suggestion_record.get("value", ""))
+        definition = str(suggestion_record.get("definition", ""))
+        display_name = str(suggestion_record.get("display_name", value))
+        suggest_id = f"suggest-{uuid.uuid4().hex[:8]}"
+        aliases = _string_tuple(suggestion_record.get("aliases"))
+        polarity = _optional_enum_string(suggestion_record.get("polarity"), {"prefer", "avoid", "neutral"})
+        evidence_quotes = _string_tuple(suggestion_record.get("evidence_quotes"))
+        confidence = _optional_confidence(suggestion_record.get("confidence"))
+        return SuggestedConcept(
+            suggest_id=suggest_id,
+            candidate_rule_id=candidate_rule_id,
+            suggested_code=ConceptCode(kind, value),
+            definition=definition,
+            source_chunk_ids=list(source_chunk_ids),
+            display_name=display_name,
+            aliases=aliases,
+            polarity=polarity,
+            parent_concepts=parent_concepts_by_value.get(value, ()),
+            related_concepts=related_concepts_by_value.get(value, ()),
+            evidence_quotes=evidence_quotes,
+            confidence=confidence,
+        )
+    except (ValueError, TypeError):
+        return None
+
+
+def _parent_concepts_by_value(data: dict[str, object]) -> dict[str, tuple[str, ...]]:
+    concept_graph = data.get("concept_graph")
+    if not isinstance(concept_graph, dict):
+        return {}
+    parent_values: dict[str, list[str]] = {}
+    umbrella_values = {
+        str(umbrella_record.get("value", ""))
+        for umbrella_record in concept_graph.get("umbrella_concepts", []) or []
+        if isinstance(umbrella_record, dict)
+    }
+    for relation_record in concept_graph.get("relations", []) or []:
+        if not isinstance(relation_record, dict) or relation_record.get("type") != "contains":
+            continue
+        source_value = str(relation_record.get("source", ""))
+        target_value = str(relation_record.get("target", ""))
+        if source_value not in umbrella_values or not target_value:
+            continue
+        parent_values.setdefault(target_value, []).append(source_value)
+    return {value: tuple(sorted(set(parents))) for value, parents in parent_values.items()}
+
+
+def _related_concepts_by_value(data: dict[str, object]) -> dict[str, tuple[dict[str, str], ...]]:
+    concept_graph = data.get("concept_graph")
+    if not isinstance(concept_graph, dict):
+        return {}
+    related_values: dict[str, list[dict[str, str]]] = {}
+    for relation_record in concept_graph.get("relations", []) or []:
+        if not isinstance(relation_record, dict):
+            continue
+        relation_type = str(relation_record.get("type", ""))
+        if relation_type not in {"same_as", "polarity_pair"}:
+            continue
+        source_value = str(relation_record.get("source", ""))
+        target_value = str(relation_record.get("target", ""))
+        if not source_value or not target_value:
+            continue
+        related_values.setdefault(source_value, []).append({"target": target_value, "relation": relation_type})
+        if relation_type == "same_as":
+            related_values.setdefault(target_value, []).append({"target": source_value, "relation": relation_type})
+    return {
+        value: tuple(sorted(relations, key=lambda relation: (relation["relation"], relation["target"])))
+        for value, relations in related_values.items()
+    }
+
+
+def _string_tuple(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    return tuple(str(item) for item in value if isinstance(item, str) and item.strip())
+
+
+def _optional_enum_string(value: object, allowed_values: set[str]) -> str | None:
+    string_value = str(value)
+    return string_value if string_value in allowed_values else None
+
+
+def _optional_confidence(value: object) -> float | None:
+    if value is None:
+        return None
+    try:
+        return max(0.0, min(1.0, float(value)))
+    except (ValueError, TypeError):
+        return None
 
 
 _VALID_VERDICTS = {"pass", "revision_needed", "rejected"}
