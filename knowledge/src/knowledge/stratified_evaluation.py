@@ -67,6 +67,7 @@ def build_stratified_evaluation_report(
             EvaluationTrack.CONCEPT_DISCOVERY.value: {
                 "evaluated_record_count": len(concept_evaluations),
                 "overall": summarize_concept_evaluations(concept_evaluations),
+                "records": concept_evaluations,
             },
             EvaluationTrack.CONVERSION.value: {
                 "evaluated_record_count": len(conversion_evaluations),

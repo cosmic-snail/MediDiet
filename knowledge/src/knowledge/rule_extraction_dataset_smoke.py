@@ -746,6 +746,15 @@ def _write_layered_evaluation_summary(output_dir: Path, report: dict[str, Any]) 
     layer_2 = report.get("layer_2_judge", {})
     calibration = layer_2.get("calibration", {})
     best_arm = report.get("evaluation_summary", {}).get("overall", {})
+    concept_discovery_track = (
+        report.get("stratified_evaluation", {}).get("tracks", {}).get("concept_discovery", {})
+    )
+    concept_discovery_overall = concept_discovery_track.get("overall", {})
+    concept_atomic = concept_discovery_overall.get("atomic", {})
+    concept_surface = concept_discovery_overall.get("surface_discovery", {})
+    concept_polarity = concept_discovery_overall.get("polarity_mapping", {})
+    concept_semantic = concept_discovery_overall.get("semantic_linking", {})
+    concept_umbrella = concept_discovery_overall.get("umbrella_decomposition", {})
     lines = [
         "# Rule Extraction Layered Evaluation Summary",
         "",
@@ -776,6 +785,22 @@ def _write_layered_evaluation_summary(output_dir: Path, report: dict[str, Any]) 
         f"- evaluated observations: {layer_1.get('evaluated_observation_count', 0)}",
         f"- average score: {layer_1.get('avg_score', 0):.3f}",
         f"- unsupported rate: {layer_1.get('unsupported_rate', 0):.3f}",
+        "",
+        "## Concept Discovery",
+        "",
+        f"- evaluated records: {concept_discovery_track.get('evaluated_record_count', len(concept_discovery_track.get('records', []) or []))}",
+        f"- atomic precision: {concept_atomic.get('precision', 0):.3f}",
+        f"- atomic recall: {concept_atomic.get('recall', 0):.3f}",
+        f"- atomic f1: {concept_atomic.get('f1', 0):.3f}",
+        f"- surface recall: {concept_surface.get('recall', 0):.3f}",
+        f"- surface discovered/missing: {concept_surface.get('discovered_count', 0)} / {concept_surface.get('missing_count', 0)}",
+        f"- polarity mapped: {concept_polarity.get('mapped_count', 0)}",
+        f"- semantic linked/unlinked: {concept_semantic.get('linked_count', 0)} / {concept_semantic.get('unlinked_count', 0)}",
+        f"- umbrella average coverage: {concept_umbrella.get('average_coverage', 0):.3f}",
+        "",
+        "| Gold | Doc | Matched | Missing | Extra | Surface Recall | Polarity Mapped |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
+        *_concept_discovery_record_rows(concept_discovery_track.get("records", []) or []),
         "",
         "## Layer 2 Judge",
         "",
@@ -810,6 +835,24 @@ def _write_layered_evaluation_summary(output_dir: Path, report: dict[str, Any]) 
     summary_path = output_dir / "rule-extraction-v1-layered-evaluation-summary.md"
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return summary_path
+
+
+def _concept_discovery_record_rows(concept_records: list[dict[str, Any]]) -> list[str]:
+    if not concept_records:
+        return ["| - | - | 0 | 0 | 0 | 0.000 | 0 |"]
+    rows = []
+    for concept_record in concept_records:
+        surface_discovery = concept_record.get("surface_discovery", {}) or {}
+        polarity_mapping = concept_record.get("polarity_mapping", {}) or {}
+        rows.append(
+            f"| {concept_record.get('gold_id', '')} | {concept_record.get('doc_id', '')} | "
+            f"{len(concept_record.get('matched_concepts', []) or [])} | "
+            f"{len(concept_record.get('missing_concepts', []) or [])} | "
+            f"{len(concept_record.get('extra_concepts', []) or [])} | "
+            f"{float(surface_discovery.get('recall', 0)):.3f} | "
+            f"{int(polarity_mapping.get('mapped_count', 0))} |"
+        )
+    return rows
 
 
 def _concept_records_by_doc_id(observations: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:

@@ -19,7 +19,12 @@ def test_stratified_report_exposes_track_summaries_without_averaging_them():
     concept_evaluations = [
         {
             "gold_id": "gold-concept",
+            "doc_id": "concept-doc",
             "overall": "match",
+            "raw_suggested_concepts": [{"kind": "nutrition_tag", "value": "low_purine"}],
+            "matched_concepts": [{"kind": "nutrition_tag", "value": "low_purine"}],
+            "missing_concepts": [],
+            "extra_concepts": [],
             "true_positive_count": 2,
             "false_negative_count": 0,
             "false_positive_count": 0,
@@ -40,6 +45,7 @@ def test_stratified_report_exposes_track_summaries_without_averaging_them():
     assert report["headline_metric"] == "clean_extraction_f1"
     assert report["tracks"]["clean_extraction"]["overall"]["f1"] == 1.0
     assert report["tracks"]["concept_discovery"]["overall"]["atomic"]["f1"] == 1.0
+    assert report["tracks"]["concept_discovery"]["records"] == concept_evaluations
     assert report["tracks"]["mixed_legacy"]["overall"]["recall"] < 1.0
 
 

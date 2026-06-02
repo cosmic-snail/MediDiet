@@ -94,6 +94,53 @@ def test_evaluate_concept_expectation_reports_umbrella_decomposition_separately(
     ]
 
 
+def test_evaluate_concept_expectation_reports_surface_and_polarity_diagnostics():
+    expectation = {
+        "gold_id": "gold-gout",
+        "expected_atomic_concepts": [
+            {"kind": "nutrition_tag", "value": "low_purine", "aliases": ["low purine diet"]},
+            {"kind": "nutrition_tag", "value": "hydration_support", "aliases": ["adequate hydration"]},
+            {"kind": "contraindication", "value": "high_fructose", "aliases": ["limit fructose"]},
+        ],
+    }
+    extracted_rules = [
+        {
+            "suggested_concepts": [
+                {"kind": "contraindication", "suggested_code": "high_purine_food"},
+                {"kind": "nutrition_tag", "suggested_code": "hydration"},
+            ]
+        }
+    ]
+
+    evaluation = evaluate_concept_expectation(expectation, extracted_rules)
+
+    assert evaluation["overall"] == "miss"
+    assert evaluation["matched_concepts"] == []
+    assert evaluation["surface_discovery"]["discovered_count"] == 2
+    assert evaluation["surface_discovery"]["missing_count"] == 1
+    assert evaluation["surface_discovery"]["recall"] == 2 / 3
+    assert evaluation["surface_discovery"]["discovered_concepts"] == [
+        {
+            "expected": {"kind": "nutrition_tag", "value": "hydration_support"},
+            "surface": {"kind": "nutrition_tag", "value": "hydration"},
+            "match_type": "token_overlap",
+        },
+        {
+            "expected": {"kind": "nutrition_tag", "value": "low_purine"},
+            "surface": {"kind": "contraindication", "value": "high_purine_food"},
+            "match_type": "polarity_pair",
+        },
+    ]
+    assert evaluation["polarity_mapping"]["mapped_count"] == 1
+    assert evaluation["polarity_mapping"]["mapped_pairs"] == [
+        {
+            "expected": {"kind": "nutrition_tag", "value": "low_purine"},
+            "surface": {"kind": "contraindication", "value": "high_purine_food"},
+            "relation": "avoid_high_to_prefer_low",
+        }
+    ]
+
+
 def test_precision_recall_f1_for_concepts_counts_extra_atomic_concepts():
     evaluations = [
         {"true_positive_count": 2, "false_negative_count": 0, "false_positive_count": 1},
@@ -128,6 +175,40 @@ def test_summarize_concept_evaluations_reports_three_validation_layers():
     summary = summarize_concept_evaluations(evaluations)
 
     assert summary["atomic"]["recall"] == 0.75
+    assert summary["surface_discovery"]["recall"] == 0.0
+    assert summary["polarity_mapping"]["mapped_count"] == 0
     assert summary["semantic_linking"]["linked_count"] == 2
     assert summary["semantic_linking"]["unlinked_count"] == 1
     assert summary["umbrella_decomposition"]["average_coverage"] == 0.75
+
+
+def test_summarize_concept_evaluations_aggregates_surface_and_polarity_layers():
+    evaluations = [
+        {
+            "surface_discovery": {"expected_count": 3, "discovered_count": 2, "missing_count": 1},
+            "polarity_mapping": {
+                "mapped_count": 1,
+                "mapped_pairs": [
+                    {
+                        "expected": {"kind": "nutrition_tag", "value": "low_purine"},
+                        "surface": {"kind": "contraindication", "value": "high_purine_food"},
+                        "relation": "avoid_high_to_prefer_low",
+                    }
+                ],
+            },
+        },
+        {
+            "surface_discovery": {"expected_count": 2, "discovered_count": 1, "missing_count": 1},
+            "polarity_mapping": {"mapped_count": 0, "mapped_pairs": []},
+        },
+    ]
+
+    summary = summarize_concept_evaluations(evaluations)
+
+    assert summary["surface_discovery"] == {
+        "expected_count": 5,
+        "discovered_count": 3,
+        "missing_count": 2,
+        "recall": 0.6,
+    }
+    assert summary["polarity_mapping"]["mapped_count"] == 1

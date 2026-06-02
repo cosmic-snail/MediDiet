@@ -13,6 +13,7 @@ from knowledge.rule_extraction_dataset_smoke import (
     _concept_records_by_doc_id,
     _limit_key,
     _rule_limit_key,
+    _write_layered_evaluation_summary,
     build_chunking_report,
     run_real_llm_dataset_smoke,
     run_research_dry_run,
@@ -71,6 +72,59 @@ def test_concept_records_include_top_level_suggested_concepts():
             ],
         }
     ]
+
+
+def test_layered_summary_includes_concept_discovery_diagnostics(tmp_path: Path):
+    report = {
+        "dataset_id": "rule_extraction_v1",
+        "run_type": "real_llm",
+        "provider": "openai_compatible",
+        "model": "test-model",
+        "observation_count": 3,
+        "operational_failure_count": 0,
+        "evaluation_summary": {"overall": {"precision": 1.0, "recall": 0.5, "f1": 2 / 3}},
+        "golden_eval_accuracy": {"chart_path": "chart.png"},
+        "layer_0_plausibility": {"pass": 3, "warn": 0, "fail": 0},
+        "layer_1_grounding": {"evaluated_observation_count": 3, "avg_score": 0.9, "unsupported_rate": 0.1},
+        "layer_2_judge": {},
+        "stratified_evaluation": {
+            "tracks": {
+                "concept_discovery": {
+                    "overall": {
+                        "atomic": {"precision": 0.5, "recall": 0.25, "f1": 1 / 3},
+                        "surface_discovery": {
+                            "expected_count": 4,
+                            "discovered_count": 3,
+                            "missing_count": 1,
+                            "recall": 0.75,
+                        },
+                        "polarity_mapping": {"mapped_count": 1, "mapped_pairs": []},
+                        "semantic_linking": {"linked_count": 2, "unlinked_count": 1},
+                        "umbrella_decomposition": {"average_coverage": 0.5},
+                    },
+                    "records": [
+                        {
+                            "gold_id": "gold-gout",
+                            "doc_id": "gout-doc",
+                            "matched_concepts": [{"kind": "contraindication", "value": "alcohol"}],
+                            "missing_concepts": [{"kind": "nutrition_tag", "value": "low_purine"}],
+                            "extra_concepts": [{"kind": "contraindication", "value": "high_purine"}],
+                            "surface_discovery": {"recall": 0.75},
+                            "polarity_mapping": {"mapped_count": 1},
+                        }
+                    ],
+                }
+            }
+        },
+    }
+
+    summary_path = _write_layered_evaluation_summary(tmp_path, report)
+    summary = summary_path.read_text(encoding="utf-8")
+
+    assert "## Concept Discovery" in summary
+    assert "- atomic f1: 0.333" in summary
+    assert "- surface recall: 0.750" in summary
+    assert "| gold-gout | gout-doc | 1 | 1 | 1 | 0.750 | 1 |" in summary
 
 
 class RecordingRuleLLMProvider:
