@@ -25,38 +25,34 @@ def evaluate_concept_expectation(
     raw_extracted_concept_keys: set[tuple[str, str]] = set()
     structured_polarity_pairs: list[dict[str, Any]] = []
     for extracted_rule in extracted_rules:
+        for concept_record in _rule_concept_records(extracted_rule):
+            _add_extracted_concept_record(
+                concept_record=concept_record,
+                canonical_by_surface_form=canonical_by_surface_form,
+                umbrella_mappings=umbrella_mappings,
+                forbidden_values=forbidden_values,
+                raw_extracted_concept_keys=raw_extracted_concept_keys,
+                extracted_concept_keys=extracted_concept_keys,
+                linked_surface_forms=linked_surface_forms,
+                unlinked_surface_forms=unlinked_surface_forms,
+                umbrella_covered_keys=umbrella_covered_keys,
+                structured_polarity_pairs=structured_polarity_pairs,
+                forbidden_matches=forbidden_matches,
+            )
         for concept_record in extracted_rule.get("suggested_concepts", []) or []:
-            if isinstance(concept_record, dict):
-                kind = str(concept_record.get("kind") or concept_record.get("suggested_kind") or "nutrition_tag")
-                raw_value = str(concept_record.get("suggested_code") or concept_record.get("value") or "")
-            else:
-                kind = "nutrition_tag"
-                raw_value = str(concept_record)
-            normalized_value = _normalize_surface_value(raw_value)
-            raw_extracted_concept_keys.add((kind, normalized_value))
-            matched_key_for_relations = canonical_by_surface_form.get((kind, normalized_value), (kind, normalized_value))
-            if isinstance(concept_record, dict):
-                for parent_concept in concept_record.get("parent_concepts", []) or []:
-                    parent_value = _normalize_surface_value(parent_concept)
-                    if parent_value in umbrella_mappings:
-                        umbrella_covered_keys.add(matched_key_for_relations)
-                structured_polarity_pairs.extend(
-                    _structured_polarity_pairs(
-                        source_key=matched_key_for_relations,
-                        related_concepts=concept_record.get("related_concepts", []) or [],
-                    )
-                )
-            if normalized_value in forbidden_values:
-                forbidden_matches.add(normalized_value)
-                umbrella_covered_keys.update(umbrella_mappings.get(normalized_value, set()))
-                continue
-            matched_key = canonical_by_surface_form.get((kind, normalized_value))
-            if matched_key is not None:
-                extracted_concept_keys.add(matched_key)
-                linked_surface_forms.add((kind, normalized_value))
-            elif raw_value:
-                extracted_concept_keys.add((kind, normalized_value))
-                unlinked_surface_forms.add((kind, normalized_value))
+            _add_extracted_concept_record(
+                concept_record=concept_record,
+                canonical_by_surface_form=canonical_by_surface_form,
+                umbrella_mappings=umbrella_mappings,
+                forbidden_values=forbidden_values,
+                raw_extracted_concept_keys=raw_extracted_concept_keys,
+                extracted_concept_keys=extracted_concept_keys,
+                linked_surface_forms=linked_surface_forms,
+                unlinked_surface_forms=unlinked_surface_forms,
+                umbrella_covered_keys=umbrella_covered_keys,
+                structured_polarity_pairs=structured_polarity_pairs,
+                forbidden_matches=forbidden_matches,
+            )
 
     true_positive_keys = expected_concept_keys & extracted_concept_keys
     false_negative_keys = expected_concept_keys - extracted_concept_keys
@@ -183,6 +179,62 @@ def _sorted_concepts(keys: set[tuple[str, str]]) -> list[dict[str, str]]:
     return [{"kind": kind, "value": value} for kind, value in sorted(keys)]
 
 
+def _rule_concept_records(extracted_rule: dict[str, Any]) -> list[dict[str, str]]:
+    concept_records: list[dict[str, str]] = []
+    for value in extracted_rule.get("hard_exclusions", []) or []:
+        concept_records.append({"kind": "contraindication", "suggested_code": str(value)})
+    for value in extracted_rule.get("preferred_tags", []) or []:
+        concept_records.append({"kind": "nutrition_tag", "suggested_code": str(value)})
+    return concept_records
+
+
+def _add_extracted_concept_record(
+    *,
+    concept_record: Any,
+    canonical_by_surface_form: dict[tuple[str, str], tuple[str, str]],
+    umbrella_mappings: dict[str, set[tuple[str, str]]],
+    forbidden_values: set[str],
+    raw_extracted_concept_keys: set[tuple[str, str]],
+    extracted_concept_keys: set[tuple[str, str]],
+    linked_surface_forms: set[tuple[str, str]],
+    unlinked_surface_forms: set[tuple[str, str]],
+    umbrella_covered_keys: set[tuple[str, str]],
+    structured_polarity_pairs: list[dict[str, Any]],
+    forbidden_matches: set[str],
+) -> None:
+    if isinstance(concept_record, dict):
+        kind = str(concept_record.get("kind") or concept_record.get("suggested_kind") or "nutrition_tag")
+        raw_value = str(concept_record.get("suggested_code") or concept_record.get("value") or "")
+    else:
+        kind = "nutrition_tag"
+        raw_value = str(concept_record)
+    normalized_value = _normalize_surface_value(raw_value)
+    raw_extracted_concept_keys.add((kind, normalized_value))
+    matched_key_for_relations = canonical_by_surface_form.get((kind, normalized_value), (kind, normalized_value))
+    if isinstance(concept_record, dict):
+        for parent_concept in concept_record.get("parent_concepts", []) or []:
+            parent_value = _normalize_surface_value(parent_concept)
+            if parent_value in umbrella_mappings:
+                umbrella_covered_keys.add(matched_key_for_relations)
+        structured_polarity_pairs.extend(
+            _structured_polarity_pairs(
+                source_key=matched_key_for_relations,
+                related_concepts=concept_record.get("related_concepts", []) or [],
+            )
+        )
+    if normalized_value in forbidden_values:
+        forbidden_matches.add(normalized_value)
+        umbrella_covered_keys.update(umbrella_mappings.get(normalized_value, set()))
+        return
+    matched_key = canonical_by_surface_form.get((kind, normalized_value))
+    if matched_key is not None:
+        extracted_concept_keys.add(matched_key)
+        linked_surface_forms.add((kind, normalized_value))
+    elif raw_value:
+        extracted_concept_keys.add((kind, normalized_value))
+        unlinked_surface_forms.add((kind, normalized_value))
+
+
 def _evaluate_surface_discovery(
     *,
     expected_concept_keys: set[tuple[str, str]],
@@ -235,13 +287,16 @@ def _evaluate_polarity_mapping(
         expected_record = structured_pair.get("expected", {})
         surface_record = structured_pair.get("surface", {})
         expected_key = (str(expected_record.get("kind", "")), str(expected_record.get("value", "")))
+        surface_key = (str(surface_record.get("kind", "")), str(surface_record.get("value", "")))
         if expected_key not in expected_concept_keys:
+            continue
+        if not _is_polarity_pair(expected_key, surface_key):
             continue
         pair_key = (
             expected_key[0],
             expected_key[1],
-            str(surface_record.get("kind", "")),
-            str(surface_record.get("value", "")),
+            surface_key[0],
+            surface_key[1],
             str(structured_pair.get("relation", "")),
         )
         if pair_key in seen_pairs:

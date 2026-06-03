@@ -13,6 +13,7 @@ from knowledge.schema import SuggestedConcept
 import knowledge.rule_extraction_dataset_smoke as smoke
 from knowledge.rule_extraction_dataset_smoke import (
     _concept_records_by_doc_id,
+    _dedupe_delta_candidates,
     _limit_key,
     _rule_limit_key,
     _write_layered_evaluation_summary,
@@ -108,6 +109,18 @@ def test_concept_records_prefer_canonicalized_suggestions_for_evaluation():
             ],
         }
     ]
+
+
+def test_delta_candidate_dedupe_keeps_distinct_relation_targets():
+    candidates = [
+        {"action": "add_relation", "source": "gout_diet", "target": "low_purine", "target_kind": "nutrition_tag"},
+        {"action": "add_relation", "source": "gout_diet", "target": "alcohol", "target_kind": "contraindication"},
+    ]
+
+    deduped = _dedupe_delta_candidates(candidates)
+
+    assert len(deduped) == 2
+    assert {candidate["target"] for candidate in deduped} == {"low_purine", "alcohol"}
 
 
 def test_suggestion_to_dict_preserves_concept_graph_metadata():
@@ -296,6 +309,10 @@ def test_real_run_uses_llm_provider_and_writes_observation_report(tmp_path: Path
     }
     assert report["concept_registry_extra_count"] >= 1
     assert "candidate" in report["concept_registry_included_statuses"]
+    assert report["concept_registry_snapshot"]["definition_count"] >= report["concept_registry_extra_count"]
+    assert report["concept_registry_snapshot"]["snapshot_id"].startswith("concept-registry-")
+    assert Path(report["concept_registry_delta_report_path"]).exists()
+    assert Path(report["concept_registry_delta_jsonl_path"]).exists()
     assert "cardiovascular_risk" in report["concept_coverage"]["condition_focus"]["registered"]
     assert "hypertension" in report["concept_coverage"]["condition_focus"]["registered"]
     assert "plausibility" in report["observations"][0]["evaluator"]

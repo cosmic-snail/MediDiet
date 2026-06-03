@@ -94,3 +94,34 @@ def test_unmatched_concept_becomes_registry_delta_candidate():
             "source": "hybrid_canonicalizer",
         }
     ]
+
+
+def test_parent_concept_generates_contains_relation_delta_candidate():
+    registry = ConceptRegistry(
+        [
+            ConceptDefinition(ConceptCode(CodeKind.NUTRITION_TAG, "low_purine"), "Low purine"),
+        ]
+    )
+    suggestions = [
+        {
+            "kind": "nutrition_tag",
+            "suggested_code": "low_purine",
+            "parent_concepts": ["gout_diet"],
+            "evidence_quotes": ["Gout diet advice includes low-purine eating."],
+        }
+    ]
+
+    result = canonicalize_suggested_concepts(suggestions, registry)
+
+    assert result.delta_candidates == [
+        {
+            "action": "add_relation",
+            "relation": "contains",
+            "source": "gout_diet",
+            "target_kind": "nutrition_tag",
+            "target": "low_purine",
+            "evidence_quotes": ["Gout diet advice includes low-purine eating."],
+            "status": "candidate",
+            "source_type": "hybrid_canonicalizer",
+        }
+    ]

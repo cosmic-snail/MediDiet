@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import time
@@ -334,6 +335,111 @@ def _summarize_suggested_concepts(
             for code, count in sorted(concept_counts.items())
         ],
     }
+
+
+def _concept_registry_snapshot(
+    registry: ConceptRegistry,
+    *,
+    registry_paths: list[Path],
+    included_statuses: list[str],
+) -> dict[str, Any]:
+    definitions = [
+        {
+            "kind": definition.code.kind.value,
+            "value": definition.code.value,
+            "display_name": definition.display_name,
+            "aliases": sorted(definition.aliases),
+            "source": definition.source,
+        }
+        for definition in registry._definitions.values()
+    ]
+    definitions = sorted(definitions, key=lambda item: (item["kind"], item["value"]))
+    snapshot_payload = {
+        "definitions": definitions,
+        "included_statuses": included_statuses,
+        "registry_paths": [str(path) for path in registry_paths],
+    }
+    snapshot_hash = hashlib.sha256(
+        json.dumps(snapshot_payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return {
+        "snapshot_id": f"concept-registry-{snapshot_hash[:16]}",
+        "definition_count": len(definitions),
+        "definition_hash": f"sha256:{snapshot_hash}",
+        "included_statuses": included_statuses,
+        "registry_paths": [str(path) for path in registry_paths],
+    }
+
+
+def _write_concept_registry_delta_artifacts(
+    *,
+    output_dir: Path,
+    dataset_id: str,
+    registry_snapshot: dict[str, Any],
+    delta_candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    jsonl_path = output_dir / "rule-extraction-v1-concept-registry-delta.jsonl"
+    report_path = output_dir / "rule-extraction-v1-concept-registry-delta-report.md"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    deduped_delta_candidates = _dedupe_delta_candidates(delta_candidates)
+    jsonl_path.write_text(
+        "".join(json.dumps(candidate, ensure_ascii=False, sort_keys=True) + "\n" for candidate in deduped_delta_candidates),
+        encoding="utf-8",
+    )
+    action_counts = Counter(str(candidate.get("action", "")) for candidate in deduped_delta_candidates)
+    lines = [
+        "# Concept Registry Delta",
+        "",
+        f"- dataset: `{dataset_id}`",
+        f"- registry snapshot: `{registry_snapshot.get('snapshot_id', '')}`",
+        f"- candidate count: {len(deduped_delta_candidates)}",
+        "",
+        "| Action | Count |",
+        "| --- | ---: |",
+    ]
+    if action_counts:
+        for action, count in sorted(action_counts.items()):
+            lines.append(f"| {action} | {count} |")
+    else:
+        lines.append("| - | 0 |")
+    report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return {
+        "jsonl_path": str(jsonl_path),
+        "report_path": str(report_path),
+        "candidate_count": len(deduped_delta_candidates),
+        "action_counts": dict(sorted(action_counts.items())),
+    }
+
+
+def _dedupe_delta_candidates(delta_candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    candidates_by_key: dict[tuple[str, str, str, str, str, str], dict[str, Any]] = {}
+    for delta_candidate in delta_candidates:
+        key = (
+            str(delta_candidate.get("action", "")),
+            str(delta_candidate.get("relation", "")),
+            str(delta_candidate.get("source", "")),
+            str(delta_candidate.get("kind", "")),
+            str(delta_candidate.get("target_kind", "")),
+            str(delta_candidate.get("value", "")),
+            str(delta_candidate.get("target", "")),
+        )
+        if key not in candidates_by_key:
+            candidates_by_key[key] = dict(delta_candidate)
+            continue
+        existing_candidate = candidates_by_key[key]
+        existing_candidate["aliases"] = sorted(
+            {
+                *[str(alias) for alias in existing_candidate.get("aliases", []) or []],
+                *[str(alias) for alias in delta_candidate.get("aliases", []) or []],
+            }
+        )
+        existing_candidate["evidence_quotes"] = sorted(
+            {
+                *[str(evidence_quote) for evidence_quote in existing_candidate.get("evidence_quotes", []) or []],
+                *[str(evidence_quote) for evidence_quote in delta_candidate.get("evidence_quotes", []) or []],
+            }
+        )
+    return [candidates_by_key[key] for key in sorted(candidates_by_key)]
 
 
 def _summarize_operational_failures(operational_failures: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1076,6 +1182,13 @@ def run_research_real_run(
         baseline_rule_pack.concepts,
         extra_concept_definitions,
     )
+    concept_registry_included_statuses = [status.value for status in EXPERIMENT_CONCEPT_STATUSES]
+    concept_registry_paths = [concept_registry_path] if concept_registry_path.exists() else []
+    concept_registry_snapshot = _concept_registry_snapshot(
+        extractor_registry,
+        registry_paths=concept_registry_paths,
+        included_statuses=concept_registry_included_statuses,
+    )
     concept_coverage = audit_concept_coverage(
         manifest_rows=manifest_rows,
         gold_rows=gold_rows,
@@ -1379,6 +1492,12 @@ def run_research_real_run(
         for observation in observations
         for delta_candidate in observation.get("concept_registry_delta_candidates", []) or []
     ]
+    concept_registry_delta_artifacts = _write_concept_registry_delta_artifacts(
+        output_dir=output_dir,
+        dataset_id=dataset,
+        registry_snapshot=concept_registry_snapshot,
+        delta_candidates=concept_registry_delta_candidates,
+    )
     concept_discovery_ablation = {
         "raw": summarize_concept_evaluations(raw_concept_evaluations),
         "canonicalized": summarize_concept_evaluations(concept_evaluations),
@@ -1401,8 +1520,9 @@ def run_research_real_run(
         "circuit_breaker_failures": circuit_breaker_failures,
         "circuit_breaker_cooldown_seconds": circuit_breaker_cooldown_seconds,
         "source_text_diagnostics": source_text_bundle.diagnostics,
-        "concept_registry_paths": [str(concept_registry_path)] if concept_registry_path.exists() else [],
-        "concept_registry_included_statuses": [status.value for status in EXPERIMENT_CONCEPT_STATUSES],
+        "concept_registry_paths": [str(path) for path in concept_registry_paths],
+        "concept_registry_included_statuses": concept_registry_included_statuses,
+        "concept_registry_snapshot": concept_registry_snapshot,
         "concept_registry_extra_count": len(extra_concept_definitions),
         "concept_coverage": concept_coverage,
         "observation_count": len(observations),
@@ -1429,6 +1549,9 @@ def run_research_real_run(
         "suggested_concept_summary": suggested_concept_summary,
         "concept_discovery_ablation": concept_discovery_ablation,
         "concept_registry_delta_candidates": concept_registry_delta_candidates,
+        "concept_registry_delta": concept_registry_delta_artifacts,
+        "concept_registry_delta_jsonl_path": concept_registry_delta_artifacts["jsonl_path"],
+        "concept_registry_delta_report_path": concept_registry_delta_artifacts["report_path"],
         "observations": observations,
         "operational_failures": operational_failures,
         "stability": stability,

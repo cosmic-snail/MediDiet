@@ -32,6 +32,30 @@ def test_evaluate_concept_expectation_matches_atomic_values_and_aliases():
     assert evaluation["missing_concepts"] == []
 
 
+def test_evaluate_concept_expectation_counts_rule_concepts_as_discovered_atomic_values():
+    expectation = {
+        "gold_id": "gold-gout",
+        "expected_atomic_concepts": [
+            {"kind": "nutrition_tag", "value": "low_purine", "aliases": []},
+            {"kind": "contraindication", "value": "alcohol", "aliases": []},
+        ],
+    }
+    extracted_rules = [
+        {
+            "hard_exclusions": ["alcohol"],
+            "preferred_tags": ["low_purine"],
+        }
+    ]
+
+    evaluation = evaluate_concept_expectation(expectation, extracted_rules)
+
+    assert evaluation["overall"] == "match"
+    assert evaluation["matched_concepts"] == [
+        {"kind": "contraindication", "value": "alcohol"},
+        {"kind": "nutrition_tag", "value": "low_purine"},
+    ]
+
+
 def test_evaluate_concept_expectation_links_same_meaning_atomic_concepts():
     expectation = {
         "gold_id": "gold-gout",
@@ -193,6 +217,63 @@ def test_evaluate_concept_expectation_uses_structured_relations_from_concept_gra
             "relation": "polarity_pair",
         }
     ]
+
+
+def test_structured_polarity_does_not_map_unrelated_target_to_management_concept():
+    expectation = {
+        "gold_id": "gold-ckd",
+        "expected_atomic_concepts": [
+            {"kind": "nutrition_tag", "value": "potassium_management", "aliases": ["potassium restriction"]},
+            {"kind": "nutrition_tag", "value": "phosphorus_management", "aliases": ["phosphorus restriction"]},
+        ],
+    }
+    extracted_rules = [
+        {
+            "suggested_concepts": [
+                {
+                    "kind": "contraindication",
+                    "suggested_code": "high_potassium",
+                    "related_concepts": [{"target": "low_potassium", "relation": "polarity_pair"}],
+                }
+            ]
+        }
+    ]
+
+    evaluation = evaluate_concept_expectation(expectation, extracted_rules)
+
+    assert evaluation["polarity_mapping"]["mapped_count"] == 0
+    assert evaluation["polarity_mapping"]["mapped_pairs"] == []
+
+
+def test_structured_polarity_requires_clear_low_high_opposition():
+    expectation = {
+        "gold_id": "gold-ckd",
+        "expected_atomic_concepts": [
+            {"kind": "nutrition_tag", "value": "potassium_management", "aliases": ["potassium restriction"]},
+            {"kind": "nutrition_tag", "value": "phosphorus_management", "aliases": ["phosphorus restriction"]},
+        ],
+    }
+    extracted_rules = [
+        {
+            "suggested_concepts": [
+                {
+                    "kind": "nutrition_tag",
+                    "suggested_code": "potassium_management",
+                    "related_concepts": [{"target": "low_sodium", "relation": "polarity_pair"}],
+                },
+                {
+                    "kind": "nutrition_tag",
+                    "suggested_code": "phosphorus_management",
+                    "related_concepts": [{"target": "low_sodium", "relation": "polarity_pair"}],
+                },
+            ]
+        }
+    ]
+
+    evaluation = evaluate_concept_expectation(expectation, extracted_rules)
+
+    assert evaluation["polarity_mapping"]["mapped_count"] == 0
+    assert evaluation["polarity_mapping"]["mapped_pairs"] == []
 
 
 def test_precision_recall_f1_for_concepts_counts_extra_atomic_concepts():

@@ -53,6 +53,14 @@ def canonicalize_suggested_concepts(
         if related_concepts:
             canonicalized_concept["related_concepts"] = related_concepts
             polarity_pair_count += sum(1 for relation in related_concepts if relation.get("relation") == "polarity_pair")
+        for parent_concept in canonicalized_concept.get("parent_concepts", []) or []:
+            delta_candidates.append(
+                _build_contains_relation_delta(
+                    parent_concept=parent_concept,
+                    child_code=canonical_code,
+                    suggested_concept=suggested_concept,
+                )
+            )
         canonicalized_concepts.append(canonicalized_concept)
 
     canonicalized_count = sum(
@@ -154,6 +162,24 @@ def _build_delta_candidate(
         "evidence_quotes": list(suggested_concept.get("evidence_quotes", []) or []),
         "status": "candidate",
         "source": "hybrid_canonicalizer",
+    }
+
+
+def _build_contains_relation_delta(
+    *,
+    parent_concept: str,
+    child_code: ConceptCode,
+    suggested_concept: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "action": "add_relation",
+        "relation": "contains",
+        "source": _normalize_concept_value(parent_concept),
+        "target_kind": child_code.kind.value,
+        "target": child_code.value,
+        "evidence_quotes": list(suggested_concept.get("evidence_quotes", []) or []),
+        "status": "candidate",
+        "source_type": "hybrid_canonicalizer",
     }
 
 
