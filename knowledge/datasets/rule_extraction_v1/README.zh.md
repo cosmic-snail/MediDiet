@@ -32,6 +32,31 @@ LLM API 层面的运行失败不进入研究观察范围，包括超时、HTTP/p
 
 普通单元测试不得默认写入 `extraction_observations.jsonl`；真实 LLM 运行只有在显式 `--append-observations` 时才可追加。
 
+## 专家标注工作台
+
+专家标注记录独立保存为 append-only 审计文件，不直接覆盖弱标签或既有 gold：
+
+- `expert_annotations.jsonl`：专家逐条保存的审计记录，包含 `annotator`、`split`、`annotation_status`、source hash、证据片段和标注内容。
+- `gold_expert_evaluation_set.jsonl`：由已批准专家标注冻结得到的统一 expert gold。
+- `gold_expert_train.jsonl`、`gold_expert_dev.jsonl`、`gold_expert_test.jsonl`、`gold_expert_holdout.jsonl`：按 split 拆分的冻结 expert gold。
+
+启动本地 Web 标注器：
+
+```bash
+PYTHONPATH=src:knowledge/src python -m knowledge.expert_annotation_app \
+  --dataset-dir knowledge/datasets/rule_extraction_v1 \
+  --host 127.0.0.1 \
+  --port 8765
+```
+
+页面会展示 source card、manifest 元数据、机器生成的 silver draft 和专家标注表单。silver draft 只作为待审核草稿，不能直接视为人工 gold。保存时会校验 source hash；如果 source card 在标注后发生变化，冻结 expert gold 会失败并要求重新审核。
+
+防泄漏边界：
+
+- `gold_expert_test.jsonl` 和 `gold_expert_holdout.jsonl` 只能用于跑后评估，不得进入 prompt、runtime concept registry、canonicalizer 规则或 registry delta 审核依据。
+- `expert_annotations.jsonl` 是审计来源；进入运行时 registry 的概念必须来自人工单独批准的 registry delta，而不是 test/holdout gold。
+- 若需要估计答案表上限，可以单独跑 oracle arm，但不能把 oracle 指标作为主 discovery 结果。
+
 ## 本地校验
 
 ```bash
