@@ -3,7 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from math import isfinite
+from pathlib import Path
+from typing import Iterable
 
+from medidiet.concept_registry import (
+    DEFAULT_PRODUCT_CONCEPT_STATUSES,
+    ConceptStatus,
+    load_concept_definitions_from_jsonl,
+    merge_concept_definitions,
+)
 from medidiet.domain import CodeKind, ConceptCode, ConceptDefinition, ConceptRegistry
 
 
@@ -85,8 +93,22 @@ class RulePack:
         return self.rules_by_condition[condition]
 
 
-def load_baseline_rule_pack() -> RulePack:
+def load_baseline_rule_pack(
+    *,
+    concept_registry_paths: Iterable[Path] | None = None,
+    include_concept_statuses: Iterable[ConceptStatus | str] = DEFAULT_PRODUCT_CONCEPT_STATUSES,
+) -> RulePack:
     concepts = _baseline_concepts()
+    extra_definitions: list[ConceptDefinition] = []
+    for concept_registry_path in concept_registry_paths or []:
+        extra_definitions.extend(
+            load_concept_definitions_from_jsonl(
+                Path(concept_registry_path),
+                include_statuses=include_concept_statuses,
+            )
+        )
+    if extra_definitions:
+        concepts = merge_concept_definitions(concepts, extra_definitions)
     sources = (
         RuleSource(
             title="Chinese Dietary Guidelines",
@@ -199,21 +221,30 @@ def load_baseline_rule_pack() -> RulePack:
 
 def _baseline_concepts() -> ConceptRegistry:
     definitions = [
+        # Conditions
         ConceptDefinition(ConceptCode(CodeKind.CONDITION, "hypertension"), "Hypertension", aliases=("hypertension",)),
-        ConceptDefinition(ConceptCode(CodeKind.CONDITION, "diabetes"), "Diabetes", aliases=("diabetes",)),
+        ConceptDefinition(ConceptCode(CodeKind.CONDITION, "diabetes"), "Diabetes", aliases=("diabetes", "type_2_diabetes", "prediabetes", "hyperglycemia")),
         ConceptDefinition(ConceptCode(CodeKind.CONDITION, "hyperlipidemia"), "Hyperlipidemia", aliases=("hyperlipidemia",)),
         ConceptDefinition(ConceptCode(CodeKind.CONDITION, "weight_control"), "Weight control", aliases=("weight control",)),
+        ConceptDefinition(ConceptCode(CodeKind.CONDITION, "obesity"), "Obesity", aliases=("obesity", "overweight")),
+        ConceptDefinition(ConceptCode(CodeKind.CONDITION, "gout"), "Gout", aliases=("gout", "hyperuricemia")),
+        ConceptDefinition(ConceptCode(CodeKind.CONDITION, "chronic_kidney_disease"), "Chronic Kidney Disease", aliases=("chronic kidney disease", "ckd")),
+        # Contraindications
         ConceptDefinition(ConceptCode(CodeKind.CONTRAINDICATION, "high_sodium"), "High sodium"),
+        ConceptDefinition(ConceptCode(CodeKind.CONTRAINDICATION, "high_sugar"), "High sugar"),
         ConceptDefinition(ConceptCode(CodeKind.CONTRAINDICATION, "sugary_drink"), "Sugary drink"),
         ConceptDefinition(ConceptCode(CodeKind.CONTRAINDICATION, "dessert"), "Dessert"),
         ConceptDefinition(ConceptCode(CodeKind.CONTRAINDICATION, "deep_fried"), "Deep fried"),
         ConceptDefinition(ConceptCode(CodeKind.CONTRAINDICATION, "fatty_meat"), "Fatty meat"),
         ConceptDefinition(ConceptCode(CodeKind.CONTRAINDICATION, "oversized_portion"), "Oversized portion"),
+        # Nutrition tags
         ConceptDefinition(ConceptCode(CodeKind.NUTRITION_TAG, "low_sodium"), "Low sodium"),
+        ConceptDefinition(ConceptCode(CodeKind.NUTRITION_TAG, "low_sugar"), "Low sugar"),
         ConceptDefinition(ConceptCode(CodeKind.NUTRITION_TAG, "vegetable_rich"), "Vegetable rich"),
         ConceptDefinition(ConceptCode(CodeKind.NUTRITION_TAG, "controlled_carbs"), "Controlled carbohydrates"),
         ConceptDefinition(ConceptCode(CodeKind.NUTRITION_TAG, "high_fiber"), "High fiber"),
         ConceptDefinition(ConceptCode(CodeKind.NUTRITION_TAG, "lean_protein"), "Lean protein"),
+        ConceptDefinition(ConceptCode(CodeKind.NUTRITION_TAG, "dash_pattern"), "DASH dietary pattern"),
         ConceptDefinition(ConceptCode(CodeKind.NUTRITION_TAG, "balanced"), "Balanced"),
     ]
     return ConceptRegistry(definitions)

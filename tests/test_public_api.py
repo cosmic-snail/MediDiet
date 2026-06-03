@@ -5,6 +5,8 @@ class PublicApiTest(unittest.TestCase):
     def test_engine_exports_are_available(self):
         import medidiet
         from medidiet import (
+            ConceptSourceType,
+            ConceptStatus,
             RecommendationEngine,
             RecommendationResult,
             RulePack,
@@ -17,6 +19,8 @@ class PublicApiTest(unittest.TestCase):
                 "KnowledgeContext",
                 "KnowledgePort",
                 "KnowledgeSnippet",
+                "ConceptSourceType",
+                "ConceptStatus",
                 "LLMAnswer",
                 "LLMConfig",
                 "LLMContextSanitizer",
@@ -35,6 +39,8 @@ class PublicApiTest(unittest.TestCase):
                 "load_baseline_rule_pack",
             ],
         )
+        self.assertEqual(ConceptSourceType.LLM.value, "llm")
+        self.assertEqual(ConceptStatus.APPROVED.value, "approved")
         self.assertEqual(RecommendationEngine.__name__, "RecommendationEngine")
         self.assertEqual(RecommendationResult.__name__, "RecommendationResult")
         rule_pack = load_baseline_rule_pack()

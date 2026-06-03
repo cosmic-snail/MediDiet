@@ -13,6 +13,7 @@ from medidiet.domain import (
 from medidiet.rules import NutrientMetric, NutrientLimit, LimitScope
 from knowledge.documents import DocumentChunk
 from knowledge.extractor import (
+    _EXTRACTION_SYSTEM_PROMPT,
     _serialize_concept_registry_for_prompt,
     _build_extraction_user_prompt,
     _build_verification_user_prompt,
@@ -29,6 +30,7 @@ def _sample_registry() -> ConceptRegistry:
             ConceptDefinition(
                 code=ConceptCode(CodeKind.CONDITION, "hypertension"),
                 display_name="Hypertension",
+                aliases=("high blood pressure",),
                 source="baseline",
             ),
             ConceptDefinition(
@@ -62,6 +64,25 @@ def _make_chunk(chunk_id: str, text: str) -> DocumentChunk:
         text=text,
         chunk_index=0,
     )
+
+
+def test_extraction_system_prompt_requires_numeric_limits_when_present():
+    assert "nutrition_limits" in _EXTRACTION_SYSTEM_PROMPT
+    assert "If a source gives a numeric threshold" in _EXTRACTION_SYSTEM_PROMPT
+    assert "do not replace it with only a preferred_tag" in _EXTRACTION_SYSTEM_PROMPT
+    assert "daily sodium limit" in _EXTRACTION_SYSTEM_PROMPT
+    assert "5 g salt" in _EXTRACTION_SYSTEM_PROMPT
+    assert "2000 mg sodium" in _EXTRACTION_SYSTEM_PROMPT
+
+
+def test_extraction_system_prompt_requests_structured_concept_graph():
+    assert "concept_graph" in _EXTRACTION_SYSTEM_PROMPT
+    assert "atomic_concepts" in _EXTRACTION_SYSTEM_PROMPT
+    assert "umbrella_concepts" in _EXTRACTION_SYSTEM_PROMPT
+    assert "relations" in _EXTRACTION_SYSTEM_PROMPT
+    assert "same_as" in _EXTRACTION_SYSTEM_PROMPT
+    assert "contains" in _EXTRACTION_SYSTEM_PROMPT
+    assert "polarity_pair" in _EXTRACTION_SYSTEM_PROMPT
 
 
 class TestSerializeConceptRegistry:
@@ -134,6 +155,11 @@ class TestParseConceptCode:
         code = _parse_concept_code("condition", "unknown_disease", registry)
         assert code is None
 
+    def test_alias_with_non_code_text_returns_registered_code(self):
+        registry = _sample_registry()
+        code = _parse_concept_code("condition", "high blood pressure", registry)
+        assert code == ConceptCode(CodeKind.CONDITION, "hypertension")
+
     def test_invalid_kind_returns_none(self):
         registry = _sample_registry()
         code = _parse_concept_code("invalid_kind", "hypertension", registry)
@@ -184,6 +210,42 @@ class TestParseExtractionResponse:
         assert rules[0].extraction_method == "llm"
         assert rules[0].status == "draft"
         assert len(suggestions) == 0
+
+    def test_parse_daily_limit_treats_24_hour_window_as_daily_scope(self):
+        registry = _sample_registry()
+        raw = json.dumps({
+            "rules": [
+                {
+                    "condition": {"kind": "condition", "value": "hypertension"},
+                    "hard_exclusions": [],
+                    "preferred_tags": [],
+                    "nutrition_limits": [
+                        {
+                            "metric": "sodium_mg",
+                            "scope": "daily",
+                            "max_value": 2000.0,
+                            "window_hours": 24,
+                        }
+                    ],
+                    "confidence": 0.9,
+                    "evidence_quotes": {
+                        "nutrition_limits": "2000 mg sodium per day"
+                    },
+                }
+            ],
+            "suggested_concepts": [],
+        })
+
+        rules, _ = _parse_extraction_response(
+            raw, registry, "test", ["chunk-001"], ["doc-001"]
+        )
+
+        assert len(rules) == 1
+        nutrition_limit = next(iter(rules[0].nutrition_limits))
+        assert nutrition_limit.metric is NutrientMetric.SODIUM_MG
+        assert nutrition_limit.scope is LimitScope.DAILY
+        assert nutrition_limit.max_value == 2000.0
+        assert nutrition_limit.window_hours is None
 
     def test_parse_with_evidence_quotes_creates_verification(self):
         registry = _sample_registry()
@@ -258,6 +320,103 @@ class TestParseExtractionResponse:
         assert len(suggestions) == 1
         assert suggestions[0].suggested_code.value == "high_purine"
         assert suggestions[0].definition == "Foods high in purines that may trigger gout"
+
+    def test_concept_graph_atomic_concepts_and_relations_are_parsed_as_suggestions(self):
+        registry = _sample_registry()
+        raw = json.dumps({
+            "rules": [],
+            "suggested_concepts": [],
+            "concept_graph": {
+                "atomic_concepts": [
+                    {
+                        "kind": "nutrition_tag",
+                        "value": "low_purine",
+                        "definition": "Foods low in purines for gout management",
+                        "display_name": "Low Purine",
+                        "aliases": ["purine_restriction", "limit_high_purine_foods"],
+                        "polarity": "prefer",
+                        "evidence_quotes": ["Limit high-purine foods."],
+                        "confidence": 0.82,
+                    },
+                    {
+                        "kind": "contraindication",
+                        "value": "high_purine",
+                        "definition": "High-purine foods to avoid",
+                        "display_name": "High Purine",
+                        "polarity": "avoid",
+                        "evidence_quotes": ["Avoid high-purine foods."],
+                        "confidence": 0.8,
+                    },
+                ],
+                "umbrella_concepts": [
+                    {
+                        "value": "gout_diet_context",
+                        "display_name": "Gout Diet Context",
+                        "definition": "Diet concepts relevant to gout",
+                    }
+                ],
+                "relations": [
+                    {"source": "gout_diet_context", "target": "low_purine", "type": "contains"},
+                    {"source": "low_purine", "target": "high_purine", "type": "polarity_pair"},
+                ],
+            },
+        })
+
+        _, suggestions = _parse_extraction_response(raw, registry, "test", ["chunk-001"], ["doc-001"])
+
+        assert len(suggestions) == 2
+        low_purine = next(item for item in suggestions if item.suggested_code.value == "low_purine")
+        assert low_purine.aliases == ("purine_restriction", "limit_high_purine_foods")
+        assert low_purine.polarity == "prefer"
+        assert low_purine.parent_concepts == ("gout_diet_context",)
+        assert low_purine.related_concepts == ({"target": "high_purine", "relation": "polarity_pair"},)
+        assert low_purine.evidence_quotes == ("Limit high-purine foods.",)
+        assert low_purine.confidence == 0.82
+
+    def test_duplicate_legacy_and_concept_graph_suggestions_are_merged(self):
+        registry = _sample_registry()
+        raw = json.dumps({
+            "rules": [],
+            "suggested_concepts": [
+                {
+                    "kind": "nutrition_tag",
+                    "value": "low_purine",
+                    "definition": "Low-purine diet",
+                    "display_name": "Low Purine",
+                }
+            ],
+            "concept_graph": {
+                "atomic_concepts": [
+                    {
+                        "kind": "nutrition_tag",
+                        "value": "low_purine",
+                        "definition": "Diet low in purines for gout management",
+                        "display_name": "Low Purine",
+                        "aliases": ["purine restriction"],
+                        "polarity": "prefer",
+                        "evidence_quotes": ["Limit high-purine foods."],
+                        "confidence": 0.82,
+                    }
+                ],
+                "umbrella_concepts": [{"value": "gout_diet_context"}],
+                "relations": [
+                    {"source": "gout_diet_context", "target": "low_purine", "type": "contains"},
+                    {"source": "low_purine", "target": "high_purine", "type": "polarity_pair"},
+                ],
+            },
+        })
+
+        _, suggestions = _parse_extraction_response(raw, registry, "test", ["chunk-001"], ["doc-001"])
+
+        assert len(suggestions) == 1
+        low_purine = suggestions[0]
+        assert low_purine.suggested_code.value == "low_purine"
+        assert low_purine.definition == "Diet low in purines for gout management"
+        assert low_purine.aliases == ("purine restriction",)
+        assert low_purine.parent_concepts == ("gout_diet_context",)
+        assert low_purine.related_concepts == ({"target": "high_purine", "relation": "polarity_pair"},)
+        assert low_purine.evidence_quotes == ("Limit high-purine foods.",)
+        assert low_purine.confidence == 0.82
 
     def test_empty_rules_array(self):
         registry = _sample_registry()

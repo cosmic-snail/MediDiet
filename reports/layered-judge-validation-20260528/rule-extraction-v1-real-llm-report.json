@@ -1,0 +1,566 @@
+{
+  "dataset_id": "rule_extraction_v1",
+  "run_type": "real_llm",
+  "model": "deepseek-v4-flash",
+  "provider": "openai_compatible",
+  "observation_count": 2,
+  "operational_failure_count": 0,
+  "evaluation_summary": {
+    "evaluated_record_count": 1,
+    "overall": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "by_experiment_arm": [
+      {
+        "experiment_id": "E1",
+        "arm_id": "C2",
+        "evaluated_record_count": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    ]
+  },
+  "golden_eval_accuracy": {
+    "report_path": "reports/layered-judge-validation-20260528/rule-extraction-v1-golden-eval-accuracy-report.json",
+    "chart_path": "reports/layered-judge-validation-20260528/rule-extraction-v1-golden-eval-accuracy-chart.png"
+  },
+  "layer_0_plausibility": {
+    "pass": 2,
+    "warn": 0,
+    "fail": 0
+  },
+  "layer_1_grounding": {
+    "evaluated_observation_count": 2,
+    "avg_score": 1.0,
+    "unsupported_rate": 0.0
+  },
+  "layer_2_judge": {
+    "evaluated_rule_count": 2,
+    "accept_rate": 1.0,
+    "uncertain_rate": 0.0,
+    "reject_rate": 0.0,
+    "avg_confidence": 0.9,
+    "calibration": {
+      "calibrated_record_count": 1,
+      "agreement_rate": 0.0,
+      "gwet_ac1": -1.0,
+      "rows": [
+        {
+          "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+          "judge_label": "accept",
+          "gold_label": "reject",
+          "agrees": false
+        }
+      ]
+    }
+  },
+  "evaluations": [
+    {
+      "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+      "field_scores": {
+        "condition": "match",
+        "hard_exclusions": "match",
+        "preferred_tags": "partial",
+        "nutrition_limits": "missing",
+        "evidence_quote": "missing"
+      },
+      "overall": "miss",
+      "failures": [
+        "missing_numeric_limit"
+      ],
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "input_variant": "extractable_content",
+      "source_content_strategy": "extractable_content",
+      "gold_behavior": "rule"
+    }
+  ],
+  "suggested_concept_summary": {
+    "suggested_concept_count": 0,
+    "unique_suggested_concept_count": 0,
+    "concepts": []
+  },
+  "observations": [
+    {
+      "run_id": "sha256:54900ebbaece0ec55342380ed748bd7160885b3eadac55ae523caffb5999a44c",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f",
+      "source_card_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "chunk_hashes": [
+        "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f"
+      ],
+      "latency_ms": 19766,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:75e044cd1fc2c8e9e018869f624664da375c941bab94dffbc0e49f6996dcf0e8",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "balanced",
+            "low_sodium"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.8,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 19766,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {
+        "plausibility": {
+          "plausibility_flag": "pass",
+          "rule_count": 1,
+          "rule_results": [
+            {
+              "plausibility_flag": "pass",
+              "issue_codes": []
+            }
+          ],
+          "issue_counts": {}
+        },
+        "grounding": {
+          "rule_count": 1,
+          "avg_score": 1.0,
+          "unsupported_rate": 0.0,
+          "rule_results": [
+            {
+              "grounding_score": 1.0,
+              "unsupported_fields": [],
+              "field_results": {
+                "condition": true,
+                "preferred_tags": true,
+                "hard_exclusions": true
+              }
+            }
+          ]
+        },
+        "judge": {
+          "rule_results": [
+            {
+              "verdict": "accept",
+              "confidence": 0.9,
+              "field_verdicts": {
+                "condition": "accept",
+                "hard_exclusions": "accept",
+                "nutrition_limits": "accept",
+                "preferred_tags": "accept"
+              },
+              "reason": "The source text emphasizes a balanced diet with salt reduction and attention to high-sodium foods, directly supporting the condition 'hypertension', hard exclusion 'high_sodium', and preferred tags 'balanced' and 'low_sodium'. No nutrition limits are mentioned, which is consistent.",
+              "experiment_id": "E1",
+              "arm_id": "C2",
+              "dataset_id": "rule_extraction_v1",
+              "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+              "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+              "rule_index": 0
+            }
+          ]
+        }
+      },
+      "failures": [],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:3ad76014ea356ea1e9c30a3f8e6299a840e818b2a7d4bea2174137ab09005799",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288",
+      "source_card_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "chunk_hashes": [
+        "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288"
+      ],
+      "latency_ms": 98555,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:0100e729383ddff9ebbfce9c9ecbd04727faa25ef1746f48d65575efa2696a9c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.6,
+          "status": "pending_review",
+          "verification_verdict": "revision_needed"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 98555,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {
+        "plausibility": {
+          "plausibility_flag": "pass",
+          "rule_count": 1,
+          "rule_results": [
+            {
+              "plausibility_flag": "pass",
+              "issue_codes": []
+            }
+          ],
+          "issue_counts": {}
+        },
+        "grounding": {
+          "rule_count": 1,
+          "avg_score": 1.0,
+          "unsupported_rate": 0.0,
+          "rule_results": [
+            {
+              "grounding_score": 1.0,
+              "unsupported_fields": [],
+              "field_results": {
+                "condition": true,
+                "preferred_tags": true
+              }
+            }
+          ]
+        },
+        "judge": {
+          "rule_results": [
+            {
+              "verdict": "accept",
+              "confidence": 0.9,
+              "field_verdicts": {
+                "condition": "accept",
+                "hard_exclusions": "accept",
+                "nutrition_limits": "accept",
+                "preferred_tags": "accept"
+              },
+              "reason": "The source text explicitly supports the condition 'diabetes' and the preferred tags 'balanced' (balanced food selection) and 'controlled_carbs' (carbohydrate quality). No hard exclusions or nutrition limits are mentioned, so empty lists are acceptable.",
+              "experiment_id": "E1",
+              "arm_id": "C2",
+              "dataset_id": "rule_extraction_v1",
+              "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+              "gold_id": null,
+              "rule_index": 0
+            }
+          ]
+        }
+      },
+      "failures": [],
+      "source_content_strategy": "extractable_content"
+    }
+  ],
+  "operational_failures": [],
+  "stability": {
+    "run_count": 2,
+    "condition_presence": {
+      "diabetes": 0.5,
+      "hypertension": 0.5
+    },
+    "hard_exclusion_presence": {
+      "high_sodium": 0.5
+    },
+    "preferred_tag_presence": {
+      "balanced": 1.0,
+      "controlled_carbs": 0.5,
+      "low_sodium": 0.5
+    },
+    "nutrition_limit_presence": {},
+    "parse_failure_rate": 0.0,
+    "empty_output_rate": 0.0,
+    "retry_count_distribution": {
+      "0": 2
+    },
+    "pairwise_canonical_rule_set_similarity": 0.16666666666666666,
+    "failure_counts": {}
+  },
+  "rows": [
+    {
+      "run_id": "sha256:54900ebbaece0ec55342380ed748bd7160885b3eadac55ae523caffb5999a44c",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f",
+      "source_card_hash": "sha256:f7a0b3afe554363f5b01b3763207cf7034f24fd5d57de0f75213c36244637ccf",
+      "chunk_hashes": [
+        "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f"
+      ],
+      "latency_ms": 19766,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:75e044cd1fc2c8e9e018869f624664da375c941bab94dffbc0e49f6996dcf0e8",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "hypertension",
+          "hard_exclusions": [
+            "high_sodium"
+          ],
+          "preferred_tags": [
+            "balanced",
+            "low_sodium"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.8,
+          "status": "draft",
+          "verification_verdict": "pass"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:83738395bcfb543a62aaa2ac83dbcafd570981a03e2415c7450e8d2b2b1d1b7f",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 19766,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {
+        "plausibility": {
+          "plausibility_flag": "pass",
+          "rule_count": 1,
+          "rule_results": [
+            {
+              "plausibility_flag": "pass",
+              "issue_codes": []
+            }
+          ],
+          "issue_counts": {}
+        },
+        "grounding": {
+          "rule_count": 1,
+          "avg_score": 1.0,
+          "unsupported_rate": 0.0,
+          "rule_results": [
+            {
+              "grounding_score": 1.0,
+              "unsupported_fields": [],
+              "field_results": {
+                "condition": true,
+                "preferred_tags": true,
+                "hard_exclusions": true
+              }
+            }
+          ]
+        },
+        "judge": {
+          "rule_results": [
+            {
+              "verdict": "accept",
+              "confidence": 0.9,
+              "field_verdicts": {
+                "condition": "accept",
+                "hard_exclusions": "accept",
+                "nutrition_limits": "accept",
+                "preferred_tags": "accept"
+              },
+              "reason": "The source text emphasizes a balanced diet with salt reduction and attention to high-sodium foods, directly supporting the condition 'hypertension', hard exclusion 'high_sodium', and preferred tags 'balanced' and 'low_sodium'. No nutrition limits are mentioned, which is consistent.",
+              "experiment_id": "E1",
+              "arm_id": "C2",
+              "dataset_id": "rule_extraction_v1",
+              "doc_id": "zh_guideline_hypertension_food_therapy_2023",
+              "gold_id": "gold_zh_guideline_hypertension_food_therapy_2023_001",
+              "rule_index": 0
+            }
+          ]
+        }
+      },
+      "failures": [],
+      "source_content_strategy": "extractable_content"
+    },
+    {
+      "run_id": "sha256:3ad76014ea356ea1e9c30a3f8e6299a840e818b2a7d4bea2174137ab09005799",
+      "experiment_id": "E1",
+      "arm_id": "C2",
+      "dataset_id": "rule_extraction_v1",
+      "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+      "expected_id": null,
+      "gold_id": null,
+      "input_variant": "extractable_content",
+      "extractor_name": "real_two_stage_rule_extractor",
+      "model": "deepseek-v4-flash",
+      "provider": "openai_compatible",
+      "temperature": 0.0,
+      "prompt_version": "c2-dry-run-v1",
+      "prompt_hash": "sha256:9685eb765661ea3b95f31e1bb3c3b5501d0c2acdf353feeaa4d8fe32f95f77fb",
+      "input_hash": "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288",
+      "source_card_hash": "sha256:49cac81807b17b809164c33f2a45de871b7891886e4116e042ba069fd8c0d3ea",
+      "chunk_hashes": [
+        "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288"
+      ],
+      "latency_ms": 98555,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "raw_output_hash": "sha256:0100e729383ddff9ebbfce9c9ecbd04727faa25ef1746f48d65575efa2696a9c",
+      "raw_output_path": "",
+      "parse_status": "parsed",
+      "parsed_rules": [
+        {
+          "condition": "diabetes",
+          "hard_exclusions": [],
+          "preferred_tags": [
+            "balanced",
+            "controlled_carbs"
+          ],
+          "nutrition_limits": [],
+          "confidence": 0.6,
+          "status": "pending_review",
+          "verification_verdict": "revision_needed"
+        }
+      ],
+      "suggested_concepts": [],
+      "observation_points": {
+        "O5": {
+          "arm_id": "C2",
+          "input_variant": "extractable_content",
+          "input_hash": "sha256:1b8f146b785a639f51692aa0cc1994890fdddae4fb25ba1dc52efa40d2394288",
+          "strategy": "extractable_content_current_two_stage"
+        },
+        "O6": {
+          "provider": "real_llm",
+          "latency_ms": 98555,
+          "retry_count": 0,
+          "empty_output": false
+        },
+        "O8": {
+          "parsed_rule_count": 1,
+          "suggested_concept_count": 0
+        }
+      },
+      "evaluator": {
+        "plausibility": {
+          "plausibility_flag": "pass",
+          "rule_count": 1,
+          "rule_results": [
+            {
+              "plausibility_flag": "pass",
+              "issue_codes": []
+            }
+          ],
+          "issue_counts": {}
+        },
+        "grounding": {
+          "rule_count": 1,
+          "avg_score": 1.0,
+          "unsupported_rate": 0.0,
+          "rule_results": [
+            {
+              "grounding_score": 1.0,
+              "unsupported_fields": [],
+              "field_results": {
+                "condition": true,
+                "preferred_tags": true
+              }
+            }
+          ]
+        },
+        "judge": {
+          "rule_results": [
+            {
+              "verdict": "accept",
+              "confidence": 0.9,
+              "field_verdicts": {
+                "condition": "accept",
+                "hard_exclusions": "accept",
+                "nutrition_limits": "accept",
+                "preferred_tags": "accept"
+              },
+              "reason": "The source text explicitly supports the condition 'diabetes' and the preferred tags 'balanced' (balanced food selection) and 'controlled_carbs' (carbohydrate quality). No hard exclusions or nutrition limits are mentioned, so empty lists are acceptable.",
+              "experiment_id": "E1",
+              "arm_id": "C2",
+              "dataset_id": "rule_extraction_v1",
+              "doc_id": "zh_guideline_diabetes_food_therapy_2023",
+              "gold_id": null,
+              "rule_index": 0
+            }
+          ]
+        }
+      },
+      "failures": [],
+      "source_content_strategy": "extractable_content"
+    }
+  ]
+}

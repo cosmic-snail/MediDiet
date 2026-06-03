@@ -3,16 +3,45 @@ from __future__ import annotations
 from typing import Any
 
 
-SUGGESTED_CONCEPT_ALIASES = {
-    "potassium_phosphorus_management": {"potassium_management", "phosphorus_management"},
-}
+# Umbrella-to-atomic concept matching belongs to the concept discovery track.
+# Mixed rule evaluation keeps suggested concepts literal for backward-compatible reporting.
 
 
 def _limits(rule: dict[str, Any]) -> set[tuple]:
     return {
-        (item.get("metric"), item.get("scope"), float(item.get("max_value", 0)), item.get("window_hours"))
+        (
+            item.get("metric"),
+            item.get("scope"),
+            float(item.get("max_value", 0)),
+            _normalized_limit_window(item.get("scope"), item.get("window_hours")),
+        )
         for item in rule.get("nutrition_limits", []) or []
     }
+
+
+def _normalized_limit_window(scope: Any, window_hours: Any) -> Any:
+    if scope == "daily" and window_hours in {None, 24, "24"}:
+        return 24
+    return window_hours
+
+
+def _numeric_limit_failure_labels(gold_limits: set[tuple], extracted_limits: set[tuple]) -> list[str]:
+    if not gold_limits:
+        return []
+    if not extracted_limits:
+        return ["missing_numeric_limit"]
+
+    gold_metrics = {item[0] for item in gold_limits}
+    extracted_metrics = {item[0] for item in extracted_limits}
+    if not gold_metrics & extracted_metrics:
+        return ["numeric_limit_metric_mismatch"]
+
+    gold_metric_scopes = {(item[0], item[1]) for item in gold_limits}
+    extracted_metric_scopes = {(item[0], item[1]) for item in extracted_limits}
+    if not gold_metric_scopes & extracted_metric_scopes:
+        return ["numeric_limit_scope_mismatch"]
+
+    return ["numeric_limit_value_mismatch"]
 
 
 def _code_value(item: Any) -> Any:
@@ -25,25 +54,31 @@ def _code_values(items: list[Any] | None) -> set[str]:
     return {str(value) for value in (_code_value(item) for item in items or []) if value}
 
 
-def _soft_concepts(values: list[str]) -> set[str]:
-    result = set(values)
-    for value in values:
-        aliases = SUGGESTED_CONCEPT_ALIASES.get(value, set())
-        if aliases:
-            result.discard(value)
-            result.update(aliases)
-    return result
+def _unexpected_negative_failures(extracted: list[dict[str, Any]]) -> list[str]:
+    failures: set[str] = set()
+    for extracted_rule in extracted:
+        if extracted_rule.get("nutrition_limits"):
+            failures.add("unexpected_numeric_limit")
+        if extracted_rule.get("suggested_concepts"):
+            failures.add("unexpected_suggested_concept")
+        if extracted_rule.get("preferred_tags") and not extracted_rule.get("nutrition_limits"):
+            failures.add("unexpected_contextual_rule")
+    return sorted(failures) or ["unexpected_rule"]
 
 
 def evaluate_rule(gold: dict[str, Any], extracted: list[dict[str, Any]], include_challenge: bool = False) -> dict[str, Any]:
     if gold.get("split") == "challenge" and not include_challenge:
         return {"gold_id": gold.get("gold_id"), "excluded_from_f1": True, "overall": "challenge_only", "field_scores": {}, "failures": []}
     if gold.get("should_extract") is False or gold.get("gold_behavior") == "negative":
-        failures = [] if not extracted else ["unexpected_numeric_limit"]
+        failures = [] if not extracted else _unexpected_negative_failures(extracted)
         return {"gold_id": gold.get("gold_id"), "field_scores": {"no_rule_expected": "match" if not extracted else "extra"}, "overall": "match" if not extracted else "mismatch", "failures": failures}
     if gold.get("gold_behavior") == "suggested_concept":
-        suggestions = _soft_concepts([item.get("suggested_code", item) if isinstance(item, dict) else item for rule in extracted for item in rule.get("suggested_concepts", []) or []])
-        expected = _soft_concepts(gold.get("suggested_concepts", []) or [])
+        suggestions = {
+            str(item.get("suggested_code", item) if isinstance(item, dict) else item)
+            for rule in extracted
+            for item in rule.get("suggested_concepts", []) or []
+        }
+        expected = {str(item) for item in gold.get("suggested_concepts", []) or []}
         failures = [] if expected <= suggestions else ["suggested_concept_mismatch"]
         return {
             "gold_id": gold.get("gold_id"),
@@ -68,10 +103,11 @@ def evaluate_rule(gold: dict[str, Any], extracted: list[dict[str, Any]], include
         failures.append("missing_numeric_limit")
     else:
         fields["nutrition_limits"] = "partial"
+        failures.extend(_numeric_limit_failure_labels(gold_limits, extracted_limits))
     quote = best.get("evidence_quote", "") or best.get("evidence_quotes", "")
     fields["evidence_quote"] = "partial" if quote else "missing"
-    concepts = _soft_concepts(best.get("suggested_concepts", []) or [])
-    expected_concepts = _soft_concepts(gold.get("suggested_concepts", []) or [])
+    concepts = {str(item) for item in best.get("suggested_concepts", []) or []}
+    expected_concepts = {str(item) for item in gold.get("suggested_concepts", []) or []}
     if expected_concepts and not expected_concepts <= concepts:
         failures.append("suggested_concept_mismatch")
     if not extracted:

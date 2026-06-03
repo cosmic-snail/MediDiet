@@ -10,6 +10,10 @@
 - `expected_rules.jsonl`：机器生成的预期抽取假设。
 - `extraction_observations.jsonl`：无人闭环抽取运行后的 append-only 观察结果。
 - `gold_evaluation_set.jsonl`：冻结的离线评测真值子集，只用于计算指标，不用于更新 prompt、标签或规则。
+- `gold_audit.jsonl`：冻结 gold 的证据分层与审计建议，用于区分 clean headline score 与 exploratory/schema-gap/contextual rows，不修改 `gold_evaluation_set.jsonl`。
+- `concept_expectations.jsonl`：schema-gap gold 的 atomic concept 期望与 alias group，用于产品概念注册和实验概念评估。
+- `conversion_expectations.jsonl`：百分比、单位、能量口径等转换评估样本；不进入 clean extraction F1。
+- `contextual_expectations.jsonl`：上下文/膳食模式样本，用于评估模型是否避免过度生成固定数值规则。
 - `challenge_set.jsonl`：上下文复杂或当前 schema 不支持的样本，用于失败分析，不强制纳入 F1。
 
 ## 研究协议
@@ -27,6 +31,31 @@
 LLM API 层面的运行失败不进入研究观察范围，包括超时、HTTP/provider 错误、transport 异常和异常空响应。这类问题只作为 `operational_failures` 记录运行卫生状态，不参与字段评分、稳定性分析或架构对比。
 
 普通单元测试不得默认写入 `extraction_observations.jsonl`；真实 LLM 运行只有在显式 `--append-observations` 时才可追加。
+
+## 专家标注工作台
+
+专家标注记录独立保存为 append-only 审计文件，不直接覆盖弱标签或既有 gold：
+
+- `expert_annotations.jsonl`：专家逐条保存的审计记录，包含 `annotator`、`split`、`annotation_status`、source hash、证据片段和标注内容。
+- `gold_expert_evaluation_set.jsonl`：由已批准专家标注冻结得到的统一 expert gold。
+- `gold_expert_train.jsonl`、`gold_expert_dev.jsonl`、`gold_expert_test.jsonl`、`gold_expert_holdout.jsonl`：按 split 拆分的冻结 expert gold。
+
+启动本地 Web 标注器：
+
+```bash
+PYTHONPATH=src:knowledge/src python -m knowledge.expert_annotation_app \
+  --dataset-dir knowledge/datasets/rule_extraction_v1 \
+  --host 127.0.0.1 \
+  --port 8765
+```
+
+页面会展示 source card、manifest 元数据、机器生成的 silver draft 和专家标注表单。silver draft 只作为待审核草稿，不能直接视为人工 gold。保存时会校验 source hash；如果 source card 在标注后发生变化，冻结 expert gold 会失败并要求重新审核。
+
+防泄漏边界：
+
+- `gold_expert_test.jsonl` 和 `gold_expert_holdout.jsonl` 只能用于跑后评估，不得进入 prompt、runtime concept registry、canonicalizer 规则或 registry delta 审核依据。
+- `expert_annotations.jsonl` 是审计来源；进入运行时 registry 的概念必须来自人工单独批准的 registry delta，而不是 test/holdout gold。
+- 若需要估计答案表上限，可以单独跑 oracle arm，但不能把 oracle 指标作为主 discovery 结果。
 
 ## 本地校验
 
@@ -86,6 +115,11 @@ PYTHONPATH=src:knowledge/src pytest knowledge/tests/test_rule_extraction_dataset
 - `reports/rule-extraction-v1-real-llm-report.json`
 - `reports/rule-extraction-v1-real-llm-field-evaluation-report.json`
 - `reports/rule-extraction-v1-real-llm-summary.md`
+- `reports/rule-extraction-v1-stratified-evaluation-report.json`
+- `reports/rule-extraction-v1-extracted-concept-graph.json`
+- `reports/rule-extraction-v1-extracted-concept-graph.png`
+- `reports/rule-extraction-v1-evaluation-concept-graph.json`
+- `reports/rule-extraction-v1-evaluation-concept-graph.png`
 
 ## 研究管线 dry-run / real-run
 

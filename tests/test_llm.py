@@ -467,6 +467,52 @@ class OpenAICompatibleLLMProviderTest(unittest.TestCase):
         self.assertEqual(config.retry_backoff_seconds, 0.75)
         self.assertFalse(config.send_patient_id)
 
+    def test_config_from_env_supports_prefix(self):
+        import os
+        from unittest.mock import patch
+
+        from medidiet.llm import LLMConfig
+
+        env = {
+            "MEDIDIET_JUDGE_LLM_PROVIDER": "openai_compatible",
+            "MEDIDIET_JUDGE_LLM_BASE_URL": "https://api.deepseek.example",
+            "MEDIDIET_JUDGE_LLM_API_KEY": "judge-key",
+            "MEDIDIET_JUDGE_LLM_MODEL": "deepseek-v4-pro",
+            "MEDIDIET_JUDGE_LLM_TIMEOUT_SECONDS": "120",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            config = LLMConfig.from_env(prefix="MEDIDIET_JUDGE_LLM_")
+
+        self.assertEqual(config.provider, "openai_compatible")
+        self.assertEqual(config.base_url, "https://api.deepseek.example")
+        self.assertEqual(config.api_key, "judge-key")
+        self.assertEqual(config.model, "deepseek-v4-pro")
+        self.assertEqual(config.timeout_seconds, 120)
+
+    def test_config_from_env_prefix_can_fallback_to_default(self):
+        import os
+        from unittest.mock import patch
+
+        from medidiet.llm import LLMConfig
+
+        env = {
+            "MEDIDIET_LLM_PROVIDER": "openai_compatible",
+            "MEDIDIET_LLM_BASE_URL": "https://api.deepseek.example",
+            "MEDIDIET_LLM_API_KEY": "shared-key",
+            "MEDIDIET_LLM_MODEL": "deepseek-v4-flash",
+            "MEDIDIET_JUDGE_LLM_MODEL": "deepseek-v4-pro",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            config = LLMConfig.from_env(
+                prefix="MEDIDIET_JUDGE_LLM_",
+                fallback_prefix="MEDIDIET_LLM_",
+            )
+
+        self.assertEqual(config.provider, "openai_compatible")
+        self.assertEqual(config.base_url, "https://api.deepseek.example")
+        self.assertEqual(config.api_key, "shared-key")
+        self.assertEqual(config.model, "deepseek-v4-pro")
+
     def test_config_rejects_invalid_retry_values(self):
         from medidiet.llm import LLMConfig
 

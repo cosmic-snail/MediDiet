@@ -1,17 +1,36 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import time
 from collections import Counter
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from medidiet.domain import CodeKind, ConceptCode, ConceptDefinition, ConceptRegistry
+from medidiet.concept_registry import (
+    EXPERIMENT_CONCEPT_STATUSES,
+    load_concept_definitions_from_jsonl,
+    merge_concept_definitions,
+)
 from medidiet.llm import LLMConfig, OpenAICompatibleLLMProvider
 from medidiet.rules import load_baseline_rule_pack
 from knowledge.dataset_manifest import load_dataset_documents, snapshot_source_hashes
+from knowledge.concept_coverage import audit_concept_coverage
+from knowledge.concept_canonicalization import canonicalize_suggested_concepts
+from knowledge.concept_discovery import discover_concept_candidates
+from knowledge.concept_evaluation import evaluate_concept_expectation, summarize_concept_evaluations
+from knowledge.concept_graph_visualization import (
+    build_evaluation_concept_graph,
+    build_extracted_concept_graph,
+    write_concept_graph_artifacts,
+)
+from knowledge.contextual_evaluation import evaluate_contextual_expectation
+from knowledge.conversion_evaluation import evaluate_conversion_expectation
 from knowledge.documents import (
     EXTRACTABLE_CONTENT,
     RAW_CARD,
@@ -24,12 +43,23 @@ from knowledge.extraction_experiments import BENCHMARK_EXPERIMENT_MATRIX, COMPAR
 from knowledge.extraction_observations import append_observation
 from knowledge.extraction_stability import summarize_stability
 from knowledge.extractor import RuleExtractor
+from knowledge.gold_audit import (
+    annotate_evaluations_with_gold_audit,
+    load_gold_audit_rows,
+    write_gold_audit_report,
+)
+from knowledge.golden_eval_accuracy import write_golden_eval_accuracy_artifacts
+from knowledge.judge_evaluator import JudgeLLMEvaluator, build_layer_2_judge_summary
+from knowledge.llm_run_control import CircuitBreaker, RunCheckpoint, classify_provider_failure
 from knowledge.public_benchmarks import BENCHMARK_PORTFOLIO
 from knowledge.research_registry import ResearchRegistry
+from knowledge.rule_plausibility import build_plausibility_context, evaluate_observation_plausibility
 from knowledge.rule_evaluation import evaluate_rule, precision_recall_f1
 from knowledge.rule_identity import canonical_rule_identity
+from knowledge.semantic_grounding import evaluate_observation_grounding
 from knowledge.schema import DocumentChunk, ExtractedConditionRule, SuggestedConcept
 from knowledge.source_governance import detect_conflicts
+from knowledge.stratified_evaluation import build_stratified_evaluation_report, load_track_expectations
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -105,6 +135,12 @@ def _suggestion_to_dict(suggestion) -> dict[str, Any]:
         "kind": suggestion.suggested_code.kind.value,
         "definition": suggestion.definition,
         "display_name": suggestion.display_name,
+        "aliases": list(getattr(suggestion, "aliases", ()) or ()),
+        "polarity": getattr(suggestion, "polarity", None),
+        "parent_concepts": list(getattr(suggestion, "parent_concepts", ()) or ()),
+        "related_concepts": list(getattr(suggestion, "related_concepts", ()) or ()),
+        "evidence_quotes": list(getattr(suggestion, "evidence_quotes", ()) or ()),
+        "confidence": getattr(suggestion, "confidence", None),
     }
 
 
@@ -186,6 +222,29 @@ def _load_gold(dataset_dir: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def _gold_rows_by_doc_id(gold_rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    gold_rows_by_doc_id: dict[str, list[dict[str, Any]]] = {}
+    for gold_evaluation_row in gold_rows:
+        doc_id = str(gold_evaluation_row.get("doc_id") or "")
+        if doc_id:
+            gold_rows_by_doc_id.setdefault(doc_id, []).append(gold_evaluation_row)
+    return gold_rows_by_doc_id
+
+
+def _research_failure_labels_for_empty_extraction(
+    *,
+    doc_id: str,
+    gold_rows: list[dict[str, Any]],
+) -> list[str]:
+    doc_gold_rows = _gold_rows_by_doc_id(gold_rows).get(doc_id, [])
+    if doc_gold_rows and all(
+        gold_evaluation_row.get("gold_behavior") == "negative"
+        for gold_evaluation_row in doc_gold_rows
+    ):
+        return ["expected_empty_extraction"]
+    return ["no_rule_extracted"]
+
+
 def _evaluation_input_from_observation(observation: dict[str, Any]) -> list[dict[str, Any]]:
     extracted = [dict(rule) for rule in observation.get("parsed_rules", [])]
     suggested_codes = [
@@ -249,12 +308,16 @@ def _summarize_evaluations(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _summarize_suggested_concepts(observations: list[dict[str, Any]]) -> dict[str, Any]:
+def _summarize_suggested_concepts(
+    observations: list[dict[str, Any]],
+    *,
+    concept_field: str = "suggested_concepts",
+) -> dict[str, Any]:
     concept_counts: Counter[str] = Counter()
     concept_sources: dict[str, set[str]] = {}
     for observation in observations:
         doc_id = str(observation.get("doc_id", ""))
-        for suggestion in observation.get("suggested_concepts", []):
+        for suggestion in observation.get(concept_field, []) or []:
             code = suggestion.get("suggested_code")
             if not code:
                 continue
@@ -272,6 +335,475 @@ def _summarize_suggested_concepts(observations: list[dict[str, Any]]) -> dict[st
             for code, count in sorted(concept_counts.items())
         ],
     }
+
+
+def _concept_registry_snapshot(
+    registry: ConceptRegistry,
+    *,
+    registry_paths: list[Path],
+    included_statuses: list[str],
+) -> dict[str, Any]:
+    definitions = [
+        {
+            "kind": definition.code.kind.value,
+            "value": definition.code.value,
+            "display_name": definition.display_name,
+            "aliases": sorted(definition.aliases),
+            "source": definition.source,
+        }
+        for definition in registry._definitions.values()
+    ]
+    definitions = sorted(definitions, key=lambda item: (item["kind"], item["value"]))
+    snapshot_payload = {
+        "definitions": definitions,
+        "included_statuses": included_statuses,
+        "registry_paths": [str(path) for path in registry_paths],
+    }
+    snapshot_hash = hashlib.sha256(
+        json.dumps(snapshot_payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return {
+        "snapshot_id": f"concept-registry-{snapshot_hash[:16]}",
+        "definition_count": len(definitions),
+        "definition_hash": f"sha256:{snapshot_hash}",
+        "included_statuses": included_statuses,
+        "registry_paths": [str(path) for path in registry_paths],
+    }
+
+
+def _write_concept_registry_delta_artifacts(
+    *,
+    output_dir: Path,
+    dataset_id: str,
+    registry_snapshot: dict[str, Any],
+    delta_candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    jsonl_path = output_dir / "rule-extraction-v1-concept-registry-delta.jsonl"
+    report_path = output_dir / "rule-extraction-v1-concept-registry-delta-report.md"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    deduped_delta_candidates = _dedupe_delta_candidates(delta_candidates)
+    jsonl_path.write_text(
+        "".join(json.dumps(candidate, ensure_ascii=False, sort_keys=True) + "\n" for candidate in deduped_delta_candidates),
+        encoding="utf-8",
+    )
+    action_counts = Counter(str(candidate.get("action", "")) for candidate in deduped_delta_candidates)
+    lines = [
+        "# Concept Registry Delta",
+        "",
+        f"- dataset: `{dataset_id}`",
+        f"- registry snapshot: `{registry_snapshot.get('snapshot_id', '')}`",
+        f"- candidate count: {len(deduped_delta_candidates)}",
+        "",
+        "| Action | Count |",
+        "| --- | ---: |",
+    ]
+    if action_counts:
+        for action, count in sorted(action_counts.items()):
+            lines.append(f"| {action} | {count} |")
+    else:
+        lines.append("| - | 0 |")
+    report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return {
+        "jsonl_path": str(jsonl_path),
+        "report_path": str(report_path),
+        "candidate_count": len(deduped_delta_candidates),
+        "action_counts": dict(sorted(action_counts.items())),
+    }
+
+
+def _dedupe_delta_candidates(delta_candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    candidates_by_key: dict[tuple[str, str, str, str, str, str], dict[str, Any]] = {}
+    for delta_candidate in delta_candidates:
+        key = (
+            str(delta_candidate.get("action", "")),
+            str(delta_candidate.get("relation", "")),
+            str(delta_candidate.get("source", "")),
+            str(delta_candidate.get("kind", "")),
+            str(delta_candidate.get("target_kind", "")),
+            str(delta_candidate.get("value", "")),
+            str(delta_candidate.get("target", "")),
+        )
+        if key not in candidates_by_key:
+            candidates_by_key[key] = dict(delta_candidate)
+            continue
+        existing_candidate = candidates_by_key[key]
+        existing_candidate["aliases"] = sorted(
+            {
+                *[str(alias) for alias in existing_candidate.get("aliases", []) or []],
+                *[str(alias) for alias in delta_candidate.get("aliases", []) or []],
+            }
+        )
+        existing_candidate["evidence_quotes"] = sorted(
+            {
+                *[str(evidence_quote) for evidence_quote in existing_candidate.get("evidence_quotes", []) or []],
+                *[str(evidence_quote) for evidence_quote in delta_candidate.get("evidence_quotes", []) or []],
+            }
+        )
+    return [candidates_by_key[key] for key in sorted(candidates_by_key)]
+
+
+def _summarize_operational_failures(operational_failures: list[dict[str, Any]]) -> dict[str, Any]:
+    by_arm: dict[str, dict[str, Any]] = {}
+    by_failure_type: Counter[str] = Counter()
+    for operational_failure in operational_failures:
+        arm_id = str(operational_failure.get("arm_id") or "")
+        by_arm.setdefault(arm_id, {"count": 0, "doc_ids": []})
+        by_arm[arm_id]["count"] += 1
+        doc_id = str(operational_failure.get("doc_id") or "")
+        if doc_id:
+            by_arm[arm_id]["doc_ids"].append(doc_id)
+        for failure_label in operational_failure.get("failures", []) or []:
+            by_failure_type[str(failure_label)] += 1
+    for arm_summary in by_arm.values():
+        arm_summary["doc_ids"] = sorted(arm_summary["doc_ids"])
+    return {
+        "total": len(operational_failures),
+        "by_arm": dict(sorted(by_arm.items())),
+        "by_failure_type": dict(sorted(by_failure_type.items())),
+    }
+
+
+def _summarize_paired_arm_rule_presence(
+    observations: list[dict[str, Any]],
+    *,
+    left_arm: str,
+    right_arm: str,
+) -> dict[str, Any]:
+    rule_presence_by_doc_id: dict[str, dict[str, bool]] = {}
+    for observation_record in observations:
+        doc_id = str(observation_record.get("doc_id") or "")
+        arm_id = str(observation_record.get("arm_id") or "")
+        if not doc_id or arm_id not in {left_arm, right_arm}:
+            continue
+        rule_presence_by_doc_id.setdefault(doc_id, {})
+        rule_presence_by_doc_id[doc_id][arm_id] = bool(observation_record.get("parsed_rules"))
+
+    paired_docs = {
+        doc_id: arm_presence
+        for doc_id, arm_presence in rule_presence_by_doc_id.items()
+        if left_arm in arm_presence and right_arm in arm_presence
+    }
+    both_present = [
+        doc_id
+        for doc_id, arm_presence in paired_docs.items()
+        if arm_presence[left_arm] and arm_presence[right_arm]
+    ]
+    left_only = [
+        doc_id
+        for doc_id, arm_presence in paired_docs.items()
+        if arm_presence[left_arm] and not arm_presence[right_arm]
+    ]
+    right_only = [
+        doc_id
+        for doc_id, arm_presence in paired_docs.items()
+        if arm_presence[right_arm] and not arm_presence[left_arm]
+    ]
+    neither_present = [
+        doc_id
+        for doc_id, arm_presence in paired_docs.items()
+        if not arm_presence[left_arm] and not arm_presence[right_arm]
+    ]
+    unpaired_left = [
+        doc_id
+        for doc_id, arm_presence in rule_presence_by_doc_id.items()
+        if left_arm in arm_presence and right_arm not in arm_presence
+    ]
+    unpaired_right = [
+        doc_id
+        for doc_id, arm_presence in rule_presence_by_doc_id.items()
+        if right_arm in arm_presence and left_arm not in arm_presence
+    ]
+    return {
+        "left_arm": left_arm,
+        "right_arm": right_arm,
+        "paired_doc_count": len(paired_docs),
+        "both_present_doc_count": len(both_present),
+        "left_only_doc_count": len(left_only),
+        "right_only_doc_count": len(right_only),
+        "neither_present_doc_count": len(neither_present),
+        "unpaired_left_doc_count": len(unpaired_left),
+        "unpaired_right_doc_count": len(unpaired_right),
+        "both_present_doc_ids": sorted(both_present),
+        "left_only_doc_ids": sorted(left_only),
+        "right_only_doc_ids": sorted(right_only),
+        "neither_present_doc_ids": sorted(neither_present),
+        "unpaired_left_doc_ids": sorted(unpaired_left),
+        "unpaired_right_doc_ids": sorted(unpaired_right),
+    }
+
+
+def _summarize_numeric_limit_failures(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
+    missing_numeric_limit_doc_ids = sorted(
+        {
+            str(evaluation.get("doc_id") or "")
+            for evaluation in evaluations
+            if "missing_numeric_limit" in (evaluation.get("failures", []) or [])
+            and evaluation.get("doc_id")
+        }
+    )
+    return {
+        "missing_numeric_limit_count": len(missing_numeric_limit_doc_ids),
+        "missing_numeric_limit_doc_ids": missing_numeric_limit_doc_ids,
+    }
+
+
+def _select_judge_calibration_observations(
+    *,
+    observations: list[dict[str, Any]],
+    evaluations: list[dict[str, Any]],
+    max_cases: int,
+) -> list[dict[str, Any]]:
+    evaluation_by_doc_id = {
+        str(evaluation.get("doc_id")): evaluation
+        for evaluation in evaluations
+        if evaluation.get("doc_id")
+    }
+    buckets: dict[str, list[dict[str, Any]]] = {
+        "match": [],
+        "miss": [],
+        "negative": [],
+        "other": [],
+    }
+    for observation_record in observations:
+        doc_id = str(observation_record.get("doc_id") or "")
+        evaluation = evaluation_by_doc_id.get(doc_id, {})
+        if evaluation.get("gold_behavior") == "negative":
+            buckets["negative"].append(observation_record)
+        elif evaluation.get("overall") == "match":
+            buckets["match"].append(observation_record)
+        elif evaluation.get("overall") == "miss":
+            buckets["miss"].append(observation_record)
+        else:
+            buckets["other"].append(observation_record)
+
+    selected: list[dict[str, Any]] = []
+    while len(selected) < max_cases and any(buckets.values()):
+        for bucket_name in ("match", "miss", "negative", "other"):
+            if buckets[bucket_name] and len(selected) < max_cases:
+                selected.append(buckets[bucket_name].pop(0))
+    return selected
+
+
+def run_concept_discovery_report(
+    dataset: str,
+    output_dir: Path,
+    *,
+    provider,
+    max_docs: int | None = None,
+    source_content_strategy: str = EXTRACTABLE_CONTENT,
+) -> dict[str, Any]:
+    dataset_dir = _dataset_dir(dataset)
+    docs = load_dataset_documents(dataset_dir, _source_root())
+    if max_docs is not None:
+        docs = docs[:max_docs]
+    output_dir.mkdir(parents=True, exist_ok=True)
+    baseline_rule_pack = load_baseline_rule_pack()
+    concept_registry_path = dataset_dir / "concept_registry.jsonl"
+    extra_concept_definitions = load_concept_definitions_from_jsonl(
+        concept_registry_path,
+        include_statuses=EXPERIMENT_CONCEPT_STATUSES,
+    )
+    known_registry = merge_concept_definitions(
+        baseline_rule_pack.concepts,
+        extra_concept_definitions,
+    )
+    known_condition_values = {
+        value
+        for (kind, value) in known_registry._definitions
+        if kind is CodeKind.CONDITION
+    }
+    candidates: list[dict[str, Any]] = []
+    for doc in docs:
+        raw_text = Path(doc.source).read_text(encoding="utf-8")
+        selected = select_document_content(raw_text, source_content_strategy)
+        candidates.extend(
+            discover_concept_candidates(
+                provider=provider,
+                doc_id=doc.doc_id,
+                source_text=selected,
+                known_condition_values=known_condition_values,
+                source_content_strategy=source_content_strategy,
+                source_hash=str(doc.metadata.get("source_card_hash") or ""),
+            )
+        )
+
+    candidate_path = output_dir / "rule-extraction-v1-concept-candidates.jsonl"
+    candidate_path.write_text(
+        "".join(json.dumps(candidate, ensure_ascii=False, sort_keys=True) + "\n" for candidate in candidates),
+        encoding="utf-8",
+    )
+    report_path = output_dir / "rule-extraction-v1-concept-candidates-report.md"
+    report_lines = [
+        "# Concept Candidate Discovery",
+        "",
+        f"- dataset: {dataset}",
+        f"- source content strategy: {source_content_strategy}",
+        f"- document count: {len(docs)}",
+        f"- candidate count: {len(candidates)}",
+        "",
+        "| value | kind | status | source_type | docs | confidence |",
+        "| --- | --- | --- | --- | --- | ---: |",
+    ]
+    for candidate in candidates:
+        report_lines.append(
+            f"| {candidate['value']} | {candidate['kind']} | {candidate['status']} | {candidate['source_type']} | {', '.join(candidate.get('source_doc_ids', []))} | {float(candidate.get('confidence', 0.0)):.2f} |"
+        )
+    report_path.write_text("\n".join(report_lines) + "\n", encoding="utf-8")
+    return {
+        "dataset_id": dataset,
+        "document_count": len(docs),
+        "candidate_count": len(candidates),
+        "candidate_path": str(candidate_path),
+        "report_path": str(report_path),
+    }
+
+
+@dataclass(frozen=True)
+class SourceTextBundle:
+    source_text_by_doc_id: dict[str, str]
+    missing_path_doc_ids: list[str]
+    missing_file_doc_ids: list[str]
+
+    @property
+    def diagnostics(self) -> dict[str, Any]:
+        return {
+            "loaded_doc_count": len(self.source_text_by_doc_id),
+            "missing_path_doc_ids": self.missing_path_doc_ids,
+            "missing_file_doc_ids": self.missing_file_doc_ids,
+        }
+
+
+def _attach_layer_0_1_evaluations(
+    observations: list[dict[str, Any]],
+    manifest_rows: list[dict[str, Any]],
+    source_text_bundle: SourceTextBundle,
+) -> dict[str, Any]:
+    plausibility_context = build_plausibility_context(manifest_rows)
+    plausibility_counts: Counter[str] = Counter()
+    grounding_scores: list[float] = []
+    unsupported_observation_count = 0
+    for observation in observations:
+        plausibility = evaluate_observation_plausibility(
+            observation,
+            manifest_rows,
+            plausibility_context,
+        )
+        source_text = source_text_bundle.source_text_by_doc_id.get(str(observation.get("doc_id")), "")
+        grounding = evaluate_observation_grounding(observation, source_text)
+        observation["evaluator"] = {
+            **observation.get("evaluator", {}),
+            "plausibility": plausibility,
+            "grounding": grounding,
+        }
+        plausibility_counts[plausibility["plausibility_flag"]] += 1
+        grounding_scores.append(float(grounding["avg_score"]))
+        if grounding["unsupported_rate"] > 0:
+            unsupported_observation_count += 1
+    return {
+        "layer_0_plausibility": {
+            "pass": plausibility_counts.get("pass", 0),
+            "warn": plausibility_counts.get("warn", 0),
+            "fail": plausibility_counts.get("fail", 0),
+        },
+        "layer_1_grounding": {
+            "evaluated_observation_count": len(observations),
+            "avg_score": sum(grounding_scores) / len(grounding_scores) if grounding_scores else 1.0,
+            "unsupported_rate": unsupported_observation_count / len(observations) if observations else 0.0,
+        },
+    }
+
+
+def _attach_layer_2_judge_evaluations(
+    observations: list[dict[str, Any]],
+    dataset_dir: Path,
+    source_text_bundle: SourceTextBundle,
+    judge_provider,
+    gold_evaluations: list[dict[str, Any]],
+    judge_max_rules: int | None = None,
+) -> dict[str, Any]:
+    if judge_provider is None or judge_max_rules == 0:
+        return build_layer_2_judge_summary([], gold_evaluations)
+    gold_rows = _load_gold(dataset_dir)
+    gold_row_by_doc_id = {
+        str(gold_row.get("doc_id")): gold_row
+        for gold_row in gold_rows
+        if gold_row.get("doc_id")
+    }
+    gold_id_by_doc_id = {
+        str(gold_evaluation.get("doc_id")): str(gold_evaluation.get("gold_id"))
+        for gold_evaluation in gold_evaluations
+        if gold_evaluation.get("doc_id") and gold_evaluation.get("gold_id")
+    }
+    evaluator = JudgeLLMEvaluator(judge_provider)
+    judge_results: list[dict[str, Any]] = []
+    judged_rule_count = 0
+    for observation in observations:
+        source_text = source_text_bundle.source_text_by_doc_id.get(str(observation.get("doc_id")), "")
+        doc_id = str(observation.get("doc_id") or "")
+        gold_id = observation.get("gold_id") or gold_id_by_doc_id.get(doc_id)
+        expected_gold_rule = gold_row_by_doc_id.get(doc_id)
+        rule_results: list[dict[str, Any]] = []
+        for rule_index, extracted_rule in enumerate(observation.get("parsed_rules", []) or []):
+            if not isinstance(extracted_rule, dict):
+                continue
+            if judge_max_rules is not None and judged_rule_count >= judge_max_rules:
+                continue
+            judge_result = evaluator.evaluate_rule(
+                source_text=source_text,
+                extracted_rule=extracted_rule,
+                evaluation_context={
+                    "experiment_id": observation.get("experiment_id"),
+                    "arm_id": observation.get("arm_id"),
+                    "dataset_id": observation.get("dataset_id"),
+                    "doc_id": doc_id,
+                    "gold_id": gold_id,
+                    "expected_gold_rule": expected_gold_rule,
+                    "rule_index": rule_index,
+                },
+            )
+            enriched_result = {
+                **judge_result,
+                "experiment_id": observation.get("experiment_id"),
+                "arm_id": observation.get("arm_id"),
+                "dataset_id": observation.get("dataset_id"),
+                "doc_id": doc_id,
+                "gold_id": gold_id,
+                "rule_index": rule_index,
+            }
+            rule_results.append(enriched_result)
+            judge_results.append(enriched_result)
+            judged_rule_count += 1
+        observation["evaluator"] = {
+            **observation.get("evaluator", {}),
+            "judge": {"rule_results": rule_results},
+        }
+    return build_layer_2_judge_summary(judge_results, gold_evaluations)
+
+
+def _load_source_text_bundle(manifest_rows: list[dict[str, Any]]) -> SourceTextBundle:
+    source_text_by_doc_id: dict[str, str] = {}
+    missing_path_doc_ids: list[str] = []
+    missing_file_doc_ids: list[str] = []
+    for manifest_row in manifest_rows:
+        doc_id = str(manifest_row.get("doc_id") or "")
+        path = manifest_row.get("path") or manifest_row.get("source_card_path")
+        if not doc_id:
+            continue
+        if not path:
+            missing_path_doc_ids.append(doc_id)
+            continue
+        source_path = Path(path)
+        if not source_path.is_absolute():
+            source_path = REPO_ROOT / source_path
+        if not source_path.exists():
+            missing_file_doc_ids.append(doc_id)
+            continue
+        source_text_by_doc_id[doc_id] = source_path.read_text(encoding="utf-8")
+    return SourceTextBundle(
+        source_text_by_doc_id=source_text_by_doc_id,
+        missing_path_doc_ids=missing_path_doc_ids,
+        missing_file_doc_ids=missing_file_doc_ids,
+    )
 
 
 def _metric_bar(value: float, width: int = 20) -> str:
@@ -325,6 +857,172 @@ def _write_real_llm_visual_summary(
     return summary_path
 
 
+def _write_layered_evaluation_summary(output_dir: Path, report: dict[str, Any]) -> Path:
+    layer_0 = report.get("layer_0_plausibility", {})
+    layer_1 = report.get("layer_1_grounding", {})
+    layer_2 = report.get("layer_2_judge", {})
+    calibration = layer_2.get("calibration", {})
+    best_arm = report.get("evaluation_summary", {}).get("overall", {})
+    concept_discovery_track = (
+        report.get("stratified_evaluation", {}).get("tracks", {}).get("concept_discovery", {})
+    )
+    concept_discovery_overall = concept_discovery_track.get("overall", {})
+    concept_atomic = concept_discovery_overall.get("atomic", {})
+    concept_surface = concept_discovery_overall.get("surface_discovery", {})
+    concept_polarity = concept_discovery_overall.get("polarity_mapping", {})
+    concept_semantic = concept_discovery_overall.get("semantic_linking", {})
+    concept_umbrella = concept_discovery_overall.get("umbrella_decomposition", {})
+    concept_discovery_ablation = report.get("concept_discovery_ablation", {})
+    raw_concept_ablation = concept_discovery_ablation.get("raw", {})
+    canonicalized_concept_ablation = concept_discovery_ablation.get("canonicalized", {})
+    raw_concept_atomic = raw_concept_ablation.get("atomic", {})
+    canonicalized_concept_atomic = canonicalized_concept_ablation.get("atomic", {})
+    raw_concept_surface = raw_concept_ablation.get("surface_discovery", {})
+    canonicalized_concept_surface = canonicalized_concept_ablation.get("surface_discovery", {})
+    lines = [
+        "# Rule Extraction Layered Evaluation Summary",
+        "",
+        "## Run",
+        "",
+        f"- dataset: `{report.get('dataset_id', '')}`",
+        f"- run type: `{report.get('run_type', '')}`",
+        f"- provider: `{report.get('provider', '')}`",
+        f"- model: `{report.get('model', '')}`",
+        f"- observations: {report.get('observation_count', 0)}",
+        f"- operational failures: {report.get('operational_failure_count', 0)}",
+        "",
+        "## Golden Eval",
+        "",
+        f"- precision: {best_arm.get('precision', 0):.3f}",
+        f"- recall: {best_arm.get('recall', 0):.3f}",
+        f"- f1: {best_arm.get('f1', 0):.3f}",
+        f"- accuracy chart: `{report.get('golden_eval_accuracy', {}).get('chart_path', '')}`",
+        "",
+        "## Layer 0 Plausibility",
+        "",
+        f"- pass: {layer_0.get('pass', 0)}",
+        f"- warn: {layer_0.get('warn', 0)}",
+        f"- fail: {layer_0.get('fail', 0)}",
+        "",
+        "## Layer 1 Grounding",
+        "",
+        f"- evaluated observations: {layer_1.get('evaluated_observation_count', 0)}",
+        f"- average score: {layer_1.get('avg_score', 0):.3f}",
+        f"- unsupported rate: {layer_1.get('unsupported_rate', 0):.3f}",
+        "",
+        "## Concept Discovery",
+        "",
+        f"- evaluated records: {concept_discovery_track.get('evaluated_record_count', len(concept_discovery_track.get('records', []) or []))}",
+        f"- atomic precision: {concept_atomic.get('precision', 0):.3f}",
+        f"- atomic recall: {concept_atomic.get('recall', 0):.3f}",
+        f"- atomic f1: {concept_atomic.get('f1', 0):.3f}",
+        f"- surface recall: {concept_surface.get('recall', 0):.3f}",
+        f"- surface discovered/missing: {concept_surface.get('discovered_count', 0)} / {concept_surface.get('missing_count', 0)}",
+        f"- polarity mapped: {concept_polarity.get('mapped_count', 0)}",
+        f"- semantic linked/unlinked: {concept_semantic.get('linked_count', 0)} / {concept_semantic.get('unlinked_count', 0)}",
+        f"- umbrella average coverage: {concept_umbrella.get('average_coverage', 0):.3f}",
+        "",
+        "### Canonicalization Ablation",
+        "",
+        "| Variant | Atomic Precision | Atomic Recall | Atomic F1 | Surface Recall |",
+        "| --- | ---: | ---: | ---: | ---: |",
+        (
+            f"| raw | {raw_concept_atomic.get('precision', 0):.3f} | "
+            f"{raw_concept_atomic.get('recall', 0):.3f} | "
+            f"{raw_concept_atomic.get('f1', 0):.3f} | "
+            f"{raw_concept_surface.get('recall', 0):.3f} |"
+        ),
+        (
+            f"| canonicalized | {canonicalized_concept_atomic.get('precision', 0):.3f} | "
+            f"{canonicalized_concept_atomic.get('recall', 0):.3f} | "
+            f"{canonicalized_concept_atomic.get('f1', 0):.3f} | "
+            f"{canonicalized_concept_surface.get('recall', 0):.3f} |"
+        ),
+        "",
+        "| Gold | Doc | Matched | Missing | Extra | Surface Recall | Polarity Mapped |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
+        *_concept_discovery_record_rows(concept_discovery_track.get("records", []) or []),
+        "",
+        "## Layer 2 Judge",
+        "",
+        f"- evaluated rules: {layer_2.get('evaluated_rule_count', 0)}",
+        f"- accept rate: {layer_2.get('accept_rate', 0):.3f}",
+        f"- uncertain rate: {layer_2.get('uncertain_rate', 0):.3f}",
+        f"- reject rate: {layer_2.get('reject_rate', 0):.3f}",
+        f"- average confidence: {layer_2.get('avg_confidence', 0):.3f}",
+        f"- calibrated records: {calibration.get('calibrated_record_count', 0)}",
+        f"- agreement rate: {calibration.get('agreement_rate', 0):.3f}",
+        f"- Gwet AC1: {calibration.get('gwet_ac1', 0):.3f}",
+        "",
+        "## Judge Cases",
+        "",
+        "| Experiment | Arm | Doc | Verdict | Confidence | Reason |",
+        "| --- | --- | --- | --- | ---: | --- |",
+    ]
+    judge_rows = []
+    for observation in report.get("observations", []):
+        for judge_result in observation.get("evaluator", {}).get("judge", {}).get("rule_results", []):
+            judge_rows.append(judge_result)
+    if judge_rows:
+        for judge_result in judge_rows[:20]:
+            reason = str(judge_result.get("reason", "")).replace("\n", " ")
+            lines.append(
+                f"| {judge_result.get('experiment_id', '')} | {judge_result.get('arm_id', '')} | "
+                f"{judge_result.get('doc_id', '')} | {judge_result.get('verdict', '')} | "
+                f"{float(judge_result.get('confidence', 0)):.2f} | {reason} |"
+            )
+    else:
+        lines.append("| - | - | - | - | 0.00 | Judge LLM was not enabled for this run. |")
+    summary_path = output_dir / "rule-extraction-v1-layered-evaluation-summary.md"
+    summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return summary_path
+
+
+def _concept_discovery_record_rows(concept_records: list[dict[str, Any]]) -> list[str]:
+    if not concept_records:
+        return ["| - | - | 0 | 0 | 0 | 0.000 | 0 |"]
+    rows = []
+    for concept_record in concept_records:
+        surface_discovery = concept_record.get("surface_discovery", {}) or {}
+        polarity_mapping = concept_record.get("polarity_mapping", {}) or {}
+        rows.append(
+            f"| {concept_record.get('gold_id', '')} | {concept_record.get('doc_id', '')} | "
+            f"{len(concept_record.get('matched_concepts', []) or [])} | "
+            f"{len(concept_record.get('missing_concepts', []) or [])} | "
+            f"{len(concept_record.get('extra_concepts', []) or [])} | "
+            f"{float(surface_discovery.get('recall', 0)):.3f} | "
+            f"{int(polarity_mapping.get('mapped_count', 0))} |"
+        )
+    return rows
+
+
+def _concept_records_by_doc_id(
+    observations: list[dict[str, Any]],
+    *,
+    concept_field: str | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    concept_records_by_doc_id: dict[str, list[dict[str, Any]]] = {}
+    for observation in observations:
+        doc_id = str(observation["doc_id"])
+        concept_records_by_doc_id.setdefault(doc_id, []).extend(observation.get("parsed_rules", []) or [])
+        if concept_field is None:
+            suggested_concepts = (
+                observation.get("canonicalized_suggested_concepts", [])
+                or observation.get("suggested_concepts", [])
+                or []
+            )
+        else:
+            suggested_concepts = observation.get(concept_field, []) or []
+        if suggested_concepts:
+            concept_records_by_doc_id[doc_id].append(
+                {
+                    "doc_id": doc_id,
+                    "suggested_concepts": suggested_concepts,
+                }
+            )
+    return concept_records_by_doc_id
+
+
 def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None = None, experiments: list[str] | None = None, chunk_strategies: list[str] | None = None) -> dict[str, Any]:
     dataset_dir = _dataset_dir(dataset)
     docs = load_dataset_documents(dataset_dir, _source_root())
@@ -350,6 +1048,74 @@ def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None 
         doc_observations = [row for row in observations if row["doc_id"] == gold_row.get("doc_id")]
         extracted = doc_observations[0]["parsed_rules"] if doc_observations else []
         evaluations.append(evaluate_rule(gold_row, extracted))
+    audit_rows = load_gold_audit_rows(dataset_dir)
+    concept_records_by_doc_id = _concept_records_by_doc_id(observations)
+    raw_concept_records_by_doc_id = _concept_records_by_doc_id(
+        observations,
+        concept_field="suggested_concepts",
+    )
+    track_expectations = load_track_expectations(dataset_dir)
+    raw_concept_evaluations = [
+        evaluate_concept_expectation(
+            track_expectation,
+            raw_concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
+        for track_expectation in track_expectations["concept_discovery"]
+    ]
+    concept_evaluations = [
+        evaluate_concept_expectation(
+            track_expectation,
+            concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
+        for track_expectation in track_expectations["concept_discovery"]
+    ]
+    conversion_evaluations = [
+        evaluate_conversion_expectation(track_expectation, None)
+        for track_expectation in track_expectations["conversion"]
+    ]
+    contextual_evaluations = [
+        evaluate_contextual_expectation(
+            track_expectation,
+            concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
+        for track_expectation in track_expectations["contextual_handling"]
+    ]
+    extracted_concept_graph = build_extracted_concept_graph(
+        dataset_id=dataset,
+        run_type="dry_run",
+        extracted_rules=[
+            concept_record
+            for concept_records in concept_records_by_doc_id.values()
+            for concept_record in concept_records
+        ],
+        concept_expectations=track_expectations["concept_discovery"],
+    )
+    evaluation_concept_graph = build_evaluation_concept_graph(
+        dataset_id=dataset,
+        run_type="dry_run",
+        concept_expectations=track_expectations["concept_discovery"],
+        concept_evaluations=concept_evaluations,
+    )
+    concept_graph_artifacts = write_concept_graph_artifacts(
+        output_dir=output_dir,
+        extracted_graph=extracted_concept_graph,
+        evaluation_graph=evaluation_concept_graph,
+    )
+    stratified_evaluation = build_stratified_evaluation_report(
+        dataset_id=dataset,
+        run_type="dry_run",
+        gold_rows=gold,
+        audit_rows=audit_rows,
+        rule_evaluations=evaluations,
+        concept_evaluations=concept_evaluations,
+        conversion_evaluations=conversion_evaluations,
+        contextual_evaluations=contextual_evaluations,
+    )
+    stratified_evaluation["concept_graphs"] = concept_graph_artifacts
+    (output_dir / "rule-extraction-v1-stratified-evaluation-report.json").write_text(
+        json.dumps(stratified_evaluation, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     stability = summarize_stability(observations[: min(10, len(observations))])
     candidates = []
     for observation in observations:
@@ -368,6 +1134,7 @@ def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None 
         "rule-extraction-v1-observation-coverage-report.json": {"dataset_id": dataset, "observation_points": OBSERVATION_POINTS, "covered": sorted({point for row in observations for point in row.get("observation_points", {})}), "rows": observations[:5]},
         "rule-extraction-v1-field-evaluation-report.json": {"dataset_id": dataset, "evaluations": evaluations, "summary": precision_recall_f1(evaluations), "rows": evaluations},
         "rule-extraction-v1-stability-report.json": {"dataset_id": dataset, "summary": stability, "runs": observations[:10], "rows": observations[:10]},
+        "rule-extraction-v1-stratified-evaluation-report.json": stratified_evaluation,
     }
     for filename, data in reports.items():
         (output_dir / filename).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -379,13 +1146,24 @@ def run_research_real_run(
     dataset: str,
     output_dir: Path,
     llm_provider=None,
+    judge_provider=None,
+    judge_max_rules: int | None = None,
     arms: list[str] | None = None,
     experiments: list[str] | None = None,
     max_docs: int | None = None,
+    max_empty_retries: int = 2,
+    inter_doc_delay_seconds: float = 0.0,
     append_observations: bool = False,
+    resume: bool = False,
+    checkpoint_path: str | Path | None = None,
+    circuit_breaker_failures: int = 5,
+    circuit_breaker_cooldown_seconds: float = 300.0,
 ) -> dict[str, Any]:
     _load_default_dotenv()
     dataset_dir = _dataset_dir(dataset)
+    gold_rows = _load_gold(dataset_dir)
+    manifest_rows = _read_jsonl(dataset_dir / "manifest.jsonl")
+    source_text_bundle = _load_source_text_bundle(manifest_rows)
     docs = load_dataset_documents(dataset_dir, _source_root())
     if max_docs is not None:
         docs = docs[:max_docs]
@@ -393,8 +1171,39 @@ def run_research_real_run(
     arms = arms or ["C1", "C2"]
     experiments = experiments or ["E1"]
     if llm_provider is None:
-        llm_provider = OpenAICompatibleLLMProvider(LLMConfig.from_env())
-    extractor = RuleExtractor(llm_provider, load_baseline_rule_pack().concepts)
+        llm_provider = _build_default_extraction_provider()
+    baseline_rule_pack = load_baseline_rule_pack()
+    concept_registry_path = dataset_dir / "concept_registry.jsonl"
+    extra_concept_definitions = load_concept_definitions_from_jsonl(
+        concept_registry_path,
+        include_statuses=EXPERIMENT_CONCEPT_STATUSES,
+    )
+    extractor_registry = merge_concept_definitions(
+        baseline_rule_pack.concepts,
+        extra_concept_definitions,
+    )
+    concept_registry_included_statuses = [status.value for status in EXPERIMENT_CONCEPT_STATUSES]
+    concept_registry_paths = [concept_registry_path] if concept_registry_path.exists() else []
+    concept_registry_snapshot = _concept_registry_snapshot(
+        extractor_registry,
+        registry_paths=concept_registry_paths,
+        included_statuses=concept_registry_included_statuses,
+    )
+    concept_coverage = audit_concept_coverage(
+        manifest_rows=manifest_rows,
+        gold_rows=gold_rows,
+        registry=extractor_registry,
+    )
+    extractor = RuleExtractor(llm_provider, extractor_registry)
+    checkpoint = (
+        RunCheckpoint(Path(checkpoint_path))
+        if resume and checkpoint_path
+        else None
+    )
+    circuit_breaker = CircuitBreaker(
+        failure_threshold=circuit_breaker_failures,
+        cooldown_seconds=circuit_breaker_cooldown_seconds,
+    )
 
     observations: list[dict[str, Any]] = []
     operational_failures: list[dict[str, Any]] = []
@@ -404,6 +1213,10 @@ def run_research_real_run(
             source_content_strategy = ARM_SOURCE_CONTENT_STRATEGIES.get(arm_id, EXTRACTABLE_CONTENT)
             importer = DocumentImporter()
             for doc in docs:
+                if checkpoint is not None and checkpoint.is_completed(experiment_id, arm_id, doc.doc_id):
+                    continue
+                if circuit_breaker.should_pause(now_seconds=time.monotonic()):
+                    time.sleep(circuit_breaker_cooldown_seconds)
                 raw_text = Path(doc.source).read_text(encoding="utf-8")
                 selected = select_document_content(raw_text, source_content_strategy)
                 selected_doc = importer.import_from_text(
@@ -417,25 +1230,55 @@ def run_research_real_run(
                     chunk_strategy=source_content_strategy,
                 )
                 started = datetime.now(timezone.utc)
-                try:
-                    result = extractor.extract_and_validate(
-                        selected_doc.chunks,
-                        candidate_id_prefix=f"{experiment_id}-{arm_id}-{doc.doc_id}",
-                        max_retries=1,
-                    )
-                    parsed_rules = [_rule_to_dict(rule) for rule in result.rules]
-                    suggested = [_suggestion_to_dict(item) for item in result.suggested_concepts]
-                    failures = list(result.extraction_errors)
-                    parse_status = "parsed"
-                    finish_reason = "stop"
-                except Exception as exc:
-                    parsed_rules = []
-                    suggested = []
-                    failures = [f"provider_error:{type(exc).__name__}"]
-                    parse_status = "provider_error"
-                    finish_reason = "error"
+                empty_retries = 0
+                while True:
+                    try:
+                        result = extractor.extract_and_validate(
+                            selected_doc.chunks,
+                            candidate_id_prefix=f"{experiment_id}-{arm_id}-{doc.doc_id}",
+                            max_retries=1,
+                        )
+                        parsed_rules = [_rule_to_dict(rule) for rule in result.rules]
+                        suggested = [_suggestion_to_dict(item) for item in result.suggested_concepts]
+                        canonicalization_result = canonicalize_suggested_concepts(
+                            suggested,
+                            extractor_registry,
+                        )
+                        canonicalized_suggested = canonicalization_result.canonicalized_concepts
+                        concept_registry_delta_candidates = canonicalization_result.delta_candidates
+                        concept_canonicalization_summary = canonicalization_result.summary
+                        failures = list(result.extraction_errors)
+                        parse_status = "parsed"
+                        finish_reason = "stop"
+                        circuit_breaker.record_success()
+                    except Exception as exc:
+                        parsed_rules = []
+                        suggested = []
+                        canonicalized_suggested = []
+                        concept_registry_delta_candidates = []
+                        concept_canonicalization_summary = {
+                            "input_count": 0,
+                            "canonicalized_count": 0,
+                            "new_candidate_count": 0,
+                            "polarity_pair_count": 0,
+                        }
+                        failure_label = f"provider_error:{type(exc).__name__}:{exc}"
+                        failure_class = classify_provider_failure(failure_label)
+                        failures = [failure_label, f"provider_failure_class:{failure_class}"]
+                        parse_status = "provider_error"
+                        finish_reason = "error"
+                        circuit_breaker.record_failure(now_seconds=time.monotonic())
+                        break
+                    if parsed_rules or suggested or empty_retries >= max_empty_retries:
+                        break
+                    empty_retries += 1
                 latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
-                raw_payload = {"parsed_rules": parsed_rules, "suggested_concepts": suggested, "failures": failures}
+                raw_payload = {
+                    "parsed_rules": parsed_rules,
+                    "suggested_concepts": suggested,
+                    "canonicalized_suggested_concepts": canonicalized_suggested,
+                    "failures": failures,
+                }
                 comparator_input = ComparatorInput(
                     experiment_id=experiment_id,
                     arm_id=arm_id,
@@ -447,6 +1290,14 @@ def run_research_real_run(
                     chunk_hashes=tuple(chunk.metadata.get("chunk_hash", "") for chunk in selected_doc.chunks),
                 )
                 if _is_operational_llm_failure(failures, parsed_rules, suggested):
+                    provider_failure_class = next(
+                        (
+                            failure_label.removeprefix("provider_failure_class:")
+                            for failure_label in failures
+                            if str(failure_label).startswith("provider_failure_class:")
+                        ),
+                        classify_provider_failure(str(failures[0])) if failures else "provider_error",
+                    )
                     operational_failures.append(
                         {
                             "experiment_id": experiment_id,
@@ -457,6 +1308,7 @@ def run_research_real_run(
                             "source_content_strategy": source_content_strategy,
                             "latency_ms": latency_ms,
                             "failures": failures,
+                            "provider_failure_class": provider_failure_class,
                             "parse_status": parse_status,
                             "finish_reason": finish_reason,
                             "excluded_from_research": True,
@@ -471,38 +1323,235 @@ def run_research_real_run(
                     "model": getattr(getattr(llm_provider, "config", None), "model", None) or "injected-provider",
                     "provider": getattr(getattr(llm_provider, "config", None), "provider", None) or getattr(llm_provider, "name", "injected"),
                     "latency_ms": latency_ms,
+                    "empty_retry_count": empty_retries,
                     "finish_reason": finish_reason,
                     "parse_status": parse_status,
                     "source_content_strategy": source_content_strategy,
                     "parsed_rules": parsed_rules,
                     "suggested_concepts": suggested,
+                    "canonicalized_suggested_concepts": canonicalized_suggested,
+                    "concept_registry_delta_candidates": concept_registry_delta_candidates,
+                    "concept_canonicalization_summary": concept_canonicalization_summary,
                     "raw_output_hash": run_comparator_arm(comparator_input, provider=None)["raw_output_hash"],
                     "observation_points": {
                         **base["observation_points"],
-                        "O6": {**base["observation_points"]["O6"], "provider": "real_llm", "latency_ms": latency_ms, "empty_output": not bool(parsed_rules or suggested)},
+                        "O6": {**base["observation_points"]["O6"], "provider": "real_llm", "latency_ms": latency_ms, "empty_output": not bool(parsed_rules or suggested), "empty_retries": empty_retries},
                         "O8": {"parsed_rule_count": len(parsed_rules), "suggested_concept_count": len(suggested)},
                     },
-                    "failures": failures if failures else ([] if parsed_rules else ["no_rule_extracted"]),
+                    "failures": failures
+                    if failures
+                    else (
+                        []
+                        if parsed_rules or suggested
+                        else _research_failure_labels_for_empty_extraction(
+                            doc_id=doc.doc_id,
+                            gold_rows=gold_rows,
+                        )
+                    ),
                 }
                 observation["raw_output_hash"] = "sha256:" + __import__("hashlib").sha256(json.dumps(raw_payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
                 observations.append(observation)
                 if append_observations:
                     append_observation(observation_path, observation)
+                if checkpoint is not None:
+                    checkpoint.record_completed(experiment_id, arm_id, doc.doc_id)
+                if inter_doc_delay_seconds > 0:
+                    time.sleep(inter_doc_delay_seconds)
 
+    layer_0_1_summary = _attach_layer_0_1_evaluations(
+        observations,
+        manifest_rows,
+        source_text_bundle,
+    )
     stability = summarize_stability(observations)
-    evaluations = _evaluate_observations_against_gold(dataset_dir, observations)
+    gold_rows = _load_gold(dataset_dir)
+    audit_rows = load_gold_audit_rows(dataset_dir)
+    evaluations = annotate_evaluations_with_gold_audit(
+        _evaluate_observations_against_gold(dataset_dir, observations),
+        audit_rows,
+    )
     evaluation_summary = _summarize_evaluations(evaluations)
-    suggested_concept_summary = _summarize_suggested_concepts(observations)
+    gold_audit_report = write_gold_audit_report(
+        output_dir=output_dir,
+        dataset_id=dataset,
+        run_type="real_llm",
+        gold_rows=gold_rows,
+        evaluations=evaluations,
+        audit_rows=audit_rows,
+    )
+    track_expectations = load_track_expectations(dataset_dir)
+    raw_concept_records_by_doc_id = _concept_records_by_doc_id(
+        observations,
+        concept_field="suggested_concepts",
+    )
+    raw_concept_evaluations = [
+        evaluate_concept_expectation(
+            track_expectation,
+            raw_concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
+        for track_expectation in track_expectations["concept_discovery"]
+    ]
+    concept_records_by_doc_id = _concept_records_by_doc_id(observations)
+    concept_evaluations = [
+        evaluate_concept_expectation(
+            track_expectation,
+            concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
+        for track_expectation in track_expectations["concept_discovery"]
+    ]
+    conversion_evaluations = [
+        evaluate_conversion_expectation(track_expectation, None)
+        for track_expectation in track_expectations["conversion"]
+    ]
+    contextual_evaluations = [
+        evaluate_contextual_expectation(
+            track_expectation,
+            concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
+        for track_expectation in track_expectations["contextual_handling"]
+    ]
+    extracted_concept_graph = build_extracted_concept_graph(
+        dataset_id=dataset,
+        run_type="real_llm",
+        extracted_rules=[
+            concept_record
+            for concept_records in concept_records_by_doc_id.values()
+            for concept_record in concept_records
+        ],
+        concept_expectations=track_expectations["concept_discovery"],
+    )
+    evaluation_concept_graph = build_evaluation_concept_graph(
+        dataset_id=dataset,
+        run_type="real_llm",
+        concept_expectations=track_expectations["concept_discovery"],
+        concept_evaluations=concept_evaluations,
+    )
+    concept_graph_artifacts = write_concept_graph_artifacts(
+        output_dir=output_dir,
+        extracted_graph=extracted_concept_graph,
+        evaluation_graph=evaluation_concept_graph,
+    )
+    stratified_evaluation = build_stratified_evaluation_report(
+        dataset_id=dataset,
+        run_type="real_llm",
+        gold_rows=gold_rows,
+        audit_rows=audit_rows,
+        rule_evaluations=evaluations,
+        concept_evaluations=concept_evaluations,
+        conversion_evaluations=conversion_evaluations,
+        contextual_evaluations=contextual_evaluations,
+    )
+    stratified_evaluation["concept_graphs"] = concept_graph_artifacts
+    stratified_evaluation_report_path = output_dir / "rule-extraction-v1-stratified-evaluation-report.json"
+    stratified_evaluation_report_path.write_text(
+        json.dumps(stratified_evaluation, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    judge_call_limit = None
+    if judge_provider is not None and judge_max_rules == 0:
+        judge_observations = []
+        judge_call_limit = 0
+    elif judge_provider is not None and judge_max_rules is not None:
+        judge_observations = _select_judge_calibration_observations(
+            observations=observations,
+            evaluations=evaluations,
+            max_cases=judge_max_rules,
+        )
+    else:
+        judge_observations = observations
+    judge_sampling = {
+        "strategy": "stratified_by_gold_outcome" if judge_provider is not None and judge_max_rules != 0 else "not_run",
+        "requested_max_cases": judge_max_rules,
+        "selected_observation_count": len(judge_observations) if judge_provider is not None else 0,
+    }
+    layer_2_judge = _attach_layer_2_judge_evaluations(
+        judge_observations,
+        dataset_dir,
+        source_text_bundle,
+        judge_provider,
+        evaluations,
+        judge_call_limit,
+    )
+    golden_eval_accuracy = write_golden_eval_accuracy_artifacts(
+        output_dir=output_dir,
+        dataset_id=dataset,
+        run_type="real_llm",
+        evaluations=evaluations,
+        layer_summaries={**layer_0_1_summary, "layer_2_judge": layer_2_judge},
+    )
+    raw_suggested_concept_summary = _summarize_suggested_concepts(
+        observations,
+        concept_field="suggested_concepts",
+    )
+    suggested_concept_summary = _summarize_suggested_concepts(
+        observations,
+        concept_field="canonicalized_suggested_concepts",
+    )
+    concept_registry_delta_candidates = [
+        delta_candidate
+        for observation in observations
+        for delta_candidate in observation.get("concept_registry_delta_candidates", []) or []
+    ]
+    concept_registry_delta_artifacts = _write_concept_registry_delta_artifacts(
+        output_dir=output_dir,
+        dataset_id=dataset,
+        registry_snapshot=concept_registry_snapshot,
+        delta_candidates=concept_registry_delta_candidates,
+    )
+    concept_discovery_ablation = {
+        "raw": summarize_concept_evaluations(raw_concept_evaluations),
+        "canonicalized": summarize_concept_evaluations(concept_evaluations),
+        "raw_records": raw_concept_evaluations,
+        "canonicalized_records": concept_evaluations,
+    }
     report = {
         "dataset_id": dataset,
         "run_type": "real_llm",
         "model": observations[0]["model"] if observations else "",
         "provider": observations[0]["provider"] if observations else "",
+        "judge_model": getattr(getattr(judge_provider, "config", None), "model", None) if judge_provider else "",
+        "judge_provider": getattr(getattr(judge_provider, "config", None), "provider", None) if judge_provider else "",
+        "requested_max_docs": max_docs,
+        "effective_document_count": len(docs),
+        "max_empty_retries": max_empty_retries,
+        "inter_doc_delay_seconds": inter_doc_delay_seconds,
+        "resume": resume,
+        "checkpoint_path": str(checkpoint_path or ""),
+        "circuit_breaker_failures": circuit_breaker_failures,
+        "circuit_breaker_cooldown_seconds": circuit_breaker_cooldown_seconds,
+        "source_text_diagnostics": source_text_bundle.diagnostics,
+        "concept_registry_paths": [str(path) for path in concept_registry_paths],
+        "concept_registry_included_statuses": concept_registry_included_statuses,
+        "concept_registry_snapshot": concept_registry_snapshot,
+        "concept_registry_extra_count": len(extra_concept_definitions),
+        "concept_coverage": concept_coverage,
         "observation_count": len(observations),
         "operational_failure_count": len(operational_failures),
+        "operational_failure_summary": _summarize_operational_failures(operational_failures),
+        "paired_arm_summary": _summarize_paired_arm_rule_presence(
+            observations,
+            left_arm="C1",
+            right_arm="C2",
+        ),
+        "numeric_limit_summary": _summarize_numeric_limit_failures(evaluations),
+        "judge_sampling": judge_sampling,
         "evaluation_summary": evaluation_summary,
+        "clean_evaluation_summary": gold_audit_report["clean_evaluation_summary"],
+        "gold_audit": gold_audit_report,
+        "stratified_evaluation": stratified_evaluation,
+        "stratified_evaluation_report_path": str(stratified_evaluation_report_path),
+        "concept_graphs": concept_graph_artifacts,
+        "golden_eval_accuracy": golden_eval_accuracy,
+        **layer_0_1_summary,
+        "layer_2_judge": layer_2_judge,
         "evaluations": evaluations,
+        "raw_suggested_concept_summary": raw_suggested_concept_summary,
         "suggested_concept_summary": suggested_concept_summary,
+        "concept_discovery_ablation": concept_discovery_ablation,
+        "concept_registry_delta_candidates": concept_registry_delta_candidates,
+        "concept_registry_delta": concept_registry_delta_artifacts,
+        "concept_registry_delta_jsonl_path": concept_registry_delta_artifacts["jsonl_path"],
+        "concept_registry_delta_report_path": concept_registry_delta_artifacts["report_path"],
         "observations": observations,
         "operational_failures": operational_failures,
         "stability": stability,
@@ -528,6 +1577,7 @@ def run_research_real_run(
         encoding="utf-8",
     )
     visual_summary_path = _write_real_llm_visual_summary(output_dir, report, evaluation_summary)
+    layered_summary_path = _write_layered_evaluation_summary(output_dir, report)
     return {
         "dataset_id": dataset,
         "observation_count": len(observations),
@@ -535,7 +1585,10 @@ def run_research_real_run(
         "evaluated_record_count": len(evaluations),
         "report_path": str(output_dir / "rule-extraction-v1-real-llm-report.json"),
         "evaluation_report_path": str(evaluation_report_path),
+        "golden_eval_accuracy_report_path": golden_eval_accuracy["report_path"],
+        "golden_eval_accuracy_chart_path": golden_eval_accuracy["chart_path"],
         "visual_summary_path": str(visual_summary_path),
+        "layered_summary_path": str(layered_summary_path),
     }
 
 
@@ -785,6 +1838,12 @@ def _serialize_suggestion(suggestion: SuggestedConcept) -> dict[str, Any]:
         "definition": suggestion.definition,
         "source_chunk_ids": suggestion.source_chunk_ids,
         "display_name": suggestion.display_name,
+        "aliases": list(suggestion.aliases),
+        "polarity": suggestion.polarity,
+        "parent_concepts": list(suggestion.parent_concepts),
+        "related_concepts": list(suggestion.related_concepts),
+        "evidence_quotes": list(suggestion.evidence_quotes),
+        "confidence": suggestion.confidence,
     }
 
 
@@ -909,6 +1968,19 @@ def _safe_model_snapshot() -> dict[str, str | None]:
     }
 
 
+def _build_default_extraction_provider() -> OpenAICompatibleLLMProvider:
+    return OpenAICompatibleLLMProvider(LLMConfig.from_env(prefix="MEDIDIET_LLM_"))
+
+
+def _build_default_judge_provider() -> OpenAICompatibleLLMProvider:
+    return OpenAICompatibleLLMProvider(
+        LLMConfig.from_env(
+            prefix="MEDIDIET_JUDGE_LLM_",
+            fallback_prefix="MEDIDIET_LLM_",
+        )
+    )
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -929,28 +2001,72 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--chunk-strategies", default="raw_card,extractable_content")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--real-llm", action="store_true")
+    parser.add_argument("--discover-concepts", action="store_true")
+    parser.add_argument("--judge-llm", action="store_true")
+    parser.add_argument(
+        "--judge-max-rules",
+        type=int,
+        default=20,
+        help="Maximum extracted rules to evaluate with Judge LLM when --judge-llm is set; use 0 to skip judge calls.",
+    )
     parser.add_argument("--append-observations", action="store_true")
     parser.add_argument("--write-reports", action="store_true")
     parser.add_argument("--output-dir", default=str(REPO_ROOT / "reports"))
     parser.add_argument(
         "--max-docs",
         type=int,
-        default=2,
+        default=0,
         help="Maximum source documents to run in real-LLM mode; use 0 for all documents.",
     )
+    parser.add_argument(
+        "--max-empty-retries",
+        type=int,
+        default=2,
+        help="Retry extraction up to N times when LLM returns empty rules and no suggested concepts.",
+    )
+    parser.add_argument(
+        "--inter-doc-delay-seconds",
+        type=float,
+        default=5.0,
+        help="Seconds to sleep after each successful observation in real-LLM mode.",
+    )
+    parser.add_argument("--resume", action="store_true", help="Skip completed experiment/arm/doc rows from checkpoint.")
+    parser.add_argument("--checkpoint-path", default="", help="JSONL checkpoint path for real-LLM runs.")
+    parser.add_argument("--circuit-breaker-failures", type=int, default=5)
+    parser.add_argument("--circuit-breaker-cooldown-seconds", type=float, default=300.0)
     args = parser.parse_args(argv)
     arms = [item for item in args.arms.split(",") if item] or None
     experiments = [item for item in args.experiments.split(",") if item] or None
     strategies = [item for item in args.chunk_strategies.split(",") if item] or None
     max_docs = None if args.max_docs <= 0 else args.max_docs
-    if args.real_llm:
+    if args.discover_concepts:
+        _load_default_dotenv()
+        run_concept_discovery_report(
+            args.dataset,
+            Path(args.output_dir),
+            provider=_build_default_extraction_provider(),
+            max_docs=max_docs,
+        )
+    elif args.real_llm:
+        judge_provider = None
+        if args.judge_llm:
+            _load_default_dotenv()
+            judge_provider = _build_default_judge_provider()
         run_research_real_run(
             args.dataset,
             Path(args.output_dir),
+            judge_provider=judge_provider,
+            judge_max_rules=args.judge_max_rules if args.judge_llm else None,
             arms=arms,
             experiments=experiments,
             max_docs=max_docs,
+            max_empty_retries=args.max_empty_retries,
+            inter_doc_delay_seconds=args.inter_doc_delay_seconds,
             append_observations=args.append_observations,
+            resume=args.resume,
+            checkpoint_path=args.checkpoint_path,
+            circuit_breaker_failures=args.circuit_breaker_failures,
+            circuit_breaker_cooldown_seconds=args.circuit_breaker_cooldown_seconds,
         )
     else:
         run_research_dry_run(args.dataset, Path(args.output_dir), arms=arms, experiments=experiments, chunk_strategies=strategies)

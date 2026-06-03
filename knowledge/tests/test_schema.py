@@ -312,3 +312,28 @@ class TestSuggestedConcept:
         )
         assert sc.suggest_id == "sug-001"
         assert sc.suggested_code.value == "low_purine"
+
+    def test_suggestion_can_carry_concept_graph_metadata(self):
+        sc = SuggestedConcept(
+            suggest_id="sug-001",
+            candidate_rule_id="cand-001",
+            suggested_code=ConceptCode(CodeKind.NUTRITION_TAG, "low_purine"),
+            definition="Foods low in purines for gout management",
+            source_chunk_ids=["chunk-010"],
+            display_name="Low Purine",
+            aliases=("purine_restriction", "limit_high_purine_foods"),
+            polarity="prefer",
+            parent_concepts=("gout_diet_context",),
+            related_concepts=(
+                {"target": "high_purine", "relation": "polarity_pair"},
+            ),
+            evidence_quotes=("Limit high-purine foods.",),
+            confidence=0.82,
+        )
+
+        assert sc.aliases == ("purine_restriction", "limit_high_purine_foods")
+        assert sc.polarity == "prefer"
+        assert sc.parent_concepts == ("gout_diet_context",)
+        assert sc.related_concepts[0]["relation"] == "polarity_pair"
+        assert sc.evidence_quotes == ("Limit high-purine foods.",)
+        assert sc.confidence == 0.82

@@ -1,4 +1,5 @@
 import unittest
+import json
 
 from medidiet.domain import CodeKind, ConceptCode
 from medidiet.rules import (
@@ -68,6 +69,36 @@ class RulePackTest(unittest.TestCase):
             pack.for_condition(ConceptCode(CodeKind.CONDITION, "kidney_disease"))
         with self.assertRaises(TypeError):
             pack.for_condition(ConceptCode(CodeKind.ALLERGEN, "peanut"))
+
+    def test_rule_pack_can_merge_approved_product_concepts(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as tmpdir:
+            concept_path = Path(tmpdir) / "concepts.jsonl"
+            concept_path.write_text(
+                json.dumps(
+                    {
+                        "kind": "condition",
+                        "value": "general_population",
+                        "display_name": "General Population",
+                        "aliases": ["public adults"],
+                        "source_type": "manual",
+                        "status": "approved",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            pack = load_baseline_rule_pack(concept_registry_paths=[concept_path])
+
+        self.assertEqual(
+            pack.concepts.require(CodeKind.CONDITION, "general_population"),
+            ConceptCode(CodeKind.CONDITION, "general_population"),
+        )
+        with self.assertRaises(ValueError):
+            pack.for_condition(ConceptCode(CodeKind.CONDITION, "general_population"))
 
     def test_nutrient_limit_rejects_invalid_boundaries_and_windows(self):
         invalid_limits = [

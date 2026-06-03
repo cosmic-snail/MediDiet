@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
+from knowledge.evaluation_taxonomy import AuditStatus, EvidenceLevel, RecommendedAction
 from knowledge.loader import KnowledgeLoader
 
 
@@ -200,6 +202,9 @@ def test_manifest_records_have_required_fields_and_existing_markdown_paths():
 
 ALLOWED_EXPECTED_BEHAVIORS = {"rule", "suggested_concept", "negative", "contextual", "conflict"}
 ALLOWED_GOLD_BEHAVIORS = {"rule", "suggested_concept", "negative"}
+ALLOWED_GOLD_AUDIT_EVIDENCE_LEVELS = {evidence_level.value for evidence_level in EvidenceLevel}
+ALLOWED_GOLD_AUDIT_STATUSES = {audit_status.value for audit_status in AuditStatus}
+ALLOWED_GOLD_AUDIT_ACTIONS = {recommended_action.value for recommended_action in RecommendedAction}
 ALLOWED_FAILURE_TYPES = {
     "unsupported_nutrient_metric",
     "unknown_condition",
@@ -249,6 +254,39 @@ def test_gold_evaluation_set_is_small_frozen_and_offline_only():
         assert row["created_for"] == "offline_evaluation_only"
         assert row["frozen"] is True
         assert "evidence_requirement" in row
+
+
+def test_gold_audit_metadata_covers_every_frozen_gold_row():
+    gold_rows = _read_jsonl(DATASET_DIR / "gold_evaluation_set.jsonl")
+    audit_rows = _read_jsonl(DATASET_DIR / "gold_audit.jsonl")
+    gold_ids = {row["gold_id"] for row in gold_rows}
+    audit_gold_ids = {row["gold_id"] for row in audit_rows}
+
+    assert audit_gold_ids == gold_ids
+    for audit_row in audit_rows:
+        assert audit_row["evidence_level"] in ALLOWED_GOLD_AUDIT_EVIDENCE_LEVELS
+        assert audit_row["audit_status"] in ALLOWED_GOLD_AUDIT_STATUSES
+        assert audit_row["recommended_action"] in ALLOWED_GOLD_AUDIT_ACTIONS
+        assert audit_row["audit_notes"]
+
+
+def test_source_cards_do_not_expose_benchmark_gold_answer_language():
+    manifest_rows = _manifest_rows()
+    leakage_patterns = [
+        re.compile(r"\bbenchmark card\b", re.IGNORECASE),
+        re.compile(r"\bfrozen gold\b", re.IGNORECASE),
+        re.compile(r"\bgold metric\b", re.IGNORECASE),
+        re.compile(r"\bgold (?:requires|expects|uses)\b", re.IGNORECASE),
+    ]
+
+    for manifest_row in manifest_rows:
+        source_document_path = REPO_ROOT / manifest_row["path"]
+        source_text = source_document_path.read_text(encoding="utf-8")
+        for leakage_pattern in leakage_patterns:
+            assert not leakage_pattern.search(source_text), (
+                f"{manifest_row['doc_id']} source card contains benchmark/gold answer language: "
+                f"{leakage_pattern.pattern}"
+            )
 
 
 def test_challenge_set_references_manifest_docs_and_uses_known_failure_taxonomy():
