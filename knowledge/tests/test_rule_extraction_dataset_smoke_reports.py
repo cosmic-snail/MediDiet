@@ -76,6 +76,40 @@ def test_concept_records_include_top_level_suggested_concepts():
     ]
 
 
+def test_concept_records_prefer_canonicalized_suggestions_for_evaluation():
+    observations = [
+        {
+            "doc_id": "gout-doc",
+            "parsed_rules": [],
+            "suggested_concepts": [
+                {"kind": "nutrition_tag", "suggested_code": "adequate_hydration"},
+            ],
+            "canonicalized_suggested_concepts": [
+                {
+                    "kind": "nutrition_tag",
+                    "suggested_code": "hydration_support",
+                    "raw_suggested_code": "adequate_hydration",
+                }
+            ],
+        }
+    ]
+
+    concept_records_by_doc_id = _concept_records_by_doc_id(observations)
+
+    assert concept_records_by_doc_id["gout-doc"] == [
+        {
+            "doc_id": "gout-doc",
+            "suggested_concepts": [
+                {
+                    "kind": "nutrition_tag",
+                    "suggested_code": "hydration_support",
+                    "raw_suggested_code": "adequate_hydration",
+                }
+            ],
+        }
+    ]
+
+
 def test_suggestion_to_dict_preserves_concept_graph_metadata():
     suggestion = SuggestedConcept(
         suggest_id="sug-001",

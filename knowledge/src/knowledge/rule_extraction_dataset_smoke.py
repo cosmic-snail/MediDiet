@@ -20,8 +20,9 @@ from medidiet.llm import LLMConfig, OpenAICompatibleLLMProvider
 from medidiet.rules import load_baseline_rule_pack
 from knowledge.dataset_manifest import load_dataset_documents, snapshot_source_hashes
 from knowledge.concept_coverage import audit_concept_coverage
+from knowledge.concept_canonicalization import canonicalize_suggested_concepts
 from knowledge.concept_discovery import discover_concept_candidates
-from knowledge.concept_evaluation import evaluate_concept_expectation
+from knowledge.concept_evaluation import evaluate_concept_expectation, summarize_concept_evaluations
 from knowledge.concept_graph_visualization import (
     build_evaluation_concept_graph,
     build_extracted_concept_graph,
@@ -306,12 +307,16 @@ def _summarize_evaluations(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _summarize_suggested_concepts(observations: list[dict[str, Any]]) -> dict[str, Any]:
+def _summarize_suggested_concepts(
+    observations: list[dict[str, Any]],
+    *,
+    concept_field: str = "suggested_concepts",
+) -> dict[str, Any]:
     concept_counts: Counter[str] = Counter()
     concept_sources: dict[str, set[str]] = {}
     for observation in observations:
         doc_id = str(observation.get("doc_id", ""))
-        for suggestion in observation.get("suggested_concepts", []):
+        for suggestion in observation.get(concept_field, []) or []:
             code = suggestion.get("suggested_code")
             if not code:
                 continue
@@ -761,6 +766,13 @@ def _write_layered_evaluation_summary(output_dir: Path, report: dict[str, Any]) 
     concept_polarity = concept_discovery_overall.get("polarity_mapping", {})
     concept_semantic = concept_discovery_overall.get("semantic_linking", {})
     concept_umbrella = concept_discovery_overall.get("umbrella_decomposition", {})
+    concept_discovery_ablation = report.get("concept_discovery_ablation", {})
+    raw_concept_ablation = concept_discovery_ablation.get("raw", {})
+    canonicalized_concept_ablation = concept_discovery_ablation.get("canonicalized", {})
+    raw_concept_atomic = raw_concept_ablation.get("atomic", {})
+    canonicalized_concept_atomic = canonicalized_concept_ablation.get("atomic", {})
+    raw_concept_surface = raw_concept_ablation.get("surface_discovery", {})
+    canonicalized_concept_surface = canonicalized_concept_ablation.get("surface_discovery", {})
     lines = [
         "# Rule Extraction Layered Evaluation Summary",
         "",
@@ -803,6 +815,23 @@ def _write_layered_evaluation_summary(output_dir: Path, report: dict[str, Any]) 
         f"- polarity mapped: {concept_polarity.get('mapped_count', 0)}",
         f"- semantic linked/unlinked: {concept_semantic.get('linked_count', 0)} / {concept_semantic.get('unlinked_count', 0)}",
         f"- umbrella average coverage: {concept_umbrella.get('average_coverage', 0):.3f}",
+        "",
+        "### Canonicalization Ablation",
+        "",
+        "| Variant | Atomic Precision | Atomic Recall | Atomic F1 | Surface Recall |",
+        "| --- | ---: | ---: | ---: | ---: |",
+        (
+            f"| raw | {raw_concept_atomic.get('precision', 0):.3f} | "
+            f"{raw_concept_atomic.get('recall', 0):.3f} | "
+            f"{raw_concept_atomic.get('f1', 0):.3f} | "
+            f"{raw_concept_surface.get('recall', 0):.3f} |"
+        ),
+        (
+            f"| canonicalized | {canonicalized_concept_atomic.get('precision', 0):.3f} | "
+            f"{canonicalized_concept_atomic.get('recall', 0):.3f} | "
+            f"{canonicalized_concept_atomic.get('f1', 0):.3f} | "
+            f"{canonicalized_concept_surface.get('recall', 0):.3f} |"
+        ),
         "",
         "| Gold | Doc | Matched | Missing | Extra | Surface Recall | Polarity Mapped |",
         "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
@@ -861,12 +890,23 @@ def _concept_discovery_record_rows(concept_records: list[dict[str, Any]]) -> lis
     return rows
 
 
-def _concept_records_by_doc_id(observations: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+def _concept_records_by_doc_id(
+    observations: list[dict[str, Any]],
+    *,
+    concept_field: str | None = None,
+) -> dict[str, list[dict[str, Any]]]:
     concept_records_by_doc_id: dict[str, list[dict[str, Any]]] = {}
     for observation in observations:
         doc_id = str(observation["doc_id"])
         concept_records_by_doc_id.setdefault(doc_id, []).extend(observation.get("parsed_rules", []) or [])
-        suggested_concepts = observation.get("suggested_concepts", []) or []
+        if concept_field is None:
+            suggested_concepts = (
+                observation.get("canonicalized_suggested_concepts", [])
+                or observation.get("suggested_concepts", [])
+                or []
+            )
+        else:
+            suggested_concepts = observation.get(concept_field, []) or []
         if suggested_concepts:
             concept_records_by_doc_id[doc_id].append(
                 {
@@ -904,7 +944,18 @@ def run_research_dry_run(dataset: str, output_dir: Path, arms: list[str] | None 
         evaluations.append(evaluate_rule(gold_row, extracted))
     audit_rows = load_gold_audit_rows(dataset_dir)
     concept_records_by_doc_id = _concept_records_by_doc_id(observations)
+    raw_concept_records_by_doc_id = _concept_records_by_doc_id(
+        observations,
+        concept_field="suggested_concepts",
+    )
     track_expectations = load_track_expectations(dataset_dir)
+    raw_concept_evaluations = [
+        evaluate_concept_expectation(
+            track_expectation,
+            raw_concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
+        for track_expectation in track_expectations["concept_discovery"]
+    ]
     concept_evaluations = [
         evaluate_concept_expectation(
             track_expectation,
@@ -1076,6 +1127,13 @@ def run_research_real_run(
                         )
                         parsed_rules = [_rule_to_dict(rule) for rule in result.rules]
                         suggested = [_suggestion_to_dict(item) for item in result.suggested_concepts]
+                        canonicalization_result = canonicalize_suggested_concepts(
+                            suggested,
+                            extractor_registry,
+                        )
+                        canonicalized_suggested = canonicalization_result.canonicalized_concepts
+                        concept_registry_delta_candidates = canonicalization_result.delta_candidates
+                        concept_canonicalization_summary = canonicalization_result.summary
                         failures = list(result.extraction_errors)
                         parse_status = "parsed"
                         finish_reason = "stop"
@@ -1083,6 +1141,14 @@ def run_research_real_run(
                     except Exception as exc:
                         parsed_rules = []
                         suggested = []
+                        canonicalized_suggested = []
+                        concept_registry_delta_candidates = []
+                        concept_canonicalization_summary = {
+                            "input_count": 0,
+                            "canonicalized_count": 0,
+                            "new_candidate_count": 0,
+                            "polarity_pair_count": 0,
+                        }
                         failure_label = f"provider_error:{type(exc).__name__}:{exc}"
                         failure_class = classify_provider_failure(failure_label)
                         failures = [failure_label, f"provider_failure_class:{failure_class}"]
@@ -1094,7 +1160,12 @@ def run_research_real_run(
                         break
                     empty_retries += 1
                 latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
-                raw_payload = {"parsed_rules": parsed_rules, "suggested_concepts": suggested, "failures": failures}
+                raw_payload = {
+                    "parsed_rules": parsed_rules,
+                    "suggested_concepts": suggested,
+                    "canonicalized_suggested_concepts": canonicalized_suggested,
+                    "failures": failures,
+                }
                 comparator_input = ComparatorInput(
                     experiment_id=experiment_id,
                     arm_id=arm_id,
@@ -1145,6 +1216,9 @@ def run_research_real_run(
                     "source_content_strategy": source_content_strategy,
                     "parsed_rules": parsed_rules,
                     "suggested_concepts": suggested,
+                    "canonicalized_suggested_concepts": canonicalized_suggested,
+                    "concept_registry_delta_candidates": concept_registry_delta_candidates,
+                    "concept_canonicalization_summary": concept_canonicalization_summary,
                     "raw_output_hash": run_comparator_arm(comparator_input, provider=None)["raw_output_hash"],
                     "observation_points": {
                         **base["observation_points"],
@@ -1192,8 +1266,19 @@ def run_research_real_run(
         evaluations=evaluations,
         audit_rows=audit_rows,
     )
-    concept_records_by_doc_id = _concept_records_by_doc_id(observations)
     track_expectations = load_track_expectations(dataset_dir)
+    raw_concept_records_by_doc_id = _concept_records_by_doc_id(
+        observations,
+        concept_field="suggested_concepts",
+    )
+    raw_concept_evaluations = [
+        evaluate_concept_expectation(
+            track_expectation,
+            raw_concept_records_by_doc_id.get(str(track_expectation["doc_id"]), []),
+        )
+        for track_expectation in track_expectations["concept_discovery"]
+    ]
+    concept_records_by_doc_id = _concept_records_by_doc_id(observations)
     concept_evaluations = [
         evaluate_concept_expectation(
             track_expectation,
@@ -1281,7 +1366,25 @@ def run_research_real_run(
         evaluations=evaluations,
         layer_summaries={**layer_0_1_summary, "layer_2_judge": layer_2_judge},
     )
-    suggested_concept_summary = _summarize_suggested_concepts(observations)
+    raw_suggested_concept_summary = _summarize_suggested_concepts(
+        observations,
+        concept_field="suggested_concepts",
+    )
+    suggested_concept_summary = _summarize_suggested_concepts(
+        observations,
+        concept_field="canonicalized_suggested_concepts",
+    )
+    concept_registry_delta_candidates = [
+        delta_candidate
+        for observation in observations
+        for delta_candidate in observation.get("concept_registry_delta_candidates", []) or []
+    ]
+    concept_discovery_ablation = {
+        "raw": summarize_concept_evaluations(raw_concept_evaluations),
+        "canonicalized": summarize_concept_evaluations(concept_evaluations),
+        "raw_records": raw_concept_evaluations,
+        "canonicalized_records": concept_evaluations,
+    }
     report = {
         "dataset_id": dataset,
         "run_type": "real_llm",
@@ -1322,7 +1425,10 @@ def run_research_real_run(
         **layer_0_1_summary,
         "layer_2_judge": layer_2_judge,
         "evaluations": evaluations,
+        "raw_suggested_concept_summary": raw_suggested_concept_summary,
         "suggested_concept_summary": suggested_concept_summary,
+        "concept_discovery_ablation": concept_discovery_ablation,
+        "concept_registry_delta_candidates": concept_registry_delta_candidates,
         "observations": observations,
         "operational_failures": operational_failures,
         "stability": stability,
